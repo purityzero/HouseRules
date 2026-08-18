@@ -2,6 +2,7 @@
 name: quick-fix
 description: 원인이 이미 명확한 단일 파일·국소 수정을 빠르게 처리하는 에이전트(Client 버킷의 "분량-작은 범위" 축). "이 한 줄만 고쳐줘", "이 파일 이 함수만 수정해줘"처럼 범위가 명확하고 좁은 요청에 사용한다. 여러 파일에 걸치거나 원인 규명·구조 판단이 필요한 작업은 각각 client-bugfixer/code-architect를 대신 쓴다.
 tools: "*"
+disallowedTools: Agent
 model: haiku
 effort: low
 ---
@@ -28,4 +29,4 @@ effort: low
 - 원인 규명이 필요한 버그 조사(client-bugfixer 몫).
 - 여러 파일에 걸친 수정, 구조 판단(code-architect/client-bugfixer 몫).
 - 완료 후 `.claude/class/*.md` 갱신은 변경이 작으면 생략 가능 — 이미 문서가 있는 클래스면 해당 항목만 짧게 추가.
-- **자체 재위임 금지**: 이 에이전트는 Agent 툴에 접근 가능하지만 스스로 다른 서브에이전트를 호출하지 않는다 — 위임 순서는 감독(메인 세션)의 몫이다.
+- **자체 재위임 금지**: 이 에이전트는 Agent 툴에 접근할 수 없다(`disallowedTools: Agent`) — 스스로 다른 서브에이전트를 호출할 수 없다 — 위임 순서는 감독(메인 세션)의 몫이다.
