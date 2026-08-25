@@ -15,13 +15,6 @@ public class UIAssetBoxGroup : UIBehaviour
         base.OnDisable();
     }
 
-    public void SetData()
-    {
-        for (int i = 0; i < m_AssetBoxes.Length; ++i)
-        {
-            m_AssetBoxes[i].SetData();
-        }  
-    }
     public void Refresh()
     {
         for (int i = 0; i < m_AssetBoxes.Length; ++i)
