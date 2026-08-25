@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 // BaseScene의 OnEnable()이 씬 내 다른 스크립트의 OnEnable()보다 먼저 실행되도록 강제 —
@@ -7,12 +8,43 @@ using UnityEngine;
 [DefaultExecutionOrder(-1000)]
 public class TitleScene : BaseScene
 {
+    [SerializeField] private TextMeshProUGUI m_PlayButtonText;
+    [SerializeField] private TextMeshProUGUI m_HouseSelectButtonText;
+    [SerializeField] private TextMeshProUGUI m_UpgradeButtonText;
+    [SerializeField] private TextMeshProUGUI m_SettingButtonText;
+
     protected override void OnSetup()
     {
-        // 주의: 이 메서드에 TableManager.init() 같은 "공용 시스템 재초기화" 로직을 넣지 말 것 —
-        // 전체 초기화 경로와 중복 호출되어 테이블 데이터가 배수로 누적되는 버그가 된다.
-        // BGM 재생은 그런 공용 시스템과 무관한 이 씬 자체의 1회성 진입 연출이라 안전.
+        // 이 프로젝트엔 아직 부팅 진입점(GameManager 등)이 없어 테이블을 로드하는 곳이 여기뿐이다.
+        // init()은 자체 멱등 가드(m_isInitialized)를 갖고 있어, 나중에 부팅 진입점이 생겨
+        // 양쪽에서 호출돼도 테이블이 중복 누적되지 않는다. 진입점이 생기면 이 줄을 그쪽으로 옮긴다.
+        TableManager.instance.init();
+
+        ApplyLocalizedText();
         PlayBgm();
+    }
+
+    private void ApplyLocalizedText()
+    {
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        if (stringTable == null)
+        {
+            Logger.Error($"[TitleScene] ApplyLocalizedText Failed! StringTable not found");
+            return;
+        }
+
+        SetText(m_PlayButtonText, stringTable.GetString("TitlePlay"));
+        SetText(m_HouseSelectButtonText, stringTable.GetString("TitleHouseSelect"));
+        SetText(m_UpgradeButtonText, stringTable.GetString("TitleUpgrade"));
+        SetText(m_SettingButtonText, stringTable.GetString("TitleSetting"));
+    }
+
+    private void SetText(TextMeshProUGUI _text, string _value)
+    {
+        if (_text == null)
+            return;
+
+        _text.text = _value;
     }
 
     private void PlayBgm()
@@ -30,5 +62,25 @@ public class TitleScene : BaseScene
             return;
 
         SoundManager.instance.PlayBgm(clip);
+    }
+
+    public void OnClickPlayButton()
+    {
+        // TODO: 인게임 씬 진입
+    }
+
+    public void OnClickHouseSelectButton()
+    {
+        // TODO: 종족 선택 화면 — 체스/장기/포커/화투
+    }
+
+    public void OnClickUpgradeButton()
+    {
+        // TODO: 업그레이드 화면
+    }
+
+    public void OnClickSettingButton()
+    {
+        // TODO: 설정 화면
     }
 }
