@@ -1,0 +1,257 @@
+<title>타이틀 화면 설계</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Press+Start+2P&display=swap">
+
+<style>
+  :root {
+    --ground:#EDEFF2; --surface:#FFFFFF; --sunk:#E2E6EB;
+    --text:#1A1D24; --muted:#5B6473; --border:#D4D9E0;
+    --accent:#3E7099; --accent-soft:#7FA7C9;
+    --done:#2F7D5B; --done-bg:#E4F0EA;
+    --open:#9A6B12; --open-bg:#F7EEDA;
+
+    --chess:#7FA7C9; --janggi:#57A277; --poker:#D6A441; --hwatu:#D1554C;
+
+    --font-display:"Press Start 2P","Courier New",monospace;
+    --font-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+    --font-mono:"IBM Plex Mono","Consolas",monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#15171C; --surface:#1D2027; --sunk:#101216;
+      --text:#E5E8ED; --muted:#939BA9; --border:#2B303A;
+      --accent:#7FA7C9; --accent-soft:#5A88AF;
+      --done:#5FB98C; --done-bg:#16281F;
+      --open:#D9A94A; --open-bg:#2A2314;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#15171C; --surface:#1D2027; --sunk:#101216;
+    --text:#E5E8ED; --muted:#939BA9; --border:#2B303A;
+    --accent:#7FA7C9; --accent-soft:#5A88AF;
+    --done:#5FB98C; --done-bg:#16281F;
+    --open:#D9A94A; --open-bg:#2A2314;
+  }
+
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--ground); color:var(--text); font-family:var(--font-body); font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1000px; margin:0 auto; padding:44px 22px 80px; display:flex; flex-direction:column; gap:44px; }
+
+  .masthead { display:flex; flex-direction:column; gap:12px; }
+  .eyebrow { font-family:var(--font-display); font-size:9px; letter-spacing:.08em; color:var(--accent); line-height:1.9; }
+  h1 { margin:0; font-size:clamp(27px,4vw,37px); font-weight:600; letter-spacing:-.015em; text-wrap:balance; }
+  .lede { margin:0; max-width:64ch; color:var(--muted); }
+  .lede b { color:var(--text); font-weight:600; }
+
+  section { display:flex; flex-direction:column; gap:16px; }
+  h2 { margin:0; font-size:20px; font-weight:600; letter-spacing:-.01em; }
+  h2 .n { font-family:var(--font-mono); font-size:13px; color:var(--accent); margin-right:9px; }
+  .sub { margin:0; color:var(--muted); max-width:66ch; }
+
+  /* ---- 상태 칩 ---- */
+  .st { display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:999px; font-family:var(--font-mono); font-size:11px; white-space:nowrap; }
+  .st--done { background:var(--done-bg); color:var(--done); }
+  .st--open { background:var(--open-bg); color:var(--open); }
+
+  /* ---- 화면 다이어그램 (1920x1080 비율) ---- */
+  .diagram { position:relative; width:100%; aspect-ratio:16/9; background:var(--sunk); border:1px solid var(--border); border-radius:10px; overflow:hidden; font-family:var(--font-mono); }
+  .box { position:absolute; border:1px dashed var(--accent-soft); border-radius:4px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:11px; color:var(--text); background:color-mix(in srgb, var(--surface) 62%, transparent); }
+  .box small { display:block; color:var(--muted); font-size:10px; }
+  .box--bg { inset:0; border-style:solid; border-color:var(--border); background:transparent; align-items:flex-start; justify-content:flex-start; padding:8px 10px; color:var(--muted); }
+  .diagram__axis { position:absolute; left:0; right:0; top:50%; border-top:1px solid color-mix(in srgb, var(--accent-soft) 45%, transparent); }
+  .diagram__axis::after { content:"y = 0"; position:absolute; left:8px; top:2px; font-size:10px; color:var(--accent); }
+
+  /* ---- 표 ---- */
+  .tablewrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; background:var(--surface); }
+  th, td { padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:500; background:var(--sunk); }
+  tr:last-child td { border-bottom:0; }
+  td code, .sub code, li code, p code { font-family:var(--font-mono); font-size:12.5px; background:var(--sunk); padding:1px 6px; border-radius:4px; }
+  .num { font-family:var(--font-mono); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  /* ---- 종족 카드 ---- */
+  .houses { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+  .house { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--hc); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:5px; }
+  .house__top { display:flex; align-items:baseline; gap:8px; }
+  .house__en { font-family:var(--font-display); font-size:9px; line-height:1.9; color:var(--hc); }
+  .house__ko { font-weight:600; font-size:15px; }
+  .house__meta { font-family:var(--font-mono); font-size:11.5px; color:var(--muted); }
+
+  /* ---- 결정 목록 ---- */
+  .decisions { display:flex; flex-direction:column; gap:10px; counter-reset:d; }
+  .decision { background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:14px 16px; display:flex; flex-direction:column; gap:7px; }
+  .decision__head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .decision__q { font-weight:600; font-size:15px; }
+  .decision__q::before { counter-increment:d; content:"Q" counter(d); font-family:var(--font-mono); font-size:12px; color:var(--accent); margin-right:8px; }
+  .decision p { margin:0; color:var(--muted); font-size:14px; }
+  .opts { margin:0; padding-left:19px; color:var(--muted); font-size:14px; display:flex; flex-direction:column; gap:3px; }
+  .opts b { color:var(--text); font-weight:600; }
+
+  .note { padding:16px 18px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--open); border-radius:9px; }
+  .note h3 { margin:0 0 7px; font-size:14.5px; font-weight:600; }
+  .note p { margin:0 0 8px; color:var(--muted); font-size:14px; max-width:68ch; }
+  .note p:last-child { margin-bottom:0; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">HOUSE RULEZ &nbsp;/&nbsp; TITLE SCREEN</div>
+    <h1>타이틀 화면 설계</h1>
+    <p class="lede">지금 씬에 <b>실제로 들어간 것</b>과 <b>아직 정하지 않은 것</b>을 나눠 적는다. 좌표는 Canvas 1920×1080 기준 실측값이고, 미정 항목은 마지막 절에 선택지와 함께 모아 뒀다.</p>
+  </header>
+
+  <section>
+    <h2><span class="n">01</span>화면 구성</h2>
+    <p class="sub">Canvas는 <code>ScaleWithScreenSize</code>, 기준 해상도 1920×1080, <code>Match = Width</code>. 아래는 화면 중앙을 <code>y = 0</code>으로 둔 실제 배치다.</p>
+
+    <div class="diagram">
+      <div class="box box--bg">Background — 화면 전체 · 가로 스크롤</div>
+      <div class="diagram__axis"></div>
+      <div class="box" style="left:35.8%; top:15.8%; width:28.3%; height:30.5%;">Title 로고<small>y +300 · 544×329</small></div>
+      <div class="box" style="left:39.1%; top:50.9%; width:21.9%; height:40.0%;">Menu 박스<small>y −120 · 420×432</small></div>
+      <div class="box" style="left:39.1%; top:91.6%; width:21.9%; height:10.2%; border-style:dotted;">UnitRow<small>y −400</small></div>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>요소</th><th>좌표 / 크기</th><th>내용</th><th>상태</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>Background</code></td>
+            <td class="num">전체 stretch</td>
+            <td><code>RawImage</code> + <code>TitleBackgroundScroller</code>. 텍스처 <code>bg_chess_castle</code>, <code>uvRect (0, 0, 0.8, 1)</code>, 초당 텍스처 폭의 0.02배로 가로 스크롤(한 바퀴 50초).</td>
+            <td><span class="st st--done">구현</span></td>
+          </tr>
+          <tr>
+            <td><code>Title</code></td>
+            <td class="num">y +300<br>544 × 329</td>
+            <td>HOUSE RULEZ 워드마크 + 네 종족 심볼. 기존 에셋을 그대로 씀.</td>
+            <td><span class="st st--done">구현</span></td>
+          </tr>
+          <tr>
+            <td><code>Menu</code></td>
+            <td class="num">y −120<br>420 × 432</td>
+            <td>패널 <code>#454B5E</code> 86%. 안에 버튼 4개(340×80, 간격 16).</td>
+            <td><span class="st st--done">구현</span></td>
+          </tr>
+          <tr>
+            <td><code>UnitRow</code></td>
+            <td class="num">y −400<br>420 × 110</td>
+            <td>현재 종족의 유닛 4개를 가로로. 슬롯 간격 105, 스프라이트 ×3 배율, 바닥 정렬.</td>
+            <td><span class="st st--open">규칙 미정</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span>메뉴 버튼</h2>
+    <p class="sub">네 개 모두 씬에 있고 <code>onClick</code>도 <code>TitleScene</code>의 핸들러에 연결돼 있다. <b>다만 핸들러 본문이 전부 비어 있다</b> — 눌러도 아무 일도 일어나지 않는다.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>버튼</th><th>표시(Kr)</th><th>핸들러</th><th>눌렀을 때</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>PlayButton</code></td><td>시작하기</td><td><code>OnClickPlayButton</code></td><td><span class="st st--open">미정</span> 인게임 씬 진입</td></tr>
+          <tr><td><code>HouseSelectButton</code></td><td>종족선택하기</td><td><code>OnClickHouseSelectButton</code></td><td><span class="st st--open">미정</span> 종족 선택 UI</td></tr>
+          <tr><td><code>UpgradeButton</code></td><td>업그레이드</td><td><code>OnClickUpgradeButton</code></td><td><span class="st st--open">미정</span> 메타 성장</td></tr>
+          <tr><td><code>SettingButton</code></td><td>설정</td><td><code>OnClickSettingButton</code></td><td><span class="st st--open">미정</span> 설정 팝업</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="sub">라벨은 <code>StringTable.csv</code>의 키(<code>TitlePlay</code>, <code>TitleHouseSelect</code>, <code>TitleUpgrade</code>, <code>TitleSetting</code>)로 채운다. 한/영/중/일 4개 열이 이미 들어 있고, 언어는 <code>Application.systemLanguage</code>로 자동 판별한다.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">03</span>종족과 배경</h2>
+    <p class="sub">배경 4장은 모두 <code>Assets/Resources/Image/Title/</code>에 들어와 있다. 전부 640×288 가로 seamless이고, 각 배경의 지배 색조가 그 종족의 액센트다. <b>지금 씬은 체스 배경만 고정으로 물려 있다.</b></p>
+
+    <div class="houses">
+      <div class="house" style="--hc:var(--chess)">
+        <div class="house__top"><span class="house__en">CHESS</span><span class="house__ko">체스</span></div>
+        <div class="house__meta">#7FA7C9 · 유럽 중세</div>
+        <div class="house__meta">bg_chess_castle</div>
+      </div>
+      <div class="house" style="--hc:var(--janggi)">
+        <div class="house__top"><span class="house__en">JANGGI</span><span class="house__ko">장기</span></div>
+        <div class="house__meta">#57A277 · 한국·중국 고대</div>
+        <div class="house__meta">bg_janggi_fortress</div>
+      </div>
+      <div class="house" style="--hc:var(--poker)">
+        <div class="house__top"><span class="house__en">POKER</span><span class="house__ko">포커</span></div>
+        <div class="house__meta">#D6A441 · 미국 서부</div>
+        <div class="house__meta">bg_poker_frontier</div>
+      </div>
+      <div class="house" style="--hc:var(--hwatu)">
+        <div class="house__top"><span class="house__en">HWATU</span><span class="house__ko">화투</span></div>
+        <div class="house__meta">#D1554C · 일본·한국</div>
+        <div class="house__meta">bg_hwatu_moonfield</div>
+      </div>
+    </div>
+
+    <p class="sub">종족이 바뀌면 <b>배경과 UnitRow가 함께</b> 바뀌어야 한다. 유닛 스프라이트는 <code>Resources/Image/InGame/Actor/{house}/</code>에 있고, 종족별 종류 수가 다르다 — 체스 6 · 장기 7 · 화투 12 · 포커 13.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">04</span>정해야 할 것</h2>
+    <p class="sub">구현을 이어가려면 먼저 답이 필요한 항목들이다. 각 선택지의 첫 줄이 지금 구조에서 가장 손이 적게 가는 쪽이다.</p>
+
+    <div class="decisions">
+      <div class="decision">
+        <div class="decision__head"><span class="decision__q">현재 종족을 어디에 저장하나?</span></div>
+        <p>배경·유닛·인게임이 모두 이 값을 읽는다. 지금은 저장소 자체가 없다.</p>
+        <ul class="opts">
+          <li><b>PlayerPrefs에 종족 Id 하나</b> — 세이브 시스템이 생기기 전까지의 최소 구성</li>
+          <li>세이브 데이터 클래스를 지금 만들고 그 안에 넣기</li>
+        </ul>
+      </div>
+
+      <div class="decision">
+        <div class="decision__head"><span class="decision__q">유닛 4개를 언제, 어떻게 뽑나?</span></div>
+        <p>지금은 에디터에서 한 번 뽑아 씬에 굳어 있다. 종족마다 종류 수가 6~13으로 달라서 중복 규칙도 정해야 한다.</p>
+        <ul class="opts">
+          <li><b>타이틀 진입 때마다 중복 없이 4개</b> — 매번 달라 보여 화면이 심심하지 않다</li>
+          <li>고정 4개(대표 유닛) — 종족 정체성이 일관되게 읽힌다</li>
+          <li>중복 허용 랜덤 — 릴에서 실제로 나오는 분포와 가깝다</li>
+        </ul>
+      </div>
+
+      <div class="decision">
+        <div class="decision__head"><span class="decision__q">종족 선택은 어떤 화면인가?</span></div>
+        <p>타이틀 위 팝업인지, 별도 씬인지에 따라 배경 교체 타이밍이 달라진다.</p>
+        <ul class="opts">
+          <li><b>타이틀 위 팝업</b> — 고르는 즉시 뒤 배경이 바뀌어 미리보기가 된다</li>
+          <li>별도 씬 — 종족별 규칙 설명까지 넣을 공간이 생긴다</li>
+        </ul>
+      </div>
+
+      <div class="decision">
+        <div class="decision__head"><span class="decision__q">해금 상태를 타이틀에서 보여주나?</span></div>
+        <p>GDD상 종족은 <b>체스 → 장기 → 화투 → 포커</b> 순으로 해금된다(풀 크기 순 = 난이도 순).</p>
+        <ul class="opts">
+          <li><b>안 보여준다</b> — 종족 선택 화면에서만 잠금 표시</li>
+          <li>타이틀에 진행도 표시 — 다음 목표가 계속 보인다</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span>알려진 미결 사항</h2>
+    <div class="note">
+      <h3>기획이 아니라 구현 쪽 부채</h3>
+      <p><b>부팅 진입점이 없다.</b> <code>TableManager.init()</code>을 부르는 곳이 없어서, 임시로 <code>TitleScene.OnSetup()</code>에서 호출하고 있다. <code>GameManager</code> 같은 진입점을 만들면 그쪽으로 옮겨야 한다.</p>
+      <p><b>BGM이 없다.</b> <code>SoundTable.csv</code>에 <code>TitleTheme</code> 행과 오디오 파일이 모두 없어, 진입할 때마다 조회 실패 로그만 남는다(동작에는 지장 없음).</p>
+      <p><b>유닛 스프라이트가 Bilinear + PPU 100이다.</b> GDD 기준은 Point + PPU 32다. ×3으로 확대해 쓰는 지금 구성에서는 도트가 뭉개져 보인다.</p>
+      <p><b>배경 배율이 비정수(3.75배)다.</b> 1920×1080에 640×288을 정수 배율로 꽉 채우는 조합이 없다. 정수를 고집하면 위아래가 잘리고, 지금처럼 두면 픽셀 크기가 3px/4px로 불균일해진다.</p>
+    </div>
+  </section>
+</div>
