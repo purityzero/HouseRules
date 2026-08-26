@@ -13,12 +13,18 @@ public class TitleScene : BaseScene
     [SerializeField] private TextMeshProUGUI m_UpgradeButtonText;
     [SerializeField] private TextMeshProUGUI m_SettingButtonText;
 
+    [SerializeField] private UIHouseSelect m_HouseSelect;
+
     protected override void OnSetup()
     {
         // 이 프로젝트엔 아직 부팅 진입점(GameManager 등)이 없어 테이블을 로드하는 곳이 여기뿐이다.
         // init()은 자체 멱등 가드(m_isInitialized)를 갖고 있어, 나중에 부팅 진입점이 생겨
         // 양쪽에서 호출돼도 테이블이 중복 누적되지 않는다. 진입점이 생기면 이 줄을 그쪽으로 옮긴다.
         TableManager.instance.init();
+
+        // 저장본을 여기서 깨운다(MonoSingleton이 없으면 만들면서 Awake -> Load까지 돈다).
+        // ApplyLocalizedText()보다 반드시 먼저여야 한다 — 저장된 언어가 StringTable.CurrentLanguage에 반영된 뒤 텍스트를 뽑아야 한다.
+        PlayerManager.instance.Load();
 
         ApplyLocalizedText();
         PlayBgm();
@@ -71,7 +77,13 @@ public class TitleScene : BaseScene
 
     public void OnClickHouseSelectButton()
     {
-        // TODO: 종족 선택 화면 — 체스/장기/포커/화투
+        if (m_HouseSelect == null)
+        {
+            Logger.Error($"[TitleScene] OnClickHouseSelectButton Failed! UIHouseSelect not linked");
+            return;
+        }
+
+        m_HouseSelect.Open();
     }
 
     public void OnClickUpgradeButton()
