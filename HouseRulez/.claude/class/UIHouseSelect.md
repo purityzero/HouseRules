@@ -74,7 +74,7 @@ Id,Key,NameKey,AccentColor,PoolCount,AxisPower,AxisVariance,AxisCeiling,AxisLear
 
 ### 남은 것
 - **마작 축 2개(`AxisCeiling`/`AxisLearning`)가 0이라 막대가 빈다.** 값이 정해지면 CSV만 고치면 된다.
-- **마작 유닛 스프라이트 없음** — `Image/InGame/Actor/mahjong/` 폴더 자체가 없어 말 줄이 빈다.
+- ~~마작 유닛 스프라이트 없음 — `Image/InGame/Actor/mahjong/` 폴더 자체가 없어 말 줄이 빈다.~~ → **2026-08-26에 해소.** 현재 폴더에 마작 9장(각 `_blur` 사본 포함 18장)이 존재한다.
 - ~~선택 결과를 저장하지 않는다.~~ → **2026-08-26-1에서 해결.** 아래 참고.
 - `Play` 버튼과의 연결 없음 — 고른 종족으로 인게임에 들어가는 경로가 아직 없다.
 
@@ -125,3 +125,15 @@ if (PlayerManager.instance.IsHouseUnlocked(record) == true)
 
 ### 검증 상태 — **미검증**
 Unity MCP 미연결 세션이라 컴파일/Play Mode 확인을 못 했다. 이전 리비전(2026-08-26-0)의 Play Mode 통과 결과는 이 변경 **이전** 것이다.
+
+---
+
+## 2026-08-26-2 — 블러 이미지 필터 추가
+
+### 문제
+2026-08-26에 슬롯 릴 회전용 블러 스프라이트 47장(`{원본이름}_blur.png`)을 추가했는데, `HouseSpriteLoader.Load()`의 필터링에 `_blur`가 없어서 블러 이미지와 원본 이미지가 **둘 다** 말 목록에 들어갔다. 종족 선택 화면 위쪽 말 줄과 타이틀 말 줄에 블러 이미지가 섞여 보였고, 표시 개수도 두 배가 됐다.
+
+### 수정 — [[HouseRecord.cs]]
+**`HouseSpriteLoader` 클래스**에 제외 접미사 배열을 추가하고 필터링 로직을 변경:
+- `EXCLUDE_SUFFIXES` static readonly 배열에 `_x8`, `_blur` 저장 (이후 추가 접미사 발생 시 목록에만 추가하면 됨)
+- 필터 루프를 배열 순회로 변경하여 각 접미사를 검사

@@ -34,6 +34,9 @@ public class HouseTable : Table<HouseRecord>
 // 종족 말 스프라이트 로딩. 종족 선택 화면과 타이틀 유닛 줄이 같은 규칙으로 읽어야 해서 한곳에 모은다.
 public static class HouseSpriteLoader
 {
+    // 로드할 때 제외할 스프라이트 이름 접미사. _x8(미리 확대해둔 사본), _blur(슬롯 릴 회전용)는 "말 종류"가 아니다.
+    private static readonly string[] EXCLUDE_SUFFIXES = { "_x8", "_blur" };
+
     public static List<Sprite> Load(HouseRecord _record)
     {
         List<Sprite> listSprite = new List<Sprite>();
@@ -43,11 +46,20 @@ public static class HouseSpriteLoader
         if (string.IsNullOrEmpty(_record.SpriteFolder) == true)
             return listSprite;
 
-        // Resources.LoadAll은 폴더 안 전부를 가져오므로 미리 확대해둔 _x8 사본은 걸러낸다
         Sprite[] loaded = Resources.LoadAll<Sprite>($"Image/InGame/Actor/{_record.SpriteFolder}");
         for (int i = 0; i < loaded.Length; ++i)
         {
-            if (loaded[i].name.Contains("_x8") == true)
+            bool shouldExclude = false;
+            for (int j = 0; j < EXCLUDE_SUFFIXES.Length; ++j)
+            {
+                if (loaded[i].name.Contains(EXCLUDE_SUFFIXES[j]) == true)
+                {
+                    shouldExclude = true;
+                    break;
+                }
+            }
+
+            if (shouldExclude == true)
                 continue;
 
             listSprite.Add(loaded[i]);
