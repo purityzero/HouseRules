@@ -9,6 +9,7 @@ public class InGameScene : BaseScene
 {
     [SerializeField] private UIHouseSlotMachine m_SlotMachine;
     [SerializeField] private Button m_SpinButton;
+    [SerializeField] private RawImage m_BackgroundImage;
     [SerializeField] private float m_SpinDuration = 1.5f; // 판정기가 아직 없어 임의로 굴리는 시간(전투/판정 붙으면 대체될 값)
 
     private Coroutine m_SpinRoutine;
@@ -32,6 +33,8 @@ public class InGameScene : BaseScene
         }
 
         m_SlotMachine.Apply(record);
+
+        ApplyBackground(record);
 
         if (m_SpinButton != null)
             m_SpinButton.onClick.AddListener(OnClickSpinButton);
@@ -58,5 +61,20 @@ public class InGameScene : BaseScene
 
         m_SlotMachine.StopAll();
         m_SpinRoutine = null;
+    }
+
+    private void ApplyBackground(HouseRecord _record)
+    {
+        if (m_BackgroundImage == null)
+            return;
+
+        if (string.IsNullOrEmpty(_record.BackgroundPath) == true)
+            return;
+
+        Texture texture = ResUtil.Load<Texture>(_record.BackgroundPath);
+        if (texture == null)
+            return;
+
+        m_BackgroundImage.texture = texture;
     }
 }

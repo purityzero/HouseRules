@@ -20,6 +20,7 @@ Global Light 2D                                       (TitleScene 보일러플�
 EventSystem                                            (TitleScene 보일러플레이트 복사)
 Canvas                                                 CanvasScaler(1920x1080, ScaleWithScreenSize) + GraphicRaycaster
 └─ SafeRoot                     RectTransform 1920x864, Canvas 중앙 고정
+   ├─ Background                  RawImage 1920x864, 좌상단 앵커 (0,0)           ★ 정지 배경, m_RaycastTarget: 0
    └─ SlotMachine                RectTransform 408x780, SafeRoot 좌상단 기준 (12,-72)   ← UIHouseSlotMachine
       ├─ Frame                   Image 408x780 (스프라이트는 Apply()가 frame_{종족키}로 교체)
       ├─ ReelWindow               RectTransform 288x288, SlotMachine 로컬 (60,-162)      ← RectMask2D ★
@@ -62,3 +63,46 @@ Unity MCP 미연결로 컴파일/씬 열기/Play Mode 확인을 하지 못했다
 - `RectMask2D`의 직렬화 필드(`m_Padding`, `m_Softness`)가 이 Unity/UGUI 버전과 정확히 맞는지(패키지 소스로 대조는 했으나 실행 확인은 못 함)
 - SPIN 클릭 → 릴 3개 스핀 → 순차 정지가 실제 화면에서 의도대로 보이는지(좌표/마스크가 픽셀 단위로 맞는지)
 - 프레임 PNG(`frame_{종족키}.png`)가 실제로 로드되어 붙는지
+
+---
+
+## 2026-08-26-1 — 인게임 씬 배경 추가 (정지 배경)
+
+### 개요
+"인게임 씬 배경을 종족 테마로 정지 상태(스크롤 없음)로 깔아라"는 요청으로 배경 오브젝트를 추가했다.
+
+### 수정한 파일
+- `Assets/Scenes/InGameScene.unity` — Background GameObject 추가 (fileID: 900200160-163)
+- `Assets/Scripts/InGame/InGameScene.cs` — `m_BackgroundImage` 필드 + `ApplyBackground()` 메서드 추가
+
+### 변경 상세
+
+#### YAML: Background 오브젝트 추가
+- GameObject (fileID: 900200160): RectTransform + CanvasRenderer + RawImage
+- RectTransform (fileID: 900200161): 1920×864, 좌상단 앵커/피벗 (0,1), AnchoredPosition (0,0) — SafeRoot를 정확히 채운다
+- CanvasRenderer (fileID: 900200162): 표준 설정
+- RawImage (fileID: 900200163): m_RaycastTarget: 0 (배경이 클릭을 가로채면 SPIN 버튼이 안 눌림), m_Texture: {fileID: 0} (코드가 런타임에 넣음), m_UVRect 1.0×1.0 (정지 배경)
+
+SafeRoot의 `m_Children` 목록에 Background를 **맨 앞**에 배치 → SlotMachine 뒤에 그려짐(UGUI는 형제 순서대로 렌더링)
+
+#### C#: 배경 로드 로직
+- `[SerializeField] private RawImage m_BackgroundImage;` 필드 추가 (씬에서 fileID 900200163으로 연결)
+- `OnSetup()`에서 `ApplyBackground(record)` 호출
+- `ApplyBackground(HouseRecord _record)` 메서드 추가:
+  - `BackgroundPath`가 비어있으면 조용히 return (배경 없어도 게임은 정상 동작)
+  - `ResUtil.Load<Texture>()` 로 경로에서 텍스처 로드 (실패 시 return)
+  - 로드 성공 시 `m_BackgroundImage.texture` 에 대입
+  - 포맷은 UIHouseSelect.ApplyBackground() 와 동일
+
+### 배경 텍스처 목록
+`HouseTable.csv` BackgroundPath 컬럼:
+- chess: `Image/Title/bg_chess_castle`
+- janggi: `Image/Title/bg_janggi_fortress`
+- hwatu: `Image/Title/bg_hwatu_moonfield`
+- poker: `Image/Title/bg_poker_frontier`
+- mahjong: `Image/Title/bg_mahjong_teahouse`
+
+모두 640×288 가로 seamless, 인게임 ×3 배율(1920×864) 스크린에 정확히 맞음
+
+### 검증 상태 — 미검증
+Unity MCP 미연결로 컴파일 확인을 하지 못했다. 파일 수정만 완료했으며, 실제 씬 열기/배경 로드/SPIN 버튼 클릭 동작은 에디터 확인 필요.
