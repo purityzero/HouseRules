@@ -1,0 +1,62 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+
+// TitleScene.cs와 동일한 이유로 DefaultExecutionOrder(-1000) 적용 —
+// BaseScene.OnEnable()이 씬 내 다른 스크립트의 OnEnable()보다 먼저 실행되도록 강제한다.
+[DefaultExecutionOrder(-1000)]
+public class InGameScene : BaseScene
+{
+    [SerializeField] private UIHouseSlotMachine m_SlotMachine;
+    [SerializeField] private Button m_SpinButton;
+    [SerializeField] private float m_SpinDuration = 1.5f; // 판정기가 아직 없어 임의로 굴리는 시간(전투/판정 붙으면 대체될 값)
+
+    private Coroutine m_SpinRoutine;
+
+    protected override void OnSetup()
+    {
+        TableManager.instance.init();
+        PlayerManager.instance.Load();
+
+        if (m_SlotMachine == null)
+        {
+            Logger.Error($"[InGameScene] OnSetup Failed! UIHouseSlotMachine not linked");
+            return;
+        }
+
+        HouseRecord record = PlayerManager.instance.GetSelectedHouseRecord();
+        if (record == null)
+        {
+            Logger.Error($"[InGameScene] OnSetup Failed! GetSelectedHouseRecord == null");
+            return;
+        }
+
+        m_SlotMachine.Apply(record);
+
+        if (m_SpinButton != null)
+            m_SpinButton.onClick.AddListener(OnClickSpinButton);
+        else
+            Logger.Error($"[InGameScene] OnSetup Failed! SpinButton not linked");
+    }
+
+    public void OnClickSpinButton()
+    {
+        if (m_SlotMachine == null)
+            return;
+
+        if (m_SpinRoutine != null)
+            StopCoroutine(m_SpinRoutine);
+
+        m_SpinRoutine = StartCoroutine(CoSpinAndStop());
+    }
+
+    private IEnumerator CoSpinAndStop()
+    {
+        m_SlotMachine.Spin();
+
+        yield return new WaitForSeconds(m_SpinDuration);
+
+        m_SlotMachine.StopAll();
+        m_SpinRoutine = null;
+    }
+}

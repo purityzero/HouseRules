@@ -74,6 +74,7 @@ UIHouseSlotMachine (컨트롤러)
 2. `FrameImage`용 자식 `Image` 1개, 선택적으로 `HeaderBarImage`용 자식 `Image` 1개 생성 후 필드 연결.
 3. `UIHouseSlotSymbol`이 붙은 자식(자기 밑에 `Image`가 연결된 32x32 정도 크기)을 1개 만들어 **비활성 상태로** 두고 `SymbolTemplate` 필드에 연결.
 4. 릴 루트로 쓸 빈 GameObject(RectTransform, height ≈ 224) 3개를 만들어 각각 `UIHouseSlotReel` 부착 → `ReelList` 배열에 순서대로 연결. 릴 루트는 프레임 안쪽 96x96 창(3칸x32px) 안에 가로로 나란히 배치.
+4-1. **마스크 필수(2026-08-26 보완)**: 릴 루트 3개의 공통 부모로 "보이는 창" 크기(3칸 분량, 예: 96x96)의 빈 GameObject를 하나 두고 `RectMask2D`를 부착한 뒤 그 밑에 릴 3개를 자식으로 넣는다. 릴 루트 실제 높이(칸수 7 × 칸크기)가 보이는 창보다 훨씬 크므로, 마스크가 없으면 스크롤 중인 위아래 버퍼 칸들이 프레임 밖으로 삐져나와 화면 전체에 흘러다닌다(`InGameScene.unity`의 `ReelWindow`가 이 역할, `.claude/class/InGameScene.md` 참고 — 최초 작성 시 이 문서에서 빠져 있던 단계).
 5. `m_SymbolCountPerReel`(기본 7), `m_ReelStopInterval`(기본 0.2초)는 필요시 인스펙터에서 조정.
 6. 완성 후 `PlayerManager.instance.GetSelectedHouseRecord()`로 얻은 레코드를 `Apply()`에 넘겨 첫 세팅, 이후 `Spin()`/`StopAll()`로 구동.
 
@@ -82,3 +83,6 @@ UIHouseSlotMachine (컨트롤러)
 
 ### 검증 상태 — 미검증
 이번 세션은 Unity MCP가 연결되지 않아 컴파일/Play Mode 확인을 하지 못했다. 코드 리딩 기반으로만 작성했다. `BuildSymbols`로 늘어난 칸 수에서 `PosmaxDownY`/`AnswerPosY` 스크롤이 매끄럽게 보이는지, 블러 스프라이트 파일명 규칙(`{원본이름}_blur`)이 실제 리소스 파일명과 정확히 일치하는지 모두 **실제 프리팹 조립 + 플레이 테스트로 확인 필요**.
+
+### 2026-08-26-2 — InGameScene에 실제 배치
+프리팹 대신 `Assets/Scenes/InGameScene.unity`에 직접 배치해 처음으로 실제 씬에 연결했다. 계층/좌표/마스크 구조는 `.claude/class/InGameScene.md` 참고. `Apply()`/`Spin()`/`StopAll()` 호출부는 `InGameScene.OnSetup()`/`OnClickSpinButton()`.
