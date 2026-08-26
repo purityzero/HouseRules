@@ -25,6 +25,11 @@ public class UISlotMachineReel : MonoBehaviour
     [SerializeField] private float m_SpeedRatio = 0.1f;
     [SerializeField] private float m_SpeedReverseRatio = 0.1f;
     [SerializeField] private float m_BlurSpeed = 40f;
+
+    // 정지 구간에서 정착 직전까지 줄어드는 최저 속도.
+    // 감속이 없으면 등속으로 돌다가 툭 멈춰 회전이 끊겨 보이고, 속도가 안 떨어지니 블러도 끝까지 남는다.
+    [SerializeField] private float m_StopMinSpeed = 6f;
+
     [SerializeField] private float m_ResultTweenDuration = 0.15f;
     [SerializeField] private AudioClip m_TickClip;
 
@@ -40,6 +45,7 @@ public class UISlotMachineReel : MonoBehaviour
     private float m_Speed;
     private bool m_isReverse;
     private int m_ReelIndex;
+    private bool m_isBlurNow;
 
     public FsmClass<eReelState> fsm => m_Fsm;
     public IReadOnlyList<UISlotMachineSymbol> symbolList => m_SymbolList;
@@ -141,6 +147,10 @@ public class UISlotMachineReel : MonoBehaviour
 
     public void ResetSymbol()
     {
+        // 칸을 전부 선명하게 다시 여는 자리라 블러 상태 캐시도 함께 되돌린다.
+        // 안 맞추면 다음 스핀에서 "이미 블러"로 잘못 판단해 블러가 영영 안 걸린다.
+        m_isBlurNow = false;
+
         for (int index = 0; index < m_SymbolList.Count; ++index)
         {
             m_SymbolList[index].Open(0, false);
@@ -226,28 +236,65 @@ public class UISlotMachineReel : MonoBehaviour
         {
             float remain = -transform.localPosition.y + PosmaxDownY();
             ResetPosition(remain + GetSpeed(_stateTime));
-            ChangeSymbol(m_Speed > m_BlurSpeed);
+
+            // 새로 굴러 들어오는 칸도 지금의 블러 상태를 따라야 한다. 여기서만 블러를 판정하면
+            // 순환하지 않는 프레임(정지 후반)에는 갱신이 안 돼 블러가 그대로 굳는다.
+            ChangeSymbol(m_isBlurNow);
             return;
         }
 
         ResetPosition(-transform.localPosition.y + GetSpeed(_stateTime));
     }
 
+    /// <summary>
+    /// 정지 구간 감속 속도. _remainRatio는 정착 지점까지 남은 거리의 비율(1이면 막 감속을 시작한 참, 0이면 정착).
+    /// 시간이 아니라 남은 거리로 줄이는 이유: 속도가 프레임당 이동량이라 시간 기반으로 줄이면
+    /// 남은 거리를 다 소진하기 전에 감속이 끝나버린다(정착 구간이 짧으면 거의 등속으로 도착한다).
+    /// </summary>
+    public float GetStopSpeed(float _remainRatio)
+    {
+        m_Speed = Mathf.Lerp(m_StopMinSpeed, m_MaxSpeed, Mathf.Clamp01(_remainRatio));
+
+        return m_Speed;
+    }
+
+    /// <summary>
+    /// 현재 속도로 블러 여부를 정한다. 상태가 실제로 바뀔 때만 스프라이트를 갈아끼운다 —
+    /// 매 프레임 전 칸에 대입하면 도는 내내 불필요한 비용이 든다.
+    /// </summary>
+    public void UpdateBlurBySpeed(float _speed)
+    {
+        SetBlurState(_speed > m_BlurSpeed);
+    }
+
+    public void SetBlurState(bool _isBlur)
+    {
+        if (_isBlur == m_isBlurNow)
+            return;
+
+        m_isBlurNow = _isBlur;
+        AllBlur(_isBlur);
+    }
+
+    // 순환 한 칸. 릴을 한 칸 위로 되돌리는 것과 짝이 되어야 하므로 내용은 반드시 "아래로" 한 칸 민다
+    // (index가 index-1의 값을 받고, 맨 위 칸에 새 심볼이 들어온다).
+    // 방향이 반대면 릴 되돌림과 내용 밀기가 같은 쪽으로 겹쳐, 순환하는 프레임마다 심볼이 두 칸 넘게
+    // 위로 튄다 — 회전이 흐르지 않고 제자리에서 그림만 갈아끼워지는 것처럼 보인다.
     private void ChangeSymbol(bool _isBlur)
     {
         PlayTickSound();
 
-        int lastIndex = m_SymbolList.Count - 1;
-        for (int index = 0; index < m_SymbolList.Count; ++index)
+        // 아래에서 위로 순회해야 아직 안 읽은 칸을 덮어쓰지 않는다.
+        for (int index = m_SymbolList.Count - 1; index >= 0; --index)
         {
-            if (index >= lastIndex)
+            if (index <= 0)
             {
                 int nextSymbolType = (OnRequestSymbol != null) ? OnRequestSymbol() : 0;
                 m_SymbolList[index].Open(nextSymbolType, _isBlur);
                 continue;
             }
 
-            m_SymbolList[index].Open(m_SymbolList[index + 1].symbolType, _isBlur);
+            m_SymbolList[index].Open(m_SymbolList[index - 1].symbolType, _isBlur);
         }
     }
 

@@ -37,6 +37,7 @@ public class TableManager : MonoSingleton<TableManager>
         List<ToggleMenuRecord> toggleMenuRecords = LoadCsvTable<ToggleMenuRecord>("Table/ToggleMenuTable");
         List<StringRecord> stringRecords = LoadCsvTable<StringRecord>("Table/StringTable");
         List<HouseRecord> houseRecords = LoadCsvTable<HouseRecord>("Table/HouseTable");
+        List<SlotLineRecord> slotLineRecords = LoadCsvTable<SlotLineRecord>("Table/SlotLineTable");
 
         UITable uiTable = new UITable(uiRecords);
         SoundTable soundTable = new SoundTable(soundRecords);
@@ -44,6 +45,7 @@ public class TableManager : MonoSingleton<TableManager>
         ToggleMenuTable toggleMenuTable = new ToggleMenuTable(toggleMenuRecords);
         StringTable stringTable = new StringTable(stringRecords);
         HouseTable houseTable = new HouseTable(houseRecords);
+        SlotLineTable slotLineTable = new SlotLineTable(slotLineRecords);
 
         m_TableDictionary.Add(typeof(UITable), uiTable);
         m_TableDictionary.Add(typeof(SoundTable), soundTable);
@@ -51,6 +53,7 @@ public class TableManager : MonoSingleton<TableManager>
         m_TableDictionary.Add(typeof(ToggleMenuTable), toggleMenuTable);
         m_TableDictionary.Add(typeof(StringTable), stringTable);
         m_TableDictionary.Add(typeof(HouseTable), houseTable);
+        m_TableDictionary.Add(typeof(SlotLineTable), slotLineTable);
     }
 
     public async Task<List<T>> LoadCsvTableToAddressable<T>(string key) where T : new()

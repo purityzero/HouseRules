@@ -12,12 +12,23 @@ public class UIHouseSlotMachine : MonoBehaviour
     [SerializeField] private UIHouseSlotReel[] m_ReelList;
     [SerializeField] private UIHouseSlotSymbol m_SymbolTemplate; // 비활성 원본 1개, 릴마다 복제된다
 
-    // 칸 크기 32px 기준, 보이는 3칸 + 위아래 버퍼 2칸씩 = 7칸.
-    // Glory 릴은 m_SymbolList 전체를 순환 스크롤 버퍼로 쓰고 보이는 창을 가운데(GetVisibleStartIndex)로 잡으므로,
-    // 버퍼가 위아래로 대칭이면서 3칸보다 넉넉해야 스크롤 중 빈 칸이 안 보인다.
-    [SerializeField] private int m_SymbolCountPerReel = 7;
+    // 보이는 3칸 + 위아래 버퍼 3칸씩 = 9칸(NewSlot 원본 릴과 같은 버퍼 크기).
+    // Glory 릴은 m_SymbolList 전체를 순환 스크롤 버퍼로 쓰고 보이는 창을 가운데(GetVisibleStartIndex)로 잡는다.
+    // 버퍼는 "보이는 칸 + 정착 칸 수"를 감당할 만큼 넉넉해야 한다 — 모자라면 정착 위치에서 창이 빈다.
+    [SerializeField] private int m_SymbolCountPerReel = 9;
+
+    // 화면(ReelWindow)에 실제로 보이는 세로 칸 수. 릴 창 크기와 페이라인 테이블의 행 번호가 이 값을 전제로 한다.
+    [SerializeField] private int m_VisibleSymbolCount = 3;
+
+    // 스핀이 끝날 때 릴이 마지막으로 더 내려가 멈추는 칸 수(감속해서 정착하는 구간).
+    // 버퍼가 이 값을 감당해야 한다 — (버퍼 - 보이는 칸)/2 + 이 값 + 보이는 칸 <= 버퍼.
+    [SerializeField] private int m_SettleStepCount = 3;
 
     [SerializeField] private float m_ReelStopInterval = 0.2f;
+
+    // 당첨 칸이 좌우로 기우는 각도(도)와 지속 시간.
+    [SerializeField] private float m_WinShakeAngle = 12f;
+    [SerializeField] private float m_WinShakeDuration = 0.5f;
 
     private List<HouseSlotSymbolSprite> m_SpritePool = new List<HouseSlotSymbolSprite>();
     private HouseRecord m_Record;
@@ -31,7 +42,7 @@ public class UIHouseSlotMachine : MonoBehaviour
 
         for (int index = 0; index < m_ReelList.Length; ++index)
         {
-            m_ReelList[index].BuildSymbols(m_SymbolTemplate, m_SymbolCountPerReel);
+            m_ReelList[index].BuildSymbols(m_SymbolTemplate, m_SymbolCountPerReel, m_VisibleSymbolCount, m_SettleStepCount);
             m_ReelList[index].Init(index);
         }
     }
@@ -54,6 +65,12 @@ public class UIHouseSlotMachine : MonoBehaviour
         {
             m_ReelList[index].ApplySpritePool(m_SpritePool);
             m_ReelList[index].Open();
+
+            // Open()이 모든 칸을 타입 0으로 되돌리므로 무작위 채우기는 반드시 그 뒤여야 한다.
+            m_ReelList[index].FillRandomSymbols();
+
+            // Open()이 릴을 기준 위치에 두고 끝나므로, 스핀 종료 후와 같은 정착 위치로 맞춰준다.
+            m_ReelList[index].ResetToSettledPosition();
         }
     }
 
@@ -63,13 +80,15 @@ public class UIHouseSlotMachine : MonoBehaviour
 
         // 풀 로딩은 여기서 한 번만 한다 — 심볼 칸마다 조회하면 칸 수만큼 중복 조회가 된다.
         List<Sprite> normalSprites = HouseSpriteLoader.Load(_record);
+        Dictionary<string, Sprite> dicBlur = HouseSpriteLoader.LoadBlurDictionary(_record);
+
         for (int index = 0; index < normalSprites.Count; ++index)
         {
             Sprite normalSprite = normalSprites[index];
 
-            // 블러 스프라이트가 없는 경우가 있을 수 있어 ResUtil.Load(에러 로그 발생) 대신
-            // Resources.Load로 조용히 조회한다 — 없으면 null로 두고 UIHouseSlotSymbol이 원본으로 대체한다.
-            Sprite blurSprite = Resources.Load<Sprite>($"Image/InGame/Actor/{_record.SpriteFolder}/{normalSprite.name}_blur");
+            // 블러가 없는 종족/파일이 있을 수 있어 없으면 null로 두고 UIHouseSlotSymbol이 원본으로 대체한다.
+            Sprite blurSprite = null;
+            dicBlur.TryGetValue(normalSprite.name, out blurSprite);
 
             HouseSlotSymbolSprite spriteSet = new HouseSlotSymbolSprite();
             spriteSet.NormalSprite = normalSprite;
@@ -108,8 +127,12 @@ public class UIHouseSlotMachine : MonoBehaviour
 
         m_HasExternalResult = false;
 
+        StopWinEffect();
+
         for (int index = 0; index < m_ReelList.Length; ++index)
         {
+            // 이전 스핀이 정착 위치에 릴을 두고 끝났다 — 화면을 유지한 채 기준 위치로 되돌리고 굴린다.
+            m_ReelList[index].ResetToBasePosition();
             m_ReelList[index].fsm.SetState(eReelState.Spin);
         }
     }
@@ -155,7 +178,7 @@ public class UIHouseSlotMachine : MonoBehaviour
         int[][] randomResult = new int[m_ReelList.Length][];
         for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
         {
-            randomResult[reelIndex] = new int[3];
+            randomResult[reelIndex] = new int[m_VisibleSymbolCount];
             for (int rowIndex = 0; rowIndex < randomResult[reelIndex].Length; ++rowIndex)
             {
                 randomResult[reelIndex][rowIndex] = Random.Range(0, poolCount);
@@ -176,6 +199,93 @@ public class UIHouseSlotMachine : MonoBehaviour
             yield return new WaitForSeconds(m_ReelStopInterval);
         }
 
+        // 결과가 보이는 칸에 들어가는 건 릴이 Result 상태의 정착 트윈까지 마치고 Idle로 돌아온 뒤다.
+        // 여기서 안 기다리면 아직 굴러가는 중인 칸을 읽어 당첨 판정이 엉뚱하게 나온다.
+        while (IsAllReelIdle() == false)
+        {
+            yield return null;
+        }
+
+        PlayWinEffect();
+
         m_StopRoutine = null;
+    }
+
+    private bool IsAllReelIdle()
+    {
+        for (int index = 0; index < m_ReelList.Length; ++index)
+        {
+            if (m_ReelList[index].IsState(eReelState.Idle) == false)
+                return false;
+        }
+
+        return true;
+    }
+
+    // 페이라인 테이블을 훑어 라인 전체가 같은 심볼이면 그 라인의 칸을 튕겨준다.
+    // 배당/재화 정산은 아직 없다 — 지금은 "맞았다"를 화면으로만 알린다.
+    private void PlayWinEffect()
+    {
+        SlotLineTable lineTable = TableManager.instance.GetTable<SlotLineTable>();
+        if (lineTable == null)
+        {
+            Logger.Error("[UIHouseSlotMachine] PlayWinEffect Failed! SlotLineTable not found");
+            return;
+        }
+
+        for (int lineIndex = 0; lineIndex < lineTable.list.Count; ++lineIndex)
+        {
+            SlotLineRecord record = lineTable.list[lineIndex];
+            if (IsLineMatched(record) == false)
+                continue;
+
+            for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
+            {
+                UIHouseSlotSymbol symbol = m_ReelList[reelIndex].GetVisibleSymbol(record.GetRow(reelIndex));
+                if (symbol == null)
+                    continue;
+
+                symbol.PlayWinEffect(m_WinShakeAngle, m_WinShakeDuration);
+            }
+        }
+    }
+
+    // 라인의 모든 칸이 같은 심볼 종류인지. symbolType은 스프라이트 풀의 인덱스(=말 종류 식별자)라 동등 비교가 맞다.
+    private bool IsLineMatched(SlotLineRecord _record)
+    {
+        int firstSymbolType = -1;
+
+        for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
+        {
+            UIHouseSlotSymbol symbol = m_ReelList[reelIndex].GetVisibleSymbol(_record.GetRow(reelIndex));
+            if (symbol == null)
+                return false;
+
+            if (reelIndex <= 0)
+            {
+                firstSymbolType = symbol.symbolType;
+                continue;
+            }
+
+            if (symbol.symbolType != firstSymbolType)
+                return false;
+        }
+
+        return true;
+    }
+
+    private void StopWinEffect()
+    {
+        for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
+        {
+            for (int rowIndex = 0; rowIndex < m_VisibleSymbolCount; ++rowIndex)
+            {
+                UIHouseSlotSymbol symbol = m_ReelList[reelIndex].GetVisibleSymbol(rowIndex);
+                if (symbol == null)
+                    continue;
+
+                symbol.StopWinEffect();
+            }
+        }
     }
 }

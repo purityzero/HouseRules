@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 
 // 심볼 한 칸이 가질 수 있는 표시용 스프라이트 쌍. 블러 스프라이트가 없는 경우도 있어 별도 필드로 둔다.
@@ -14,10 +15,40 @@ public struct HouseSlotSymbolSprite
 public class UIHouseSlotSymbol : UISlotMachineSymbol
 {
     private IReadOnlyList<HouseSlotSymbolSprite> m_SpritePool;
+    private Tween m_WinTween;
 
     public void SetSpritePool(IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
     {
         m_SpritePool = _spritePool;
+    }
+
+    // 당첨 라인에 걸린 칸을 알람시계처럼 좌우로 살짝 흔든다. 같은 칸이 두 라인(가로+대각)에
+    // 동시에 걸릴 수 있어 이전 트윈을 반드시 끊고 시작한다 — 겹쳐 돌면 각도가 원래대로 안 돌아온다.
+    public void PlayWinEffect(float _angle, float _duration)
+    {
+        if (iconImage == null)
+            return;
+
+        StopWinEffect();
+
+        m_WinTween = TweenUtil.PunchRotation(iconImage.transform, _angle, _duration);
+    }
+
+    // 다음 스핀을 걸기 전에 부른다. 트윈이 살아있는 채로 릴이 다시 돌면 기울어진 각도가 그대로 굳는다.
+    public void StopWinEffect()
+    {
+        if (m_WinTween != null && m_WinTween.IsActive() == true)
+            m_WinTween.Kill();
+
+        m_WinTween = null;
+
+        if (iconImage != null)
+            iconImage.transform.localRotation = Quaternion.identity;
+    }
+
+    private void OnDisable()
+    {
+        StopWinEffect();
     }
 
     protected override void SetBlur(bool _isBlur)
