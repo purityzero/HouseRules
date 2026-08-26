@@ -28,5 +28,11 @@
 ## 슬롯 구조 (씬 확인, 2026-08-26 기준)
 `UnitRow`(TitleUnitRow) → `m_SlotImages`: Unit0~Unit3 (Image[4])
 
+## 2026-08-26-2 — 점프 빈도 조정
+- 사용자 피드백: "통통튀는 거 이쁘니까 좀 더 자주 일어나게 하자"
+- 변경: `m_JumpIntervalMin: 1f` → `0.4f`, `m_JumpIntervalMax: 3f` → `1.2f`
+- 씬에 직렬화된 값이 이미 존재했으므로 C# 기본값 + 씬 값 두 곳 모두 수정 필요(`Assets/Scripts/Title/TitleUnitRow.cs` 라인 17-18, `Assets/Scenes/TitleScene.unity` 라인 4267-4268).
+- 점프 높이(`m_JumpHeight: 20`)와 점프 지속시간(`m_JumpDuration: 0.3`)은 변경 없음 — 사용자가 명시적으로 요청한 항목은 빈도뿐.
+
 ## 검증
 **미검증** — Unity MCP 미연결로 컴파일/Play Mode 확인 불가.

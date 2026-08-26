@@ -14,8 +14,8 @@ public class TitleUnitRow : MonoBehaviour
 
     [SerializeField] private float m_JumpHeight = 20f;
     [SerializeField] private float m_JumpDuration = 0.3f;
-    [SerializeField] private float m_JumpIntervalMin = 1f;
-    [SerializeField] private float m_JumpIntervalMax = 3f;
+    [SerializeField] private float m_JumpIntervalMin = 0.4f;
+    [SerializeField] private float m_JumpIntervalMax = 1.2f;
 
     private Vector2[] m_OriginalAnchoredPositions;
     private Tween m_JumpTween;
