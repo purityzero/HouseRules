@@ -64,6 +64,22 @@ public class UIHouseSelect : MonoBehaviour
             Select(selected.Key);
     }
 
+    // 타이틀 진입 시 저장된 종족을 화면에 반영한다. 패널을 열지 않고 배경과 말 줄만 갈아끼운다 —
+    // 선택지 버튼과 능력치 막대는 패널을 열 때 Select()가 어차피 다시 채우므로 여기서 만들지 않는다.
+    public void ApplyTitleTheme(HouseRecord _record)
+    {
+        if (_record == null)
+        {
+            Logger.Error($"[UIHouseSelect] ApplyTitleTheme Failed! record == null");
+            return;
+        }
+
+        ApplyBackground(_record);
+
+        if (m_TitleUnitRow != null)
+            m_TitleUnitRow.Apply(_record);
+    }
+
     public void Close()
     {
         KillBarSequence();

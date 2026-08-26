@@ -8,6 +8,8 @@ using UnityEngine;
 [DefaultExecutionOrder(-1000)]
 public class TitleScene : BaseScene
 {
+    private const string INGAME_SCENE_NAME = "InGameScene";
+
     [SerializeField] private TextMeshProUGUI m_PlayButtonText;
     [SerializeField] private TextMeshProUGUI m_HouseSelectButtonText;
     [SerializeField] private TextMeshProUGUI m_UpgradeButtonText;
@@ -27,7 +29,28 @@ public class TitleScene : BaseScene
         PlayerManager.instance.Load();
 
         ApplyLocalizedText();
+        ApplyHouseTheme();
         PlayBgm();
+    }
+
+    // 저장된 종족을 타이틀 화면에 입힌다. 이게 없으면 씬에 박아둔 기본 그림으로만 떠서,
+    // 종족을 바꿔둔 채 게임을 다시 켜면 타이틀만 이전 종족으로 남는다.
+    private void ApplyHouseTheme()
+    {
+        if (m_HouseSelect == null)
+        {
+            Logger.Error($"[TitleScene] ApplyHouseTheme Failed! UIHouseSelect not linked");
+            return;
+        }
+
+        HouseRecord record = PlayerManager.instance.GetSelectedHouseRecord();
+        if (record == null)
+        {
+            Logger.Error($"[TitleScene] ApplyHouseTheme Failed! GetSelectedHouseRecord == null");
+            return;
+        }
+
+        m_HouseSelect.ApplyTitleTheme(record);
     }
 
     private void ApplyLocalizedText()
@@ -72,7 +95,12 @@ public class TitleScene : BaseScene
 
     public void OnClickPlayButton()
     {
-        // TODO: 인게임 씬 진입
+        // 전환 중 연타 방지 — NextScene()은 부를 때마다 같은 커맨드 묶음을 큐에 더 쌓기만 해서,
+        // 두 번 눌리면 이미 언로드된 씬을 다시 언로드하려 들며 페이드가 두 번 겹친다.
+        if (SceneManager.instance.IsSceneTransitioning == true)
+            return;
+
+        SceneManager.instance.NextScene(INGAME_SCENE_NAME);
     }
 
     public void OnClickHouseSelectButton()
