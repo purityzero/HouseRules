@@ -95,6 +95,7 @@ NewSlot의 슬롯머신 릴(`UISlotMachineLine` + `BattleSlotReel` + `BattleSlot
 - `public int reelIndex { get; }`
 - `public float resultTweenDuration { get; }`
 - `public float speed { get; set; }`
+- `public void SetSymbols(IReadOnlyList<UISlotMachineSymbol> _symbols)` — 런타임에 생성된 칸 목록을 주입받아 갱신. 기존 인스펙터 직렬화 값은 이 메서드를 호출하지 않으면 유지된다(2026-08-26).
 - `public void Init(int _reelIndex)` — FSM 등록 + IDLE 세팅.
 - `public void Open()` — 위치/심볼 리셋 후 IDLE.
 - `public bool IsState(eReelState _reelState)`

@@ -64,6 +64,21 @@ public class UISlotMachineReel : MonoBehaviour
     }
 
     /// <summary>
+    /// 런타임에 생성된 칸 오브젝트를 주입받아 목록을 갱신한다.
+    /// 프리팹에 미리 깔아둔 경우 이 메서드를 호출하지 않아도 인스펙터 값이 유지된다.
+    /// </summary>
+    public void SetSymbols(IReadOnlyList<UISlotMachineSymbol> _symbols)
+    {
+        if (_symbols == null || _symbols.Count <= 0)
+        {
+            Logger.Error("[UISlotMachineReel] SetSymbols Failed! symbols == null or empty");
+            return;
+        }
+
+        m_SymbolList = new List<UISlotMachineSymbol>(_symbols);
+    }
+
+    /// <summary>
     /// FSM 상태를 등록하고 IDLE로 세팅한다. 씬/프리팹에 배치된 뒤 1회 호출한다.
     /// </summary>
     public void Init(int _reelIndex)
