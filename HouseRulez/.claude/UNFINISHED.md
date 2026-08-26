@@ -1,13 +1,69 @@
 # 미완료 작업
 
-## 2026-08-26-0 — PlayerData / PlayerManager + Glory 저장 프레임워크 (구현 완료, 검증 대기)
+## 2026-08-26-0 — 오늘 작업 전체가 미검증 (커밋 9개, 브랜치 2개)
 
-- **브랜치**: `work/2026-08-26-player-data`
-- **상태**: 코드 작성 완료. **Unity MCP 미연결 세션이라 컴파일/Play Mode 미검증** — main에 합류시키기 전 사람이 직접 확인해야 한다.
-- **검증할 것**:
-  1. 재컴파일 에러 0건
-  2. 종족 선택 → 패널 닫기 → 다시 열기 시 고른 종족이 유지되는가
-  3. 앱 재시작(에디터 재생 정지 후 재생) 후에도 유지되는가
-  4. 마작(잠금)을 눌러도 저장되지 않고 미리보기만 되는가
-- **관련 파일**: `Assets/Scripts/Glory/Data/` 4개, `Assets/Scripts/Player/` 2개, `Assets/Scripts/Title/UIHouseSelect.cs`, `Assets/Scripts/Title/TitleScene.cs`
-- **문서**: `.claude/class/SaveData.md`, `.claude/class/PlayerManager.md`, `.claude/class/UIHouseSelect.md`(2026-08-26-1)
+세션 내내 Unity MCP가 안 붙어 **컴파일·씬 오픈·Play Mode를 한 번도 확인하지 못했다.**
+정적 대조(참조 정합성 / 코드 규칙 / 씬 YAML 무결성)만 통과한 상태다.
+타이틀 연출만 사용자가 눈으로 확인했다.
+
+### 2026-08-26 후속 세션 — MCP 붙음, 2개 항목만 통과
+에디터를 먼저 띄우고 새 세션(`--continue` 없이)을 여니 MCP가 정상 연결됐다(`HouseRulez@6aac6313d9d245b9`, `ready_for_tools: true`).
+재발 방지 메모가 맞았다 — **에디터 먼저, 그다음 새 세션.**
+
+붙자마자 확인된 것:
+- ✅ **`InGameScene.unity`가 열린다** — 현재 활성 씬으로 로드돼 있음 (브랜치 2 검증 1번, 가장 위험했던 항목)
+- ✅ **재컴파일 에러 0건** — 콘솔 에러 없음 (툴바 관련 경고 1건뿐, 이번 작업과 무관)
+
+**나머지는 여전히 미검증** — Play Mode가 필요한 항목(브랜치 1의 2~4번, 브랜치 2의 3~6번)은
+컨텍스트 한도로 이번 세션에서도 돌리지 못했다. 다음 세션에서 `qa-tester`로 한 번에 검증할 것.
+
+**두 브랜치 모두 `main` 합류 전이다. 사람이 돌려보고 통과시킨 뒤에만 합류한다.**
+
+### MCP가 왜 안 붙었나 (재발 방지)
+`D:/Orca`에 `UnityMCP`(http, `http://127.0.0.1:8080/mcp`)가 정상 등록돼 있고 세션 종료 시점에 포트도 열려 있었다.
+문제는 **MCP 서버가 세션 시작 시점에 한 번만 붙는다**는 것 — 세션이 열린 뒤 서버를 켜면 그 세션에는 안 붙는다.
+`--continue`로도 복구되지 않는다(세션 상태를 그대로 복원). **에디터를 먼저 띄운 뒤 새 세션을 열 것.**
+
+---
+
+## 브랜치 1 — `work/2026-08-26-player-data` (커밋 2개)
+
+저장 계층 신설. `ee99565`(본체) + `249767f`(.meta 누락분).
+
+**검증할 것**
+1. 재컴파일 에러 0건
+2. 종족 선택 → 패널 닫기 → 다시 열기 시 고른 종족이 유지되는가
+3. 에디터 재생 정지 후 다시 재생해도 유지되는가
+4. 마작을 눌러도 저장되지 않고 미리보기만 되는가 (잠긴 종족)
+
+**관련 파일**: `Assets/Scripts/Glory/Data/` 4개, `Assets/Scripts/Player/` 2개, `Assets/Scripts/Title/UIHouseSelect.cs`, `TitleScene.cs`
+**문서**: `.claude/class/SaveData.md`, `.claude/class/PlayerManager.md`, `.claude/class/UIHouseSelect.md`
+
+---
+
+## 브랜치 2 — `work/2026-08-26-slot-reel` (커밋 8개)
+
+`ee99565` 위에 쌓았다(저장 계층을 참조하므로 분리 불가).
+
+`ff118b4` 인게임 씬 배경 / `bc91e27` 인게임 씬 신설 / `5292e8f` 프레임 5종 + 릴 연결부 /
+`1cf2b87` 타이틀 트윈 제거·점프 빈도 / `43520c7` 타이틀 연출 / `6cf742e` 블러 필터 회귀 수정 /
+`bf968a5` .meta 누락분 / `5bee083` 릴 이식 + 블러 47쌍
+
+**검증할 것 — 순서대로. 1번이 실패하면 그 뒤는 볼 것도 없다.**
+1. **`Assets/Scenes/InGameScene.unity`가 열리는가** — MCP 없이 YAML을 손으로 썼다. 오늘 작업 중 구조적으로 가장 위험하다
+2. 재컴파일 에러 0건
+3. 배경이 현재 종족 것으로 뜨는가
+4. SPIN을 누르면 릴 3개가 돌다가 1.5초 뒤 순차로 멈추는가
+5. **칸이 프레임 밖으로 안 새는가** — 릴 높이 672 / 창 288이라 `ReelWindow`의 `RectMask2D`가 제대로 물렸는지가 여기서 드러난다
+6. 말 목록에 블러가 안 섞이고 개수가 맞는가 (체스 6 / 장기 7 / 화투 12 / 포커 13 / 마작 9)
+
+**문서**: `.claude/class/InGameScene.md`(계층·좌표 근거), `UIHouseSlotMachine.md`(조립 가이드), `UISlotMachineReel.md`(릴 원리), `.claude/asset/reel-frames.md`, `unit-blur-sprites.md`
+
+---
+
+## 이어서 할 일 (검증 통과 후)
+
+- **판정기 연결** — `UIHouseSlotMachine`의 `// TODO`. 다만 기획서에 **전력 → 소환 유닛 수 환산 규칙이 다섯 종족 공통으로 없다**(`Judge.csv`에 `SummonCount` 컬럼만 있고 산식 없음). 규칙이 정해지기 전엔 이어붙일 대상이 없다
+- **종족 테마 프레임 아트 보강** — 구조는 맞으나 종족 구분이 헤더 액센트 색 수준으로 약하다. 타이틀 배경 5종만큼 문화권이 안 드러난다
+- SPIN 라벨이 `"SPIN"` 하드코딩 + TODO 상태 (`StringTable`에 키 없음)
+- 프레임 `.meta`의 `textureCompression: 0`(전 플랫폼 무압축)이 선례(`ui_white.png.meta`)와 다르다 — 빌드 용량 기준이 서면 재검토
