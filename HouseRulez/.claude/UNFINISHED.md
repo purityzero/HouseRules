@@ -5,7 +5,8 @@
 MCP가 붙어 **Play Mode로 처음 실제 검증**했다. 어제 미검증으로 남긴 항목 대부분이 여기서 해소됐고,
 동시에 정적 대조로는 안 잡히던 이식 결함 6건이 드러나 오늘 전부 고쳤다(브랜치 3).
 
-**세 브랜치 모두 `main` 합류 전이다. 사람이 돌려보고 통과시킨 뒤에만 합류한다.**
+**네 브랜치 모두 `main` 합류 전이다. 사람이 돌려보고 통과시킨 뒤에만 합류한다.**
+브랜치 1~3은 Play Mode까지 돌려보고 사람 눈 확인만 남은 상태이고, **브랜치 4는 컴파일조차 안 돌렸다** — 성격이 다르다.
 
 ### 오늘 배운 것 — 정적 대조는 실행 검증을 대체하지 못한다
 어제 참조 정합성 / 코드 규칙 / 씬 YAML 무결성을 전부 통과시켰는데, 오늘 드러난 6건 중
@@ -16,9 +17,12 @@ MCP가 붙어 **Play Mode로 처음 실제 검증**했다. 어제 미검증으�
 
 ---
 
-## 브랜치 4 — `work/2026-08-27-ingame-hud` (오늘, 전부 미검증)
+## 브랜치 4 — `work/2026-08-27-ingame-hud` (커밋 2개, 오늘, 전부 미검증)
 
 `work/2026-08-27-title-to-ingame` 위에 쌓았다.
+
+`60708d9` 인게임 HUD/ACTION 바 배치 및 런 상태·초기값 테이블 추가 /
+`6af0efc` SPIN 버튼 라벨 로컬라이제이션 (하드코딩 제거)
 
 인게임 상단 HUD(본거지 HP·연차·골드·스핀 코인·판돈)와 하단 ACTION 바(전투 시작·스왑·배속)를 배치하고,
 표시할 값을 담을 런 상태(`RunData`)와 초기값 테이블(`GameConfigTable`, `SutdaBetTable`)을 새로 만들었다.
@@ -55,6 +59,10 @@ MCP가 붙어 **Play Mode로 처음 실제 검증**했다. 어제 미검증으�
 `Assets/Scripts/Table/GameConfigRecord.cs`·`SutdaBetRecord.cs`, `Assets/Resources/Table/` CSV 4개(신규 2 + 수정 2),
 `Assets/Scripts/Glory/Table/TableManager.cs`, `Assets/Scripts/Table/HouseRecord.cs`,
 `Assets/Scripts/InGame/InGameScene.cs`, `Assets/Scenes/InGameScene.unity`
+
+**커밋 직전 검토**: `60708d9`는 `code-reviewer-committer`를 태워 참조 정합성·CODE.MD 규칙을 훑었고
+고칠 것을 못 찾아 그대로 커밋했다. `6af0efc`는 변경이 작아(필드 1개·메서드 2개·CSV 1행·씬 1줄)
+에이전트 없이 직접 대조 후 커밋했다. **어느 쪽도 컴파일을 대신하지 못한다** — 위 "오늘 배운 것" 참고.
 
 ---
 
