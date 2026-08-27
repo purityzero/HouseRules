@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // 종족(House) 한 줄. 수치는 전부 GDD에서 온 값이라 코드에 박지 않고 이 테이블이 들고 있는다.
-// Id 순서가 곧 해금 순서이자 화면 표시 순서다(체스 -> 장기 -> 화투 -> 포커 -> 마작, 학습 난이도 순).
+// Id 순서가 곧 해금 순서이자 화면 표시 순서다(슬롯 -> 체스 -> 장기 -> 화투 -> 포커 -> 마작, 학습 난이도 순).
 public class HouseRecord : Record
 {
     public string Key;
@@ -23,6 +23,10 @@ public class HouseRecord : Record
     // 판돈(배팅)을 쓰는 종족인가. GDD 05장 기준 화투(섯다)만 해당한다 —
     // 종족 키를 코드에서 직접 비교하지 않으려고 레코드 속성으로 둔다.
     public int isUseBet;
+
+    // 홀드(재굴림 전 보류) 가능 칸 수 상한. 기본값 4, 슬롯만 2(GDD 밖 종족 전용 밸런스 조정, 2026-08-27 승인).
+    // 현재 이 값을 소비하는 홀드 로직은 없다(슬롯 판정기 미구현) — 컬럼/필드만 선반영.
+    public int HoldMax;
 }
 
 public class HouseTable : Table<HouseRecord>
