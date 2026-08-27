@@ -19,6 +19,10 @@ public class HouseRecord : Record
     public string SpriteFolder;
     public string BackgroundPath;
     public int isUnlocked;
+
+    // 판돈(배팅)을 쓰는 종족인가. GDD 05장 기준 화투(섯다)만 해당한다 —
+    // 종족 키를 코드에서 직접 비교하지 않으려고 레코드 속성으로 둔다.
+    public int isUseBet;
 }
 
 public class HouseTable : Table<HouseRecord>

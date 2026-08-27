@@ -1,6 +1,6 @@
-Id,Key,NameKey,AccentColor,PoolCount,AxisPower,AxisVariance,AxisCeiling,AxisLearning,SpriteFolder,BackgroundPath,isUnlocked
-1,chess,HouseChess,7FA7C9,6,61,38,45,10,chess,Image/Title/bg_chess_castle,1
-2,janggi,HouseJanggi,57A277,7,63,40,65,35,janggi,Image/Title/bg_janggi_fortress,1
-3,hwatu,HouseHwatu,D1554C,12,62,92,100,45,hwatu,Image/Title/bg_hwatu_moonfield,1
-4,poker,HousePoker,D6A441,13,62,97,100,25,poker,Image/Title/bg_poker_frontier,1
-5,mahjong,HouseMahjong,9B7FD4,9,62,62,0,0,mahjong,Image/Title/bg_mahjong_teahouse,1
+Id,Key,NameKey,AccentColor,PoolCount,AxisPower,AxisVariance,AxisCeiling,AxisLearning,SpriteFolder,BackgroundPath,isUnlocked,isUseBet
+1,chess,HouseChess,7FA7C9,6,61,38,45,10,chess,Image/Title/bg_chess_castle,1,0
+2,janggi,HouseJanggi,57A277,7,63,40,65,35,janggi,Image/Title/bg_janggi_fortress,1,0
+3,hwatu,HouseHwatu,D1554C,12,62,92,100,45,hwatu,Image/Title/bg_hwatu_moonfield,1,1
+4,poker,HousePoker,D6A441,13,62,97,100,25,poker,Image/Title/bg_poker_frontier,1,0
+5,mahjong,HouseMahjong,9B7FD4,9,62,62,0,0,mahjong,Image/Title/bg_mahjong_teahouse,1,0

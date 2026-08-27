@@ -15,3 +15,11 @@ Id,Key,Kr,En,Cn,Jp
 14,AxisLearning,학습 비용,Learning,学习成本,習得コスト
 15,HouseLocked,미해금,Locked,未解锁,未解放
 16,HouseSelectConfirm,이 종족으로,Choose,选择,これにする
+17,HudHome,본거지,Home,本营,本拠地
+18,HudYear,YEAR {0}/{1},YEAR {0}/{1},年 {0}/{1},YEAR {0}/{1}
+19,HudGold,골드,Gold,金币,ゴールド
+20,HudSpinCoin,스핀 코인,Spin Coin,旋转币,スピンコイン
+21,HudBet,판돈 {0} ×{1},Bet {0} ×{1},赌注 {0} ×{1},賭け金 {0} ×{1}
+22,ActionBattleStart,전투 시작,Battle,开始战斗,戦闘開始
+23,ActionSwap,스왑 {0},Swap {0},交换 {0},スワップ {0}
+24,ActionBattleSpeed,배속 ×{0},Speed ×{0},倍速 ×{0},倍速 ×{0}

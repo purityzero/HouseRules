@@ -106,3 +106,74 @@ SafeRoot의 `m_Children` 목록에 Background를 **맨 앞**에 배치 → SlotM
 
 ### 검증 상태 — 미검증
 Unity MCP 미연결로 컴파일 확인을 하지 못했다. 파일 수정만 완료했으며, 실제 씬 열기/배경 로드/SPIN 버튼 클릭 동작은 에디터 확인 필요.
+
+## 2026-08-27-0 — 상단 HUD / 하단 ACTION 영역 추가, 런 상태 신설
+
+### 개요
+기획서 §10 ScreenZones 중 아직 비어 있던 **HUD**(상단 띠)와 **ACTION**(하단 바)을 배치했다.
+표시할 값을 담을 곳이 없어 런 상태([[RunData]])와 그 초기값 테이블([[GameConfigTable]])도 함께 만들었다.
+BATTLEFIELD / SIDE 영역은 여전히 범위 밖이다.
+
+### 만든 파일
+- `Assets/Scripts/InGame/RunData.cs` — 런 상태(비저장)
+- `Assets/Scripts/InGame/UI/UIInGameHud.cs`, `UIInGameAction.cs` (+ 폴더 `UI/`)
+- `Assets/Scripts/Table/GameConfigRecord.cs`, `SutdaBetRecord.cs`
+- `Assets/Resources/Table/GameConfigTable.csv`, `SutdaBetTable.csv`
+
+### 수정한 파일
+- `TableManager.init()` — 테이블 2개 등록
+- `HouseRecord` + `HouseTable.csv` — `isUseBet` 컬럼(화투만 1)
+- `StringTable.csv` — 키 8개(Id 17~24)
+- `Assets/Scenes/InGameScene.unity` — 블록 74개 추가
+
+### 계층 구조 (추가분)
+```
+SafeRoot                              m_Children 순서: Background → Hud → SlotMachine → Action
+├─ Background   (기존)
+├─ Hud          1920x60,  (0,0)       ← UIInGameHud     상세는 [[UIInGameHud]]
+├─ SlotMachine  (기존)
+└─ Action       1044x102, (432,-750)  ← UIInGameAction  상세는 [[UIInGameAction]]
+```
+좌표는 기존 REEL 영역과 같은 규칙 — 네이티브 640×288 좌표를 ×3 해서 SafeRoot(1920×864) 좌상단 기준으로 둔다.
+HUD `0,0 – 640,20` → 1920×60 / ACTION `144,250 – 492,284` → 1044×102 @ (432,−750).
+
+### 수정 (함수: `OnSetup()`)
+**이전**: 종족 레코드를 얻어 슬롯머신과 배경에 적용하고 SPIN 버튼 리스너를 붙이는 것으로 끝.
+
+**이후**: 그 사이에 `m_RunData.Init()`(테이블에서 초기값 로드)과 `ApplyHud(record)` / `ApplyAction()`이 들어갔다.
+두 UI 모두 링크가 비면 `Logger.Error`만 남기고 나머지는 계속 진행한다 — HUD가 없다고 슬롯이 못 돌 이유는 없다.
+
+### 수정 (함수: `OnClickSpinButton()`)
+**이전**: 슬롯머신 널 검사 후 바로 코루틴 시작.
+
+**이후**: 맨 앞에 스핀 코인 소모가 들어갔다.
+```csharp
+if (m_RunData.SpendSpinCoin() == false)
+    return;
+
+if (m_Hud != null)
+    m_Hud.Refresh();
+```
+GDD 03장의 "연차당 기본 스핀 3회"가 처음으로 실제로 물린 지점이다. 코인이 0이면 SPIN이 아무 일도 하지 않는다.
+**추가 스핀 구매(골드 25 → +1, 연차당 2회)는 아직 없다** — 상점과 골드 획득 경로가 생긴 뒤에 이 분기에서 갈라진다.
+
+### 추가 (함수: `ApplyHud()` / `ApplyAction()` / `OnBattleStart()` / `OnBattleSpeed()`)
+- `ApplyAction()`은 UI의 두 이벤트를 구독한다. 씬 오브젝트끼리라 같이 파괴되므로 해제는 걸지 않았다(SPIN 버튼과 같은 관례).
+- `OnBattleStart()`는 지금 로그만 찍는다 — 배치/전투 단계 자체가 없다(TODO).
+- `OnBattleSpeed()`는 `RunData.ToggleBattleSpeed()` 후 `m_Action.Refresh()`. UI는 상태를 직접 고치지 않는다.
+
+### 직렬화 필드 추가
+`m_Hud`(fileID 900200172) / `m_Action`(fileID 900200292). 씬의 필드 순서도 클래스 선언 순서에 맞췄다.
+
+### 씬 YAML 자체 대조 결과
+스크립트로 기계 검증(통과):
+- fileID 중복 0건 (전체 138 블록, 신규 74)
+- dangling 참조 0건 / 신규 블록 중 고아 0건
+- GameObject `m_Component` ↔ 컴포넌트 `m_GameObject` 상호 일치
+- RectTransform `m_Children` ↔ `m_Father` 상호 일치
+- 개행 LF 유지(CR 혼입 없음)
+
+### 검증 상태 — 미검증
+**Unity MCP가 이 세션에 붙지 않았다**(에디터를 세션이 열린 뒤에 켰다 — `UNFINISHED.md`의 재발 방지 메모 그대로).
+그래서 씬 YAML 직접 편집 경로로 갔고, **컴파일도 플레이도 하지 못했다.** 위 대조는 파일 정합성일 뿐
+"화면에 제대로 뜨는가"와는 무관하다 — 2026-08-27 오전에 드러난 이식 결함 6건이 전부 이 대조를 통과했던 종류다.
