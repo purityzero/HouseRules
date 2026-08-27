@@ -165,6 +165,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InGameScene
   m_SlotMachine: {fileID: 900200072}
   m_SpinButton: {fileID: 900200144}
+  m_SpinButtonText: {fileID: 900200152}
   m_BackgroundImage: {fileID: 900200163}
   m_Hud: {fileID: 900200172}
   m_Action: {fileID: 900200292}

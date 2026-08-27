@@ -177,3 +177,37 @@ GDD 03장의 "연차당 기본 스핀 3회"가 처음으로 실제로 물린 지
 **Unity MCP가 이 세션에 붙지 않았다**(에디터를 세션이 열린 뒤에 켰다 — `UNFINISHED.md`의 재발 방지 메모 그대로).
 그래서 씬 YAML 직접 편집 경로로 갔고, **컴파일도 플레이도 하지 못했다.** 위 대조는 파일 정합성일 뿐
 "화면에 제대로 뜨는가"와는 무관하다 — 2026-08-27 오전에 드러난 이식 결함 6건이 전부 이 대조를 통과했던 종류다.
+
+## 2026-08-27-1 — SPIN 라벨 로컬라이제이션 (하드코딩 제거)
+
+### 개요
+2026-08-26-0에서 `StringTable`에 대응 키가 없어 `"SPIN"` 하드코딩 + TODO로 남겨뒀던 것을 해소했다.
+인게임 씬의 텍스트 중 유일하게 키가 없던 자리였다.
+
+### 추가한 키
+`StringTable.csv` Id 25 — `ReelSpin`. 네 언어 모두 값은 `SPIN`이다.
+목업(`Assets/Design/screen_mockup_full.png`)에서 하단의 "전투 시작"은 한글인데 릴 하단 버튼만 `SPIN`으로
+영문 표기라, 그 디자인 의도를 그대로 옮겼다. **번역이 빠진 게 아니라 값이 같은 것**이므로,
+현지 표기로 바꾸고 싶으면 CSV 한 줄만 고치면 된다.
+
+키 이름이 `Action*`이 아니라 `Reel*`인 이유: 이 버튼은 하단 ACTION 바가 아니라 기획서 §10의 REEL 영역
+(`4,24 – 140,284`, "3×3 릴 · 홀드 · 판정 결과 · SPIN") 소속이다.
+
+### 수정 (필드)
+`[SerializeField] private TextMeshProUGUI m_SpinButtonText;` 추가 — 씬 fileID `900200152`
+(SpinButton의 자식 `Label`). `using TMPro;`도 함께 추가했다.
+
+### 추가 (함수: `ApplyLocalizedText()` / `SetText()`)
+`TitleScene.ApplyLocalizedText()`와 같은 형태다. `OnSetup()`에서 `m_RunData.Init()` 직후,
+슬롯머신 적용보다 앞에 부른다.
+
+HUD/ACTION 라벨은 각각 `UIInGameHud`/`UIInGameAction`이 자기 것을 채우므로 여기서 다루지 않는다 —
+이 메서드가 맡는 건 어느 UI 컴포넌트에도 안 속한 SPIN 버튼 하나뿐이다.
+
+### 검증 시 주의
+키 값이 씬 YAML의 플레이스홀더(`m_text: SPIN`)와 **글자가 같다.** 다른 라벨들은 영어로 남아 있으면
+로컬라이즈 경로가 끊긴 것으로 바로 알 수 있지만, SPIN만은 링크가 빠져도 화면이 똑같아 눈으로 구분되지 않는다.
+확인하려면 `ReelSpin` 행의 Kr 값을 잠깐 다른 글자로 바꿔보는 수밖에 없다.
+
+### 검증 상태 — 미검증
+MCP 미연결 세션. 씬 정합성 재대조는 통과(fileID 138 블록, 중복/dangling/고아 0건).

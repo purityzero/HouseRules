@@ -23,3 +23,4 @@ Id,Key,Kr,En,Cn,Jp
 22,ActionBattleStart,전투 시작,Battle,开始战斗,戦闘開始
 23,ActionSwap,스왑 {0},Swap {0},交换 {0},スワップ {0}
 24,ActionBattleSpeed,배속 ×{0},Speed ×{0},倍速 ×{0},倍速 ×{0}
+25,ReelSpin,SPIN,SPIN,SPIN,SPIN
