@@ -36,18 +36,30 @@ public class TableManager : MonoSingleton<TableManager>
         List<ToggleListRecord> toggleListRecords = LoadCsvTable<ToggleListRecord>("Table/ToggleListTable");
         List<ToggleMenuRecord> toggleMenuRecords = LoadCsvTable<ToggleMenuRecord>("Table/ToggleMenuTable");
         List<StringRecord> stringRecords = LoadCsvTable<StringRecord>("Table/StringTable");
+        List<HouseRecord> houseRecords = LoadCsvTable<HouseRecord>("Table/HouseTable");
+        List<SlotLineRecord> slotLineRecords = LoadCsvTable<SlotLineRecord>("Table/SlotLineTable");
+        List<GameConfigRecord> gameConfigRecords = LoadCsvTable<GameConfigRecord>("Table/GameConfigTable");
+        List<SutdaBetRecord> sutdaBetRecords = LoadCsvTable<SutdaBetRecord>("Table/SutdaBetTable");
 
         UITable uiTable = new UITable(uiRecords);
         SoundTable soundTable = new SoundTable(soundRecords);
         ToggleListTable toggleListTable = new ToggleListTable(toggleListRecords);
         ToggleMenuTable toggleMenuTable = new ToggleMenuTable(toggleMenuRecords);
         StringTable stringTable = new StringTable(stringRecords);
+        HouseTable houseTable = new HouseTable(houseRecords);
+        SlotLineTable slotLineTable = new SlotLineTable(slotLineRecords);
+        GameConfigTable gameConfigTable = new GameConfigTable(gameConfigRecords);
+        SutdaBetTable sutdaBetTable = new SutdaBetTable(sutdaBetRecords);
 
         m_TableDictionary.Add(typeof(UITable), uiTable);
         m_TableDictionary.Add(typeof(SoundTable), soundTable);
         m_TableDictionary.Add(typeof(ToggleListTable), toggleListTable);
         m_TableDictionary.Add(typeof(ToggleMenuTable), toggleMenuTable);
         m_TableDictionary.Add(typeof(StringTable), stringTable);
+        m_TableDictionary.Add(typeof(HouseTable), houseTable);
+        m_TableDictionary.Add(typeof(SlotLineTable), slotLineTable);
+        m_TableDictionary.Add(typeof(GameConfigTable), gameConfigTable);
+        m_TableDictionary.Add(typeof(SutdaBetTable), sutdaBetTable);
     }
 
     public async Task<List<T>> LoadCsvTableToAddressable<T>(string key) where T : new()

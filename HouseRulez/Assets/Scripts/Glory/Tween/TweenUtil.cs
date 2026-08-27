@@ -79,6 +79,12 @@ public static class TweenUtil
     }
 
     // ---- Rotate ----
+    // 알람시계처럼 좌우로 몇 도 기울었다 돌아오는 흔들림(Z축). 강조 연출용.
+    public static Tween PunchRotation(Transform _target, float _angle, float _duration, int _vibrato = 6)
+    {
+        return _target.DOPunchRotation(new Vector3(0f, 0f, _angle), _duration, _vibrato);
+    }
+
     public static Tween RotateLocal(Transform _target, Vector3 _angles, float _duration, RotateMode _rotateMode = RotateMode.Fast)
     {
         return _target.DOLocalRotate(_angles, _duration, _rotateMode);

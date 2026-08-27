@@ -21,6 +21,14 @@ Assets/Scripts/Glory/ 는 공용 라이브러리다. **새 유틸/패턴을 만�
 - `SceneSingleton<T>`은 "씬을 넘어 유지되면 안 되는" 씬 로컬 매니저/컴포넌트가 자기 자신을 `static Current`로 노출하고 싶을 때 사용 — `MonoSingleton<T>`(DontDestroyOnLoad+자동생성)을 쓰면 안 되는 자리다(2026-07-21, BaseScene/TimerManager/MonsterManager/TowerHealth 4곳에 복붙돼있던 `Current` 패턴을 추출하며 신설). 파생 클래스가 `Awake()`/`OnDestroy()`를 추가로 쓰면 반드시 `base.Awake()`/`base.OnDestroy()` 호출.
 - 접근자 대소문자가 클래스마다 다르니 주의.
 
+## 저장 데이터 (Data/) — 2026-08-26 신설
+플레이어 저장은 직접 `PlayerPrefs`/`JsonUtility`를 부르지 말고 이 계층을 쓴다.
+- `SaveData`(abstract) 상속 → 필드는 **`[SerializeField] private` + 읽기 전용 프로퍼티 + `Set메서드()`** 로만 노출하고, Set 메서드 끝에서 `SetChanged()` 호출. 필드를 public으로 열면 `SetChanged()`를 빠뜨리게 되고 **에러 없이 저장만 안 되는** 버그가 된다.
+- `SaveDataRegistry`(레지스트리) → `SaveDataProxy<T>`(데이터 1덩어리 대리) → `ISaveStorage`(매체, 현재 `PlayerPrefsSaveStorage`). 저장 매체를 바꿀 땐 `ISaveStorage` 구현만 갈아끼운다.
+- 저장 시점은 **더티 플래그 자동 저장**이다 — 소유 매니저가 `Update()`에서 `Registry.UpdateLogic()`만 부르면 되고 호출부가 `Save()`를 직접 부를 필요가 없다. 즉시 저장이 필요한 건 앱 종료/일시정지뿐.
+- 로드는 `FromJson`이 아니라 **`FromJsonOverwrite`** — 인스턴스를 새로 만들면 `OnChanged` 구독자와 매니저가 캐싱한 참조가 전부 끊긴다.
+- 프로젝트 쪽 사용 예는 [[PlayerManager]](`Assets/Scripts/Player/`). 상세는 `.claude/class/SaveData.md`.
+
 ## 커맨드 시퀀스 (Partterns/Command)
 순차 연출/비동기 흐름은 코루틴 대신 `FlowCommand` + `ICommand` 사용.
 - 사용법: `m_FlowCommand.Add(command)` 로 큐잉 → **소유자 `Update()`에서 `m_FlowCommand.Update()` 호출 필수** (안 부르면 실행 안 됨).

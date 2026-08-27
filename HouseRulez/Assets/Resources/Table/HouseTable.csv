@@ -1,0 +1,7 @@
+Id,Key,NameKey,AccentColor,PoolCount,AxisPower,AxisVariance,AxisCeiling,AxisLearning,SpriteFolder,BackgroundPath,isUnlocked,isUseBet,HoldMax
+1,slot,HouseSlot,D45C9E,6,62,70,86,5,slot,Image/Title/bg_slot_neonstrip,1,0,2
+2,chess,HouseChess,7FA7C9,6,61,38,45,10,chess,Image/Title/bg_chess_castle,1,0,4
+3,janggi,HouseJanggi,57A277,7,63,40,65,35,janggi,Image/Title/bg_janggi_fortress,1,0,4
+4,hwatu,HouseHwatu,D1554C,12,62,92,100,45,hwatu,Image/Title/bg_hwatu_moonfield,1,1,4
+5,poker,HousePoker,D6A441,13,62,97,100,25,poker,Image/Title/bg_poker_frontier,1,0,4
+6,mahjong,HouseMahjong,9B7FD4,9,62,62,0,0,mahjong,Image/Title/bg_mahjong_teahouse,1,0,4

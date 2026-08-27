@@ -8,10 +8,14 @@ using UnityEngine;
 [DefaultExecutionOrder(-1000)]
 public class TitleScene : BaseScene
 {
+    private const string INGAME_SCENE_NAME = "InGameScene";
+
     [SerializeField] private TextMeshProUGUI m_PlayButtonText;
     [SerializeField] private TextMeshProUGUI m_HouseSelectButtonText;
     [SerializeField] private TextMeshProUGUI m_UpgradeButtonText;
     [SerializeField] private TextMeshProUGUI m_SettingButtonText;
+
+    [SerializeField] private UIHouseSelect m_HouseSelect;
 
     protected override void OnSetup()
     {
@@ -20,8 +24,33 @@ public class TitleScene : BaseScene
         // 양쪽에서 호출돼도 테이블이 중복 누적되지 않는다. 진입점이 생기면 이 줄을 그쪽으로 옮긴다.
         TableManager.instance.init();
 
+        // 저장본을 여기서 깨운다(MonoSingleton이 없으면 만들면서 Awake -> Load까지 돈다).
+        // ApplyLocalizedText()보다 반드시 먼저여야 한다 — 저장된 언어가 StringTable.CurrentLanguage에 반영된 뒤 텍스트를 뽑아야 한다.
+        PlayerManager.instance.Load();
+
         ApplyLocalizedText();
+        ApplyHouseTheme();
         PlayBgm();
+    }
+
+    // 저장된 종족을 타이틀 화면에 입힌다. 이게 없으면 씬에 박아둔 기본 그림으로만 떠서,
+    // 종족을 바꿔둔 채 게임을 다시 켜면 타이틀만 이전 종족으로 남는다.
+    private void ApplyHouseTheme()
+    {
+        if (m_HouseSelect == null)
+        {
+            Logger.Error($"[TitleScene] ApplyHouseTheme Failed! UIHouseSelect not linked");
+            return;
+        }
+
+        HouseRecord record = PlayerManager.instance.GetSelectedHouseRecord();
+        if (record == null)
+        {
+            Logger.Error($"[TitleScene] ApplyHouseTheme Failed! GetSelectedHouseRecord == null");
+            return;
+        }
+
+        m_HouseSelect.ApplyTitleTheme(record);
     }
 
     private void ApplyLocalizedText()
@@ -66,12 +95,23 @@ public class TitleScene : BaseScene
 
     public void OnClickPlayButton()
     {
-        // TODO: 인게임 씬 진입
+        // 전환 중 연타 방지 — NextScene()은 부를 때마다 같은 커맨드 묶음을 큐에 더 쌓기만 해서,
+        // 두 번 눌리면 이미 언로드된 씬을 다시 언로드하려 들며 페이드가 두 번 겹친다.
+        if (SceneManager.instance.IsSceneTransitioning == true)
+            return;
+
+        SceneManager.instance.NextScene(INGAME_SCENE_NAME);
     }
 
     public void OnClickHouseSelectButton()
     {
-        // TODO: 종족 선택 화면 — 체스/장기/포커/화투
+        if (m_HouseSelect == null)
+        {
+            Logger.Error($"[TitleScene] OnClickHouseSelectButton Failed! UIHouseSelect not linked");
+            return;
+        }
+
+        m_HouseSelect.Open();
     }
 
     public void OnClickUpgradeButton()

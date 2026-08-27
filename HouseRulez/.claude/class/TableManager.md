@@ -18,3 +18,29 @@ GeometryDefender 프로젝트의 `Assets/Scripts/Glory/` 전체를 HouseRulez로
 
 ### 검증 상태 — 미검증
 Unity 에디터로 실제 컴파일 확인 안 됨(파일 시스템 조작만 수행). 다음 세션에서 에디터를 열어 컴파일 에러 0건인지, `UITable`/`SoundTable`/`ToggleListTable`/`ToggleMenuTable` 조회가 정상 동작(빈 테이블이라도 예외 없이)하는지 확인 필요.
+
+## 2026-08-27-0 — `GameConfigTable` / `SutdaBetTable` 등록
+
+### 개요
+인게임 HUD의 런 초기값과 화투 판돈 배수를 담을 테이블 두 개를 `init()`에 추가했다.
+위 2026-08-18-0 항목이 "GameConfig는 이식하지 않음 — 실제 게임 데이터를 설계하면 그때 같은 패턴으로 추가"라고
+적어둔 그 시점이 왔다. **다만 이식이 아니라 HouseRulez 스키마로 새로 만든 것**이다
+(GeometryDefender의 GameConfigTable과 컬럼이 다르다).
+
+### 수정 (함수: `init()`)
+기존 7개 테이블 뒤에 같은 3줄 패턴으로 이어 붙였다.
+```csharp
+List<GameConfigRecord> gameConfigRecords = LoadCsvTable<GameConfigRecord>("Table/GameConfigTable");
+List<SutdaBetRecord> sutdaBetRecords = LoadCsvTable<SutdaBetRecord>("Table/SutdaBetTable");
+...
+GameConfigTable gameConfigTable = new GameConfigTable(gameConfigRecords);
+SutdaBetTable sutdaBetTable = new SutdaBetTable(sutdaBetRecords);
+...
+m_TableDictionary.Add(typeof(GameConfigTable), gameConfigTable);
+m_TableDictionary.Add(typeof(SutdaBetTable), sutdaBetTable);
+```
+
+상세는 [[GameConfigTable]], [[SutdaBetTable]] 참고.
+
+### 검증 상태 — 미검증
+MCP 미연결 세션이라 컴파일/로드 확인을 못 했다. CSV 헤더와 Record 필드명 일치는 눈으로 대조했다.

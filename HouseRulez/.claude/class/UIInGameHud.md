@@ -1,0 +1,68 @@
+# UIInGameHud
+
+연관: `InGameScene`(`Assets/Scripts/InGame/InGameScene.cs`), [[RunData]], [[GameConfigTable]], [[SutdaBetTable]], `HouseRecord`, `StringTable`
+
+## 2026-08-27-0 — 신설 (인게임 상단 HUD)
+
+### 개요
+기획서 §10 ScreenZones의 HUD 영역(네이티브 `0,0 – 640,20`)을 ×3한 **1920×60 띠**. 본거지 HP · 연차 ·
+골드 · 스핀 코인 · 판돈을 표시한다. 표시만 하고 값은 바꾸지 않는다 — 소유자는 `InGameScene`.
+
+파일: `Assets/Scripts/InGame/UI/UIInGameHud.cs` (신규 폴더 `Assets/Scripts/InGame/UI/`)
+
+### 계층 구조 (InGameScene.unity)
+```
+SafeRoot
+└─ Hud                     RectTransform 1920x60, SafeRoot 좌상단 (0,0)    ← UIInGameHud
+   ├─ Panel                Image #363B4A, stretch, m_RaycastTarget 0
+   ├─ HomeLabel            TMP, x=24  w=120  좌측정렬  #ADACA4
+   ├─ HomeHpPipRoot        RectTransform, x=150 w=234 (8칸 × 24 + 간격 6 × 7)
+   │  └─ PipTemplate       Image #D1554C 24x24  ★ 비활성 원본, 코드가 복제한다
+   ├─ YearText             TMP, x=400 w=220  #F6F5F0
+   ├─ GoldLabel            TMP, x=630 w=90   #ADACA4
+   ├─ GoldValue            TMP, x=730 w=140  #D6A441  fontSize 26
+   ├─ SpinCoinLabel        TMP, x=890 w=150  #ADACA4
+   ├─ SpinCoinPipRoot      RectTransform, x=1050 w=84 (3칸 × 24 + 간격 6 × 2)
+   │  └─ PipTemplate       Image #F6F5F0 24x24  ★ 비활성 원본
+   └─ BetText              TMP, 우측 앵커 x=-40 w=320  우측정렬  #D1554C
+```
+자식은 전부 앵커 `(0,0.5)` · 피벗 `(0,0.5)` · `y=0`(BetText만 우측 앵커) — 부모 좌측 기준 가로 배치 +
+세로 중앙. 색은 GDD 09장 팔레트(패널 `#454B5E`, 입력 웰 `#393E4E`, 최암부 한계 `#363B4A`,
+아군 본체 `#F6F5F0`, 음영 `#ADACA4`)를 따랐다.
+
+### 핍을 씬에 박지 않고 코드로 복제하는 이유
+HP 8칸 / 코인 3개는 **테이블 값**(`HomeHpMax`, `SpinCoinPerYear`)이다. 씬에 8개를 박아두면 CSV를 고쳤을 때
+화면만 8칸으로 남아 조용히 어긋난다. 그래서 슬롯머신의 `SymbolTemplate`과 같은 관례로 비활성 원본 1개를
+두고 `BuildPipList()`가 `_runData.homeHpMax` 개수만큼 복제한다.
+
+간격 계산의 기준 폭은 **템플릿의 실제 `sizeDelta.x`에서 읽는다** — 코드에 폭을 또 적으면 씬 값과
+이중 소스가 되어 나중에 한쪽만 바뀐다. 간격(`m_PipSpacing`)만 직렬화 필드다.
+
+### 직렬화 필드 ↔ 씬 fileID
+| 필드 | fileID | 타입 |
+|---|---|---|
+| `m_HomeLabelText` | 900200192 | TextMeshProUGUI |
+| `m_HomeHpPipRoot` | 900200201 | RectTransform |
+| `m_HomeHpPipTemplate` | 900200212 | Image |
+| `m_YearText` | 900200222 | TextMeshProUGUI |
+| `m_GoldLabelText` | 900200232 | TextMeshProUGUI |
+| `m_GoldValueText` | 900200242 | TextMeshProUGUI |
+| `m_SpinCoinLabelText` | 900200252 | TextMeshProUGUI |
+| `m_SpinCoinPipRoot` | 900200261 | RectTransform |
+| `m_SpinCoinPipTemplate` | 900200272 | Image |
+| `m_BetText` | 900200282 | TextMeshProUGUI |
+
+### 판돈 표시
+화투(섯다)만 쓰는 개념이라 `HouseRecord.isUseBet`이 0이면 `BetText` 오브젝트 자체를 끈다.
+종족 키를 코드에서 비교하지 않는다([[SutdaBetTable]] 참고).
+
+### 호출 순서
+`InGameScene.OnSetup()` → `Apply(runData, houseRecord)`(라벨 로컬라이즈 + 핍 생성 + 첫 그리기) →
+이후 값이 바뀔 때마다 `Refresh()`. 지금 `Refresh()`를 부르는 곳은 스핀 코인이 줄어드는 `OnClickSpinButton()` 하나다.
+
+### StringTable 키 (이번에 추가)
+`HudHome` / `HudYear`(`YEAR {0}/{1}`) / `HudGold` / `HudSpinCoin` / `HudBet`(`판돈 {0} ×{1}`)
+
+### 검증 상태 — 미검증
+Unity MCP 미연결 세션이라 씬 YAML을 직접 작성했다. 파일 정합성(fileID 중복/고아/역참조/개행)은
+스크립트로 대조해 통과했지만 **에디터로 열어보지도, 컴파일하지도, 플레이해보지도 않았다.**
