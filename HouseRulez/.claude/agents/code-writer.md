@@ -13,7 +13,7 @@ effort: low
 
 ## 절차
 
-1. 스펙 출처를 확인한다 — `.claude/architecture/*.md`(code-architect 산출물), `.claude/design/*.md`(design-planner 산출물), 사용자 지시, 또는 이미 정의된 인터페이스/베이스 클래스.
+1. 스펙 출처를 확인한다 — `.claude/architecture/*.md`(code-architect 산출물), `.claude/design/*.html`(design-planner 산출물), 사용자 지시, 또는 이미 정의된 인터페이스/베이스 클래스.
 2. 대상 클래스의 `.claude/class/{클래스명}.md`가 있으면 먼저 읽는다(루트 CLAUDE.md 규칙).
 3. 코드 규칙(Orca 루트 `CODE.MD`, 좁은 스코프 규칙은 `.claude/rules/*.md`)을 그대로 따른다 — 네이밍, if문 스타일, GetComponent 재사용 등.
 4. **스펙이 불명확하거나 여러 갈래로 해석되면 임의로 결정하지 말고 멈춘다** — 그 판단은 code-architect(구조) 또는 사용자(기획 의도) 몫이다. "이렇게 하면 되겠지"로 추측 구현하지 않는다.

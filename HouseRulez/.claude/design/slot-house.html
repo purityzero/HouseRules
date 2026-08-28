@@ -1,0 +1,1582 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Orca design document converter">
+  <meta name="source" content="slot-house.md">
+  <title>슬롯 — 6번째 종족 추가 구현 스펙 쨌 HouseRulez Design</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10141b;
+      --panel: #171d27;
+      --panel-2: #1d2531;
+      --text: #e8edf5;
+      --muted: #9ba8bb;
+      --line: #303b4c;
+      --accent: #7fa7c9;
+      --accent-2: #d6a441;
+      --code: #0c1118;
+      --good: #57a277;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% -10%, rgba(127,167,201,.16), transparent 30rem),
+        radial-gradient(circle at 95% 0%, rgba(214,164,65,.10), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+      line-height: 1.72;
+    }
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 80px; }
+    .document-header {
+      padding: 28px 32px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(127,167,201,.13), rgba(23,29,39,.94) 48%, rgba(214,164,65,.08));
+      box-shadow: 0 18px 50px rgba(0,0,0,.22);
+      margin-bottom: 20px;
+    }
+    .eyebrow { margin: 0 0 6px; color: var(--accent); font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .document-header h1 { margin: 0; font-size: clamp(1.65rem, 4vw, 2.65rem); line-height: 1.2; }
+    .source { margin: 10px 0 0; color: var(--muted); font-size: .86rem; }
+    .toc, article {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(23,29,39,.94);
+      box-shadow: 0 12px 40px rgba(0,0,0,.16);
+    }
+    .toc { padding: 16px 22px; margin-bottom: 20px; }
+    .toc summary { cursor: pointer; color: var(--accent-2); font-weight: 800; }
+    .toc ol { columns: 2 320px; column-gap: 32px; margin: 14px 0 2px; padding-left: 22px; }
+    .toc li { break-inside: avoid; margin: 4px 0; color: var(--muted); }
+    .toc .toc-level-3 { margin-left: 16px; font-size: .92em; }
+    .toc a { color: inherit; text-decoration: none; }
+    .toc a:hover { color: var(--text); }
+    article { padding: clamp(22px, 4vw, 48px); overflow: hidden; }
+    article > h1:first-child { display: none; }
+    h1, h2, h3, h4, h5, h6 { color: #f5f7fb; line-height: 1.35; scroll-margin-top: 20px; }
+    h2 { margin: 2.2em 0 .7em; padding-bottom: .38em; border-bottom: 1px solid var(--line); font-size: 1.58rem; }
+    h3 { margin: 1.8em 0 .55em; color: #c9d9e8; font-size: 1.25rem; }
+    h4 { margin: 1.45em 0 .45em; color: #d8c18d; }
+    .heading-anchor { margin-left: .45em; color: transparent; text-decoration: none; font-size: .72em; }
+    h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor { color: var(--muted); }
+    p { margin: .7em 0; }
+    a { color: #9bc7ed; text-underline-offset: 3px; }
+    strong { color: #fff; }
+    blockquote { margin: 1.15em 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: rgba(127,167,201,.08); color: #cbd5e2; }
+    blockquote > :first-child { margin-top: 0; }
+    blockquote > :last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.5em; }
+    li { margin: .28em 0; }
+    code { padding: .15em .4em; border: 1px solid #2c3747; border-radius: 5px; background: var(--code); color: #d8e8f6; font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; }
+    pre { overflow-x: auto; padding: 17px 19px; border: 1px solid #293344; border-radius: 10px; background: var(--code); line-height: 1.55; }
+    pre code { padding: 0; border: 0; background: transparent; }
+    table { width: 100%; margin: 1.15em 0 1.6em; border-collapse: separate; border-spacing: 0; font-size: .92rem; display: block; overflow-x: auto; }
+    thead { background: #222c39; }
+    th, td { min-width: 105px; padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #f0dcae; font-weight: 800; }
+    tr > :first-child { border-left: 1px solid var(--line); }
+    thead tr:first-child > * { border-top: 1px solid var(--line); }
+    tr:first-child > :first-child { border-top-left-radius: 8px; }
+    tr:first-child > :last-child { border-top-right-radius: 8px; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
+    hr { margin: 2.2em 0; border: 0; border-top: 1px solid var(--line); }
+    img { max-width: 100%; height: auto; }
+    input[type="checkbox"] { accent-color: var(--good); }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 18px, 1180px); padding-top: 10px; }
+      .document-header { padding: 22px 20px; border-radius: 12px; }
+      article { padding: 20px 16px; border-radius: 12px; }
+      .toc { border-radius: 12px; }
+      .toc ol { columns: 1; }
+      table { font-size: .82rem; }
+      th, td { padding: 8px; }
+    }
+    @media print {
+      :root { color-scheme: light; --bg: #fff; --panel: #fff; --text: #15191f; --muted: #555; --line: #bbb; --code: #f3f4f6; }
+      body { background: #fff; }
+      .shell { width: 100%; padding: 0; }
+      .document-header, .toc, article { box-shadow: none; }
+      .document-header { background: #fff; }
+      .toc { display: none; }
+      article { border: 0; padding: 0; }
+      a { color: inherit; }
+      pre, table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="document-header">
+      <p class="eyebrow">HouseRulez 쨌 Design Specification</p>
+      <h1>슬롯 — 6번째 종족 추가 구현 스펙</h1>
+      <p class="source">Canonical HTML 쨌 Previous source: <code>slot-house.md</code></p>
+    </header>
+    <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#출처-문서">출처 문서</a></li><li class="toc-level-2"><a href="#결론-가능-단-조건-2건">결론 — 가능. 단 조건 2건.</a></li><li class="toc-level-2"><a href="#1-종족-정체성과-판정-문법">1. 종족 정체성과 판정 문법</a></li><li class="toc-level-3"><a href="#1-1-한-줄-정체성">1.1 한 줄 정체성</a></li><li class="toc-level-3"><a href="#1-2-신규-판정-문법-payline-rank">1.2 신규 판정 문법 PAYLINE_RANK</a></li><li class="toc-level-3"><a href="#1-3-이-문법이-낳는-플레이-차이-홀드와-맞물리는-지점">1.3 이 문법이 낳는 플레이 차이 (홀드와 맞물리는 지점)</a></li><li class="toc-level-2"><a href="#2-심볼-풀-최종안-6종">2. 심볼 풀 최종안 — 6종</a></li><li class="toc-level-3"><a href="#2-1-왜-6종인가-수치-근거">2.1 왜 6종인가 (수치 근거)</a></li><li class="toc-level-3"><a href="#2-2-심볼-6종-등급-서열-배당-서열">2.2 심볼 6종 (등급 서열 = 배당 서열)</a></li><li class="toc-level-2"><a href="#3-배당표-최종안">3. 배당표 최종안</a></li><li class="toc-level-3"><a href="#왜-라인당-정확히-2개-에-전부-배당을-주는가">왜 라인당 &quot;정확히 2개&quot;에 전부 배당을 주는가</a></li><li class="toc-level-2"><a href="#4-시뮬레이션-결과-1스핀-척도-gdd-05-judgebalance와-동일-척도">4. 시뮬레이션 결과 — 1스핀 척도 (GDD &#167;05 JudgeBalance와 동일 척도)</a></li><li class="toc-level-3"><a href="#4-1-검증-방법-기존-수치를-먼저-재현했다">4.1 검증 방법 — 기존 수치를 먼저 재현했다</a></li><li class="toc-level-3"><a href="#4-2-judgebalance-표-기존-5종족과-나란히">4.2 JudgeBalance 표 — 기존 5종족과 나란히</a></li><li class="toc-level-3"><a href="#4-3-시드-안정성-각-50만-시행">4.3 시드 안정성 (각 50만 시행)</a></li><li class="toc-level-3"><a href="#4-4-cv-목표와-잭팟-체감의-충돌을-어떻게-해소했는가">4.4 CV 목표와 잭팟 체감의 충돌을 어떻게 해소했는가</a></li><li class="toc-level-2"><a href="#5-조건-a-연차-척도에서-슬롯은-홀드가-너무-세다">5. 조건 A — 연차 척도에서 슬롯은 홀드가 너무 세다</a></li><li class="toc-level-3"><a href="#5-1-왜-이-절이-필요한가">5.1 왜 이 절이 필요한가</a></li><li class="toc-level-3"><a href="#5-2-모델-검증">5.2 모델 검증</a></li><li class="toc-level-3"><a href="#5-3-슬롯의-홀드-상한별-연차-전력-각-50만-시행">5.3 슬롯의 홀드 상한별 연차 전력 (각 50만 시행)</a></li><li class="toc-level-3"><a href="#5-4-기존-5종족과-나란히-마작-스펙-3-5-3-7-표에-이어-붙임">5.4 기존 5종족과 나란히 (마작 스펙 &#167;3.5 / &#167;3.7 표에 이어 붙임)</a></li><li class="toc-level-3"><a href="#5-5-권장-슬롯만-홀드-상한-2칸">5.5 권장 — 슬롯만 홀드 상한 2칸</a></li><li class="toc-level-2"><a href="#6-해금-순서-슬롯을-1번-튜토리얼-종족-에-둔다">6. 해금 순서 — 슬롯을 1번(튜토리얼 종족)에 둔다</a></li><li class="toc-level-3"><a href="#6-1-브리프가-걱정한-풀-크기-6종-동률-충돌은-이미-없다">6.1 브리프가 걱정한 &quot;풀 크기 6종 동률&quot; 충돌은 이미 없다</a></li><li class="toc-level-3"><a href="#6-2-학습-난이도-순이면-슬롯은-1번이다">6.2 학습 난이도 순이면 슬롯은 1번이다</a></li><li class="toc-level-3"><a href="#6-3-서사-충돌-판을-까는-쪽-인데-튜토리얼인가">6.3 서사 충돌 — &quot;판을 까는 쪽&quot;인데 튜토리얼인가</a></li><li class="toc-level-3"><a href="#6-4-알려진-비용-숨기지-않는다">6.4 알려진 비용 (숨기지 않는다)</a></li><li class="toc-level-2"><a href="#7-조건-b-혼혈-페널티-면제는-기각한다-브리프-가설-반증">7. 조건 B — 혼혈 페널티 면제는 기각한다 (브리프 가설 반증)</a></li><li class="toc-level-3"><a href="#7-1-브리프의-가설">7.1 브리프의 가설</a></li><li class="toc-level-3"><a href="#7-2-측정-전리품에-중위-등급을-부여했을-때-50만-시행">7.2 측정 — 전리품에 중위 등급을 부여했을 때 (50만 시행)</a></li><li class="toc-level-3"><a href="#7-3-표준-규칙-gdd-06-을-그대로-적용하면-오히려-낫다">7.3 표준 규칙(GDD &#167;06)을 그대로 적용하면 오히려 낫다</a></li><li class="toc-level-3"><a href="#7-4-결론">7.4 결론</a></li><li class="toc-level-2"><a href="#8-housetable-csv-추가-행과-액센트-색">8. HouseTable.csv 추가 행과 액센트 색</a></li><li class="toc-level-3"><a href="#8-1-액센트-색-d45c9e">8.1 액센트 색 — D45C9E</a></li><li class="toc-level-3"><a href="#8-2-housetable-csv에-추가할-행">8.2 HouseTable.csv에 추가할 행</a></li><li class="toc-level-3"><a href="#8-3-id-재번호-슬롯을-1번에-둘-경우">8.3 Id 재번호 (슬롯을 1번에 둘 경우)</a></li><li class="toc-level-2"><a href="#9-아트-발주서">9. 아트 발주서</a></li><li class="toc-level-3"><a href="#9-1-절대-규격">9.1 절대 규격</a></li><li class="toc-level-3"><a href="#9-2-심볼-6종-32-32-안에서-어떻게-그릴지">9.2 심볼 6종 — 32&#215;32 안에서 어떻게 그릴지</a></li><li class="toc-level-3"><a href="#9-3-배경">9.3 배경</a></li><li class="toc-level-3"><a href="#9-4-릴-프레임">9.4 릴 프레임</a></li><li class="toc-level-3"><a href="#9-5-대좌-플린스">9.5 대좌(플린스)</a></li><li class="toc-level-3"><a href="#9-6-생성-완료-2026-08-27-0">9.6 생성 완료 — 2026-08-27-0</a></li><li class="toc-level-2"><a href="#10-문서에-없어서-확인이-필요한-부분-미결정">10. 문서에 없어서 확인이 필요한 부분 (미결정)</a></li><li class="toc-level-3"><a href="#10-1-슬롯-전용-홀드-상한-2칸-승인-필요-최우선">10-1. 슬롯 전용 홀드 상한 2칸 — 승인 필요 (최우선)</a></li><li class="toc-level-3"><a href="#10-2-해금-순서-승인-필요">10-2. 해금 순서 — 승인 필요</a></li><li class="toc-level-3"><a href="#10-3-axisceiling-axislearning-값-승인-필요">10-3. AxisCeiling / AxisLearning 값 — 승인 필요</a></li><li class="toc-level-3"><a href="#10-4-체리-1매치-배당을-되살릴지">10-4. 체리 1매치 배당을 되살릴지</a></li><li class="toc-level-3"><a href="#10-5-슬롯-전용-코어-수치-미정">10-5. 슬롯 전용 코어 — 수치 미정</a></li><li class="toc-level-3"><a href="#10-6-6종족-시-12연차-구조-마작-스펙-9-13과-같은-미결">10-6. 6종족 시 12연차 구조 — 마작 스펙 &#167;9-13과 같은 미결</a></li><li class="toc-level-3"><a href="#10-7-gdd-06-부판정-짝의-정확한-정의">10-7. GDD &#167;06 부판정 짝의 정확한 정의</a></li><li class="toc-level-3"><a href="#10-8-배경-테마명-neonstrip-미국-문화권-중복">10-8. 배경 테마명 neonstrip / 미국 문화권 중복</a></li><li class="toc-level-2"><a href="#11-기존-구현과의-접점">11. 기존 구현과의 접점</a></li><li class="toc-level-3"><a href="#11-1-현재-구현-상태">11.1 현재 구현 상태</a></li><li class="toc-level-3"><a href="#11-2-새로-필요한-것">11.2 새로 필요한 것</a></li><li class="toc-level-3"><a href="#11-3-충돌-가능-지점">11.3 충돌 가능 지점</a></li><li class="toc-level-2"><a href="#12-필요한-신규-stringtable-키">12. 필요한 신규 StringTable 키</a></li><li class="toc-level-3"><a href="#12-1-지금-당장-필요-종족-선택-화면이-종족명을-못-찾으면-빈칸이-뜬다">12.1 지금 당장 필요 (종족 선택 화면이 종족명을 못 찾으면 빈칸이 뜬다)</a></li><li class="toc-level-3"><a href="#12-2-판정-ui를-붙일-때-필요-배당표-표시">12.2 판정 UI를 붙일 때 필요 (배당표 표시)</a></li><li class="toc-level-2"><a href="#13-참고">13. 참고</a></li><li class="toc-level-2"><a href="#개정-이력">개정 이력</a></li><li class="toc-level-3"><a href="#2026-08-27-0-초판">2026-08-27-0 — 초판</a></li><li class="toc-level-2"><a href="#검증-상태">검증 상태</a></li></ol></details>
+    <article>
+<h1 id="슬롯-6번째-종족-추가-구현-스펙">슬롯 — 6번째 종족 추가 구현 스펙<a class="heading-anchor" href="#슬롯-6번째-종족-추가-구현-스펙" aria-label="Section link">#</a></h1>
+<p>작성일 2026-08-27 · <strong>개정 2026-08-27-0</strong> (초판) · 브랜치 <code>work/2026-08-27-slot-house</code></p>
+<h2 id="출처-문서">출처 문서<a class="heading-anchor" href="#출처-문서" aria-label="Section link">#</a></h2>
+<ul>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Design\reel_of_four_houses_GDD.html</code> — 전체 GDD.
+특히 <strong>§03 슬롯 시스템</strong>(SpinEconomy·홀드 기구), <strong>§04 네 종족</strong>(판정 문법·축 값), <strong>§05 판정 밸런스</strong>(JudgeBalance 표·심볼 풀 논거·분산 사다리), <strong>§06 종족 전쟁</strong>(PurityCurve·이질 심볼 규칙), <strong>§10 화면 설계</strong>(색 팔레트·검정 절대 규칙·액센트), <strong>§11 데이터 테이블 스키마</strong>(<code>PatternType</code> enum 확장 원칙), <strong>§13 리스크</strong>(해금 순서·32px 판독), <strong>§14 미결정</strong></li>
+<li><code>D:\Unity\HouseRules\HouseRulez\.claude\design\mahjong-house.html</code> — 5번째 종족(마작) 스펙. <strong>이 문서의 밸런스 척도·홀드 모델·해금 순서 규칙 재정의(§9-1)·액센트 선정 방법론을 그대로 상속한다.</strong></li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Resources\Table\SlotLineTable.csv</code> — 5 페이라인(Top/Middle/Bottom/DiagonalDown/DiagonalUp). <strong>이미 존재하며 그대로 쓴다.</strong></li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Resources\Table\HouseTable.csv</code> / <code>GameConfigTable.csv</code> / <code>SutdaBetTable.csv</code> / <code>StringTable.csv</code></li>
+</ul>
+<hr>
+<h2 id="결론-가능-단-조건-2건">결론 — <strong>가능. 단 조건 2건.</strong><a class="heading-anchor" href="#결론-가능-단-조건-2건" aria-label="Section link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>근거</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>판정 축이 겹치지 않는다.</strong> 기존 5종족은 전부 &quot;무슨 패턴이 성립했나&quot;만 보고 심볼은 등가다. 슬롯만 <strong>&quot;무엇이 맞았나&quot;가 전력을 정한다</strong> — 심볼 자체가 배당 등급을 들고 있다. 여섯 번째 축으로 성립 (→ §1)</td>
+<td>통과</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>1스핀 밸런스가 목표 대역에 앉는다.</strong> 평균 <strong>6.24</strong> (기존 6.11<del>6.27) · CV <strong>1.17</strong> (목표 0.9</del>1.2) · 무소환 4.96% (→ §4)</td>
+<td>통과</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>풀 6종이 정답이다.</strong> 5종은 CV가 목표 대역에 안 들어오고(잭팟을 죽여야 겨우 진입), 7종은 무소환 8.1%로 포커와 같아져 슬롯의 자리가 아니게 된다 (→ §2.1)</td>
+<td>통과</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>해금 순서 충돌은 이미 해소돼 있다.</strong> GDD §13의 &quot;풀 크기 순&quot; 규칙은 마작 스펙 §9-1(2026-08-25 결정)에서 <strong>&quot;학습 난이도 순&quot;으로 이미 재정의</strong>됐고 <code>HouseRecord.cs:5</code> 주석에 반영돼 있다. 6종 동률 문제는 발생하지 않는다 (→ §6)</td>
+<td>통과</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>조건 A — 슬롯만 홀드 상한 2칸.</strong> 기본값 4칸으로 두면 슬롯이 <strong>연차 척도에서 전 종족 중 가장 강해진다</strong>(22.91 vs 화투 22.56 · 포커 21.95). 1스핀 평균이 붙어 있어도 연차가 갈린다 — 마작 스펙 §3.5가 겪은 함정의 반대 방향 (→ §5)</td>
+<td><strong>사용자 확인 필요</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>조건 B — 혼혈 페널티 면제는 기각.</strong> 브리프 가설(&quot;배당표는 심볼이 뭐든 등급만 매기면 읽힌다&quot;)은 <strong>시뮬레이션으로 반증됐다.</strong> 등급을 매겨도 1회 약탈에 −32.3%로, 표준 규칙(−13%)보다 오히려 나쁘다 (→ §7)</td>
+<td><strong>가설 반증 · 표준 규칙 채택</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td>액센트 색 6번째, 배경 테마 6번째</td>
+<td>해결안 있음 (→ §8)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="1-종족-정체성과-판정-문법">1. 종족 정체성과 판정 문법<a class="heading-anchor" href="#1-종족-정체성과-판정-문법" aria-label="Section link">#</a></h2>
+<h3 id="1-1-한-줄-정체성">1.1 한 줄 정체성<a class="heading-anchor" href="#1-1-한-줄-정체성" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong>슬롯 — 판을 까는 쪽. 심볼 자체에 값이 매겨진 유일한 종족.</strong></p>
+</blockquote>
+<h3 id="1-2-신규-판정-문법-payline-rank">1.2 신규 판정 문법 <code>PAYLINE_RANK</code><a class="heading-anchor" href="#1-2-신규-판정-문법-payline-rank" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong>5개 페이라인(가로 3 · 대각 2)에서, 라인 3칸이 같으면 그 심볼의 3매치 배당, 정확히 2칸이 같으면 그 심볼의 2매치 배당. 전부 다르면 0.</strong>
+<strong>배당액은 어느 심볼이 맞았는지에 따라 다르다.</strong> 이것이 다른 다섯 종족에는 없는 축이다.</p>
+</blockquote>
+<p><strong>GDD §11이 못 박은 요구를 정확히 만족한다</strong> — &quot;종족을 추가한다는 건 <code>PatternType</code> enum에 값을 하나 더 넣고 판정 함수를 하나 더 쓰는 일이 되어야 한다.&quot;</p>
+<h4 id="왜-이것이-체스-스킨-이-아닌가-두-축이-동시에-다르다">왜 이것이 &quot;체스 스킨&quot;이 아닌가 — 두 축이 동시에 다르다<a class="heading-anchor" href="#왜-이것이-체스-스킨-이-아닌가-두-축이-동시에-다르다" aria-label="Section link">#</a></h4>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>판정 단위</th>
+<th>라인 수</th>
+<th>심볼 등급이 배당에 참여?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스 <code>LINE_TRIPLE</code></td>
+<td>라인 3칸</td>
+<td><strong>8</strong> (가로3·세로3·대각2)</td>
+<td>✕ 전부 등가 (정렬 8.0 / 반정렬 1.3 고정)</td>
+</tr>
+<tr>
+<td>장기 <code>LINE_ABA</code></td>
+<td>라인 3칸</td>
+<td>8</td>
+<td>✕ (包만 위치 특례, 배당 등급 아님)</td>
+</tr>
+<tr>
+<td>포커 <code>HAND_RANK</code></td>
+<td>라인 3칸</td>
+<td>8</td>
+<td>✕ 순서는 스트레이트 성립용이지 배당 차등이 아님</td>
+</tr>
+<tr>
+<td>화투 <code>PAIR_COUNT</code>(섯다)</td>
+<td><strong>세로 열 3칸</strong></td>
+<td>3열</td>
+<td>△ 족보 서열은 있으나 <em>조합</em>의 서열이지 심볼 단독 등급이 아님</td>
+</tr>
+<tr>
+<td>마작 <code>MELD_PARTITION</code></td>
+<td><strong>9칸 전체(위치 무관)</strong></td>
+<td>—</td>
+<td>✕</td>
+</tr>
+<tr>
+<td><strong>슬롯 <code>PAYLINE_RANK</code></strong></td>
+<td>라인 3칸</td>
+<td><strong>5</strong> (가로3·대각2, <strong>세로 없음</strong>)</td>
+<td><strong>○ 심볼마다 배당이 다르다</strong></td>
+</tr>
+</tbody></table>
+<p><strong>세로 라인이 없는 것은 각색이 아니라 슬롯의 원리 그대로다.</strong> 릴 하나가 곧 세로 한 줄이므로, 정통 슬롯머신은 세로를 페이라인으로 세지 않는다. 그 5라인이 <code>SlotLineTable.csv</code>에 <strong>이미 정확히 들어 있다</strong>(Id 1~5). 체스 8라인 ↔ 슬롯 5라인은 데이터로 이미 구분돼 있는 상태다.</p>
+<p><strong>핵심 구분 축은 &quot;라인 수&quot;가 아니라 &quot;심볼 등급&quot;이다.</strong> 라인 수만 다르면 체스의 파라미터 변형에 불과하지만, 슬롯은 판정 결과가 <code>(패턴, 심볼)</code> 2튜플이고 나머지 다섯은 <code>(패턴)</code> 1튜플이다. 판정 함수의 반환 타입 자체가 다르다.</p>
+<h3 id="1-3-이-문법이-낳는-플레이-차이-홀드와-맞물리는-지점">1.3 이 문법이 낳는 플레이 차이 (홀드와 맞물리는 지점)<a class="heading-anchor" href="#1-3-이-문법이-낳는-플레이-차이-홀드와-맞물리는-지점" aria-label="Section link">#</a></h3>
+<p>체스에서 &quot;체리 두 개가 맞은 줄&quot;과 &quot;세븐 두 개가 맞은 줄&quot;은 홀드 가치가 같다(심볼이 등가라서). 슬롯에서는 <strong>세븐 페어를 잡고 세 번째를 노리는 것</strong>이 명백히 더 가치 있다. 즉 슬롯은 <strong>홀드 결정이 심볼을 보고 이루어지는 유일한 종족</strong>이다. 이것이 §5의 밸런스 문제를 낳는 원인이기도 하다.</p>
+<hr>
+<h2 id="2-심볼-풀-최종안-6종">2. 심볼 풀 최종안 — 6종<a class="heading-anchor" href="#2-심볼-풀-최종안-6종" aria-label="Section link">#</a></h2>
+<h3 id="2-1-왜-6종인가-수치-근거">2.1 왜 6종인가 (수치 근거)<a class="heading-anchor" href="#2-1-왜-6종인가-수치-근거" aria-label="Section link">#</a></h3>
+<p>풀 크기별 전수 비교(각 12만 시행, 평균을 6.2로 정규화한 뒤 CV 측정, ratio·alpha 전 조합):</p>
+<table>
+<thead>
+<tr>
+<th>풀</th>
+<th>무소환률</th>
+<th>목표 CV 0.9~1.2 진입</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>5종</td>
+<td>2.30%</td>
+<td>진입은 하나 잭팟 배수가 낮은 구간에서만</td>
+<td>무소환이 체스(0.5%)에 가까워 &quot;슬롯인데 항상 뭔가 나온다&quot; — 정체성 손실</td>
+</tr>
+<tr>
+<td><strong>6종</strong></td>
+<td><strong>4.96%</strong></td>
+<td><strong>넓게 진입, 잭팟 배수 최대 5.3배</strong></td>
+<td><strong>채택</strong></td>
+</tr>
+<tr>
+<td>7종</td>
+<td>8.10%</td>
+<td>진입</td>
+<td>무소환이 포커(8.9%)와 사실상 동률 — 분산 사다리에서 포커와 자리가 겹친다</td>
+</tr>
+</tbody></table>
+<p>무소환 4.96%는 체스 0.5% ↔ 포커 8.9% 사이의 정확히 중간대다. 사다리 중간을 메우는 종족의 무소환률로 적절하다.</p>
+<p><strong>GDD §05가 세운 &quot;풀 크기 = 원본 게임의 실제 구성&quot; 원칙과도 어긋나지 않는다.</strong> 정통 3릴 기계식 슬롯의 릴 스트립은 대개 체리/레몬/오렌지/플럼/벨/BAR/세븐 대역이고, 그중 <strong>오렌지·플럼은 32px 모노크롬에서 레몬과 구분이 불가능</strong>하다(GDD §13이 화투 흑싸리/홍싸리로 이미 겪은 문제). 두 과일을 빼고 BAR를 2단으로 쪼개면 6종이 되고, 이게 판독 가능한 최대 구성이다.</p>
+<h3 id="2-2-심볼-6종-등급-서열-배당-서열">2.2 심볼 6종 (등급 서열 = 배당 서열)<a class="heading-anchor" href="#2-2-심볼-6종-등급-서열-배당-서열" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>등급</th>
+<th>이름</th>
+<th>파일명 키</th>
+<th>32px 판독 근거</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1 (최하)</td>
+<td>체리</td>
+<td><code>slot_01_cherry</code></td>
+<td>둥근 알 2개 — 유일한 &quot;복수 덩어리&quot; 실루엣</td>
+</tr>
+<tr>
+<td>2</td>
+<td>레몬</td>
+<td><code>slot_02_lemon</code></td>
+<td>가로로 누운 뾰족 타원 — 유일한 가로 타원</td>
+</tr>
+<tr>
+<td>3</td>
+<td>벨</td>
+<td><code>slot_03_bell</code></td>
+<td>사다리꼴 + 손잡이 고리 — 유일한 상단 돌기</td>
+</tr>
+<tr>
+<td>4</td>
+<td>BAR</td>
+<td><code>slot_04_bar</code></td>
+<td>가로 막대 1개 + 글자 각인</td>
+</tr>
+<tr>
+<td>5</td>
+<td>2BAR</td>
+<td><code>slot_05_bar2</code></td>
+<td>가로 막대 2개 — BAR와 <strong>개수</strong>로 구분</td>
+</tr>
+<tr>
+<td>6 (최상)</td>
+<td>세븐</td>
+<td><code>slot_06_seven</code></td>
+<td>숫자 7 — 유일한 사선 획</td>
+</tr>
+</tbody></table>
+<p><strong>파일명에 인덱스를 넣는 이유(구현 근거).</strong> 체스는 <code>chess_king</code>(무인덱스)이지만 화투 <code>hwatu_01_pine</code>, 마작 <code>mahjong_01_pin</code>, 포커 <code>poker_01_A</code>는 <strong>서열이 있는 종족이라 인덱스를 붙였다.</strong> 슬롯은 등급이 곧 배당이므로 인덱스가 필수다.</p>
+<p>그리고 이건 표기 취향이 아니라 실동작에 걸린다 — <code>HouseSpriteLoader.Load()</code>(<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:46</code>)는 <code>Resources.LoadAll</code>이 돌려주는 순서를 그대로 리스트에 담고, <code>UIHouseSlotSymbol.symbolType</code>(<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotSymbol.cs:62</code>)은 <strong>그 리스트의 인덱스</strong>다. <code>01</code>~<code>06</code> 접두사를 붙이면 <strong>스프라이트 인덱스 == 배당 등급</strong>이 되어 별도 매핑 테이블이 필요 없다.</p>
+<blockquote>
+<p>⚠ <strong>명명 충돌 주의</strong> — 화투에 이미 <code>hwatu_03_cherry</code>(3월 벚꽃)가 있다. 폴더가 달라 파일 충돌은 없지만, <strong>혼혈 상태에서 두 심볼이 한 릴에 섞일 수 있다.</strong> 화투 03은 <em>꽃잎 다섯 장의 벚꽃</em>, 슬롯 01은 <em>줄기로 이어진 과일 두 알</em>로 실루엣이 완전히 달라야 한다 (→ §9 아트 발주서).</p>
+</blockquote>
+<hr>
+<h2 id="3-배당표-최종안">3. 배당표 최종안<a class="heading-anchor" href="#3-배당표-최종안" aria-label="Section link">#</a></h2>
+<p><strong>전력 = Σ(5개 라인의 배당).</strong> 라인 하나는 아래 셋 중 하나만 적용된다.</p>
+<table>
+<thead>
+<tr>
+<th>심볼</th>
+<th>인덱스</th>
+<th><strong>3매치</strong></th>
+<th><strong>2매치</strong></th>
+<th>2/3 비</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체리 <code>slot_01_cherry</code></td>
+<td>0</td>
+<td><strong>3</strong></td>
+<td><strong>0.5</strong></td>
+<td>0.167</td>
+</tr>
+<tr>
+<td>레몬 <code>slot_02_lemon</code></td>
+<td>1</td>
+<td><strong>5</strong></td>
+<td><strong>0.8</strong></td>
+<td>0.160</td>
+</tr>
+<tr>
+<td>벨 <code>slot_03_bell</code></td>
+<td>2</td>
+<td><strong>8</strong></td>
+<td><strong>1.2</strong></td>
+<td>0.150</td>
+</tr>
+<tr>
+<td>BAR <code>slot_04_bar</code></td>
+<td>3</td>
+<td><strong>13</strong></td>
+<td><strong>2</strong></td>
+<td>0.154</td>
+</tr>
+<tr>
+<td>2BAR <code>slot_05_bar2</code></td>
+<td>4</td>
+<td><strong>20</strong></td>
+<td><strong>3</strong></td>
+<td>0.150</td>
+</tr>
+<tr>
+<td>세븐 <code>slot_06_seven</code></td>
+<td>5</td>
+<td><strong>33</strong></td>
+<td><strong>5</strong></td>
+<td>0.152</td>
+</tr>
+<tr>
+<td>전부 다름</td>
+<td>—</td>
+<td>0</td>
+<td>0</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>1매치 배당은 없다.</strong> 정통 슬롯의 &quot;체리 1개도 준다&quot;를 넣으면 무소환률이 4.96% → 0.6% 수준으로 무너져 체스와 같아진다. 판정 문법도 3매치/2매치 두 줄로 끝나야 깔끔하다. (되살릴 여지는 → §10-4)</li>
+<li>3매치 사다리는 등비 1.6에 가깝다(3 → 5 → 8 → 13 → 20 → 33). <strong>세븐 3매치 33은 체리 2매치 0.5의 66배</strong>이자 스핀 중앙값(4.40)의 <strong>7.5배</strong>다.</li>
+<li>2매치는 3매치의 약 15%. 이 값이 §5에서 CV를 정하는 유일한 레버다.</li>
+</ul>
+<h3 id="왜-라인당-정확히-2개-에-전부-배당을-주는가">왜 라인당 &quot;정확히 2개&quot;에 전부 배당을 주는가<a class="heading-anchor" href="#왜-라인당-정확히-2개-에-전부-배당을-주는가" aria-label="Section link">#</a></h3>
+<p>6종 균등 풀에서 라인당 3매치 확률은 <strong>1/36</strong>, 5라인이면 <strong>스핀당 0.139회</strong>뿐이다. 여기에 전력의 대부분을 실으면 CV가 3을 넘는다(사용자 손계산 재현: 6종 배당표만으로 평균 6.18 / CV 3.08).</p>
+<p>반면 라인당 &quot;어떤 심볼이든 정확히 2개&quot;는 <strong>90/216 = 41.7%</strong>, 스핀당 <strong>2.083회</strong>다. 여기에 등급 비례 배당을 얹으면 바닥이 두꺼워지면서도 심볼 등급 축이 유지된다. <strong>구조는 체스의 반정렬(1.3)과 같지만 값이 심볼마다 다르다는 점에서 여전히 구별된다.</strong></p>
+<p>실측 전력 출처 분해: <strong>3매치 30.5% / 2매치 69.5%.</strong></p>
+<hr>
+<h2 id="4-시뮬레이션-결과-1스핀-척도-gdd-05-judgebalance와-동일-척도">4. 시뮬레이션 결과 — 1스핀 척도 (GDD §05 JudgeBalance와 동일 척도)<a class="heading-anchor" href="#4-시뮬레이션-결과-1스핀-척도-gdd-05-judgebalance와-동일-척도" aria-label="Section link">#</a></h2>
+<h3 id="4-1-검증-방법-기존-수치를-먼저-재현했다">4.1 검증 방법 — 기존 수치를 먼저 재현했다<a class="heading-anchor" href="#4-1-검증-방법-기존-수치를-먼저-재현했다" aria-label="Section link">#</a></h3>
+<p>마작 스펙 §1과 같은 절차. 체스 판정기(8라인 · 정렬 8.0 / 반정렬 1.3)를 50만 회 돌려 GDD 기재값과 대조:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>GDD 기재값</th>
+<th>재현값</th>
+<th>일치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>6.11 / 3.90 / 0.64 / 0.5%</td>
+<td><strong>6.115 / 3.904 / 0.639 / 0.46%</strong></td>
+<td>○</td>
+</tr>
+</tbody></table>
+<p>소수 둘째 자리까지 맞았으므로 아래 슬롯 수치는 <strong>GDD §05 표에 그대로 한 행 추가할 수 있는 값</strong>이다.</p>
+<h3 id="4-2-judgebalance-표-기존-5종족과-나란히">4.2 JudgeBalance 표 — 기존 5종족과 나란히<a class="heading-anchor" href="#4-2-judgebalance-표-기존-5종족과-나란히" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>심볼 풀</th>
+<th>계수</th>
+<th>평균 전력</th>
+<th>표준편차</th>
+<th>변동계수</th>
+<th>무소환률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>6</td>
+<td>정렬 8.0 / 반정렬 1.3</td>
+<td>6.11</td>
+<td>3.90</td>
+<td>0.64</td>
+<td>0.5%</td>
+</tr>
+<tr>
+<td>장기</td>
+<td>7</td>
+<td>넘기 3.8 / 대포 +3.8 / 진 0.95</td>
+<td>6.27</td>
+<td>4.18</td>
+<td>0.67</td>
+<td>1.2%</td>
+</tr>
+<tr>
+<td>마작</td>
+<td>9</td>
+<td>면자 2.4 / 텐파이 3.6 / 화료 24 / 커쯔 +8 / 일통 +56</td>
+<td>6.26</td>
+<td>6.47</td>
+<td>1.03</td>
+<td>3.8%</td>
+</tr>
+<tr>
+<td><strong>슬롯</strong></td>
+<td><strong>6</strong></td>
+<td><strong>3매치 3/5/8/13/20/33 · 2매치 0.5/0.8/1.2/2/3/5</strong></td>
+<td><strong>6.24</strong></td>
+<td><strong>7.30</strong></td>
+<td><strong>1.17</strong></td>
+<td><strong>4.96%</strong></td>
+</tr>
+<tr>
+<td>화투 · 판돈0</td>
+<td>12</td>
+<td>섯다 족보 ×0.2055</td>
+<td>6.20</td>
+<td>9.48</td>
+<td>1.53</td>
+<td>0.1%</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>13</td>
+<td>트리플 40 / 스트 11 / 페어 1</td>
+<td>6.23</td>
+<td>10.10</td>
+<td>1.62</td>
+<td>8.9%</td>
+</tr>
+<tr>
+<td>화투 · 판돈2</td>
+<td>12</td>
+<td>×3.2 · 특수끗 이하 몰수</td>
+<td>18.13</td>
+<td>31.28</td>
+<td>1.73</td>
+<td>51.2%</td>
+</tr>
+</tbody></table>
+<p><strong>분산 사다리: 체스 0.64 → 장기 0.67 → 마작 1.03 → 슬롯 1.17 → 화투 1.53 → 포커 1.62 → 화투판돈2 1.73.</strong></p>
+<p>부가 실측 — 중앙값 <strong>4.40</strong> · 99%분위 <strong>38.8</strong> · 99.9%분위 <strong>55.0</strong> · 최대 <strong>137</strong> · 스핀당 세븐 3매치 <strong>2.23%</strong>.</p>
+<h3 id="4-3-시드-안정성-각-50만-시행">4.3 시드 안정성 (각 50만 시행)<a class="heading-anchor" href="#4-3-시드-안정성-각-50만-시행" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>seed</th>
+<th>평균</th>
+<th>SD</th>
+<th>CV</th>
+<th>무소환</th>
+<th>세븐 3매치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>20260827</td>
+<td>6.245</td>
+<td>7.297</td>
+<td>1.169</td>
+<td>4.96%</td>
+<td>2.23%</td>
+</tr>
+<tr>
+<td>1</td>
+<td>6.225</td>
+<td>7.309</td>
+<td>1.174</td>
+<td>5.01%</td>
+<td>2.20%</td>
+</tr>
+<tr>
+<td>42</td>
+<td>6.242</td>
+<td>7.273</td>
+<td>1.165</td>
+<td>4.94%</td>
+<td>2.21%</td>
+</tr>
+<tr>
+<td>7777</td>
+<td>6.240</td>
+<td>7.268</td>
+<td>1.165</td>
+<td>4.94%</td>
+<td>2.21%</td>
+</tr>
+<tr>
+<td>123456</td>
+<td>6.236</td>
+<td>7.291</td>
+<td>1.169</td>
+<td>4.94%</td>
+<td>2.20%</td>
+</tr>
+</tbody></table>
+<p>전 시드에서 평균 6.1<del>6.3 · CV 0.9</del>1.2 조건을 만족한다.</p>
+<h3 id="4-4-cv-목표와-잭팟-체감의-충돌을-어떻게-해소했는가">4.4 <strong>CV 목표와 잭팟 체감의 충돌을 어떻게 해소했는가</strong><a class="heading-anchor" href="#4-4-cv-목표와-잭팟-체감의-충돌을-어떻게-해소했는가" aria-label="Section link">#</a></h3>
+<p>브리프가 진짜 문제로 지목한 지점이다. 정리하면:</p>
+<p><strong>(가) 사용자 손계산의 결론 — &quot;CV 1.0을 맞추면 잭팟이 죽는다&quot; — 은 CV 목표를 1.0으로 잡았을 때만 참이다.</strong>
+손계산안(2매치 = 3매치의 25%)을 실제 3×3으로 검산한 결과 <strong>CV 0.969</strong>로 손계산과 일치했다(라인 상관의 영향은 CV에 거의 없었다). 이때 평균 6.2 정규화 시 세븐 3매치는 <strong>22.9</strong> — 평균의 3.7배에 그친다.</p>
+<p><strong>(나) 그런데 CV 1.0은 이미 마작이 앉아 있는 자리다.</strong>
+브리프가 나열한 사다리(체스 0.64 / 장기 0.67 / <strong>[빈 구간]</strong> / 화투 1.53)에는 <strong>마작이 빠져 있다.</strong> 마작은 2026-08-25에 5번째 종족으로 확정되며 <strong>CV 1.03</strong>을 차지했다(<code>mahjong-house.md</code> §3.4). 목표 대역 0.9~1.2의 정중앙(1.05)은 비어 있는 게 아니라 마작 자리다.</p>
+<p><strong>(다) 따라서 슬롯은 대역의 위쪽 끝을 겨냥해야 하고, 그게 곧 잭팟 예산이 된다.</strong>
+CV 목표를 1.0 → <strong>1.17</strong>로 올리면:</p>
+<table>
+<thead>
+<tr>
+<th>CV 목표</th>
+<th>세븐 3매치 (평균 6.2 기준)</th>
+<th>평균 대비</th>
+<th>마작(1.03)과의 간격</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0.97 (손계산안)</td>
+<td>22.9</td>
+<td>3.7배</td>
+<td><strong>−0.06 (겹침)</strong></td>
+</tr>
+<tr>
+<td><strong>1.17 (채택)</strong></td>
+<td><strong>33</strong></td>
+<td><strong>5.3배</strong></td>
+<td><strong>+0.14</strong></td>
+</tr>
+<tr>
+<td>1.27 (top 40)</td>
+<td>38.7</td>
+<td>6.2배</td>
+<td>+0.24 (목표 대역 이탈)</td>
+</tr>
+</tbody></table>
+<p><strong>즉 충돌은 &quot;잭팟을 포기해서&quot; 해소된 게 아니라, CV 목표치가 애초에 1.0이 아니라 1.17이어야 했다는 것으로 해소됐다.</strong> 마작과 겹치지 않기 위해 필요한 조정이, 동시에 잭팟 배수를 44% 늘려준다. 두 요구가 같은 방향을 가리킨다.</p>
+<p><strong>(라) 남은 잭팟 체감 보강은 §5의 홀드가 맡는다.</strong> 스핀당 세븐 3매치는 2.23%로 드물지만, 홀드로 세븐 페어를 붙들고 재굴림하면 <strong>연차당 12.81%</strong> — 12연차 런 하나에 평균 <strong>1.54회</strong> 777을 본다. 이건 화투 광땡+삼광(연차당 38.35%)·포커 트리플(27.25%)보다 훨씬 희소하다. <strong>게임에서 가장 드문 잭팟</strong>이라는 슬롯다운 위치다.</p>
+<hr>
+<h2 id="5-조건-a-연차-척도에서-슬롯은-홀드가-너무-세다">5. <strong>조건 A — 연차 척도에서 슬롯은 홀드가 너무 세다</strong><a class="heading-anchor" href="#5-조건-a-연차-척도에서-슬롯은-홀드가-너무-세다" aria-label="Section link">#</a></h2>
+<h3 id="5-1-왜-이-절이-필요한가">5.1 왜 이 절이 필요한가<a class="heading-anchor" href="#5-1-왜-이-절이-필요한가" aria-label="Section link">#</a></h3>
+<p>마작 스펙 §3.5가 남긴 교훈: <strong>&quot;1스핀 척도만 보면 결론이 뒤집힌다.&quot;</strong> GDD §03의 실제 기구는 <code>스핀 → 홀드(≤4칸) → 재스핀 → 홀드 → 재스핀 → 최종 보드 1회 판정</code>이다. 마작은 이걸 넣자 <em>혼자 약해졌다.</em> 슬롯은 <strong>반대 방향으로 어긋난다.</strong></p>
+<h3 id="5-2-모델-검증">5.2 모델 검증<a class="heading-anchor" href="#5-2-모델-검증" aria-label="Section link">#</a></h3>
+<p>마작 스펙 §3.5와 같은 홀드 모델(스핀 3 · 홀드 ≤N칸 · 기대 총전력 최대 조합 선택)을 구현하고, 체스로 대조했다. 홀드 조합은 ≤4칸 전수(256가지) 탐색이며, 라인 배당이 3칸의 다중집합에만 의존(위치 대칭)하므로 각 조합의 기대값은 7³ 표로 <strong>정확히</strong> 계산된다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>마작 스펙 §3.5 기재값</th>
+<th>재현값</th>
+<th>일치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스 연차 (홀드4 · 스핀3)</td>
+<td>13.83 / 6.87 / 0.50 / 0.00%</td>
+<td><strong>13.97 / 6.83 / 0.49 / 0.00%</strong></td>
+<td>○ (1% 이내)</td>
+</tr>
+</tbody></table>
+<h3 id="5-3-슬롯의-홀드-상한별-연차-전력-각-50만-시행">5.3 슬롯의 홀드 상한별 연차 전력 (각 50만 시행)<a class="heading-anchor" href="#5-3-슬롯의-홀드-상한별-연차-전력-각-50만-시행" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>홀드 상한</th>
+<th>연차 평균</th>
+<th>SD</th>
+<th>연차 CV</th>
+<th>전멸률</th>
+<th>연차당 세븐 잭팟</th>
+<th>중앙값</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0 (홀드 없음)</td>
+<td>6.25</td>
+<td>7.31</td>
+<td>1.17</td>
+<td>4.90%</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>1</td>
+<td>8.94</td>
+<td>10.44</td>
+<td>1.17</td>
+<td>4.91%</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>2 (권장)</strong></td>
+<td><strong>14.23</strong></td>
+<td><strong>13.35</strong></td>
+<td><strong>0.94</strong></td>
+<td><strong>0.86%</strong></td>
+<td><strong>12.81%</strong></td>
+<td><strong>9.8</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td>20.40</td>
+<td>16.15</td>
+<td>0.79</td>
+<td>0.54%</td>
+<td>22.14%</td>
+<td>15.0</td>
+</tr>
+<tr>
+<td>4 (기본값)</td>
+<td><strong>22.91</strong></td>
+<td>18.38</td>
+<td>0.80</td>
+<td>0.44%</td>
+<td>22.33%</td>
+<td>16.2</td>
+</tr>
+</tbody></table>
+<h3 id="5-4-기존-5종족과-나란히-마작-스펙-3-5-3-7-표에-이어-붙임">5.4 기존 5종족과 나란히 (마작 스펙 §3.5 / §3.7 표에 이어 붙임)<a class="heading-anchor" href="#5-4-기존-5종족과-나란히-마작-스펙-3-5-3-7-표에-이어-붙임" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>홀드</th>
+<th>연차 평균</th>
+<th>연차 CV</th>
+<th>전멸률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>장기</td>
+<td>4</td>
+<td>13.11</td>
+<td>0.49</td>
+<td>0.01%</td>
+</tr>
+<tr>
+<td>체스</td>
+<td>4</td>
+<td>13.83</td>
+<td>0.50</td>
+<td>0.00%</td>
+</tr>
+<tr>
+<td><strong>슬롯 (홀드 4 · 기본값)</strong></td>
+<td>4</td>
+<td><strong>22.91</strong></td>
+<td>0.80</td>
+<td>0.44%</td>
+</tr>
+<tr>
+<td><strong>슬롯 (홀드 2 · 권장)</strong></td>
+<td><strong>2</strong></td>
+<td><strong>14.23</strong></td>
+<td><strong>0.94</strong></td>
+<td><strong>0.86%</strong></td>
+</tr>
+<tr>
+<td>마작</td>
+<td>6 + 쯔모</td>
+<td>18.36</td>
+<td>0.85</td>
+<td>—</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>4</td>
+<td>21.95</td>
+<td>0.93</td>
+<td>0.10%</td>
+</tr>
+<tr>
+<td>화투</td>
+<td>4</td>
+<td>22.56</td>
+<td>0.85</td>
+<td>0.03%</td>
+</tr>
+</tbody></table>
+<p><strong>기본값 4칸이면 슬롯이 전 종족 중 연차 전력 1위(22.91)가 된다.</strong> 1스핀 평균이 6.24로 정확히 붙어 있는데도 그렇다.</p>
+<p><strong>원인은 §1.3이다.</strong> 슬롯은 홀드 결정이 <strong>심볼을 보고</strong> 이루어지는 유일한 종족이다. 체스는 심볼이 등가라 &quot;아무 페어나 잡는&quot; 것 이상을 할 수 없지만, 슬롯 플레이어는 <strong>세븐 페어만 골라 잡고 재굴림</strong>할 수 있다. 홀드 1칸당 기대 전력 증가가 체스보다 훨씬 가파르다(홀드 0→2에서 <strong>2.28배</strong>, 체스는 홀드 0→4에서 2.28배).</p>
+<h3 id="5-5-권장-슬롯만-홀드-상한-2칸">5.5 권장 — 슬롯만 홀드 상한 2칸<a class="heading-anchor" href="#5-5-권장-슬롯만-홀드-상한-2칸" aria-label="Section link">#</a></h3>
+<ul>
+<li><strong>밸런스 근거</strong>: 연차 14.23으로 체스(13.83)와 2.8% 차이. 연차 CV 0.94로 체스 0.50 대비 1.9배. <strong>GDD가 내건 &quot;같은 기대값, 다른 위험&quot;의 가장 순수한 형태</strong>가 된다.</li>
+<li><strong>기구 선례 있음</strong>: 마작이 이미 <strong>홀드 6칸 + 쯔모</strong>라는 종족 전용 보정을 받았다(마작 스펙 §9-3, 2026-08-25 결정). 종족별 홀드 상한 차등은 이미 열려 있는 축이다.</li>
+<li><strong>서사 정합</strong>: &quot;하우스는 손님이 판을 고정하게 두지 않는다.&quot; 6종족 중 홀드가 가장 적은 종족이 곧 판을 까는 쪽이라는 게 규칙과 정체성이 맞물리는 지점이다.</li>
+<li><strong>대안 기각</strong>: 배당표를 낮춰 연차를 맞추면 1스핀 평균이 5.0 아래로 내려가 GDD §05 표(6.1~6.3)에서 이탈한다. 척도가 둘인 이상 <strong>한쪽은 배당표, 한쪽은 기구</strong>로 잡는 게 맞다.</li>
+</ul>
+<blockquote>
+<p><strong>이건 GDD에 없는 기구 변경이므로 사용자 확인이 필요하다</strong> (→ §10-1). 다만 <strong>확인 없이 기본값 4로 가면 슬롯이 게임에서 가장 강한 종족이 된다</strong>는 점은 밸런스 사실이다.</p>
+</blockquote>
+<hr>
+<h2 id="6-해금-순서-슬롯을-1번-튜토리얼-종족-에-둔다">6. 해금 순서 — 슬롯을 1번(튜토리얼 종족)에 둔다<a class="heading-anchor" href="#6-해금-순서-슬롯을-1번-튜토리얼-종족-에-둔다" aria-label="Section link">#</a></h2>
+<h3 id="6-1-브리프가-걱정한-풀-크기-6종-동률-충돌은-이미-없다">6.1 브리프가 걱정한 &quot;풀 크기 6종 동률&quot; 충돌은 이미 없다<a class="heading-anchor" href="#6-1-브리프가-걱정한-풀-크기-6종-동률-충돌은-이미-없다" aria-label="Section link">#</a></h3>
+<p>GDD §13은 &quot;해금 순서를 풀 크기 순으로 고정 — 체스(6) → 장기(7) → 화투(12) → 포커(13)&quot;라고 썼다. 그러나 이 규칙은 <strong>마작 스펙 §9-1에서 2026-08-25에 &quot;학습 난이도 순&quot;으로 재정의</strong>됐고(마작이 풀 9종인데 판독 부하는 최고라 규칙이 깨졌다), 그 결정이 코드 주석에 이미 반영돼 있다:</p>
+<p><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:5</code></p>
+<blockquote>
+<p><code>// Id 순서가 곧 해금 순서이자 화면 표시 순서다(체스 -&gt; 장기 -&gt; 화투 -&gt; 포커 -&gt; 마작, 학습 난이도 순).</code></p>
+</blockquote>
+<p><strong>현행 규칙은 학습 난이도 순이므로 풀 크기 동률은 판단 근거가 아니다.</strong></p>
+<h3 id="6-2-학습-난이도-순이면-슬롯은-1번이다">6.2 학습 난이도 순이면 슬롯은 1번이다<a class="heading-anchor" href="#6-2-학습-난이도-순이면-슬롯은-1번이다" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>AxisLearning</th>
+<th>규칙을 말로 설명하는 데 필요한 문장</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>슬롯</strong></td>
+<td><strong>5 (제안)</strong></td>
+<td>&quot;줄에 같은 게 3개면 그 그림의 배당, 2개면 그 절반 아래&quot; — 1문장</td>
+</tr>
+<tr>
+<td>체스</td>
+<td>10</td>
+<td>&quot;8줄에서 같은 말 3개면 정렬, 2개면 반정렬&quot; — 1문장 (단 8줄을 세야 함)</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>25</td>
+<td>트리플/스트레이트/페어 서열 — 3문장</td>
+</tr>
+<tr>
+<td>장기</td>
+<td>35</td>
+<td>A-B-A 성립 조건 + 包 특례 — 3문장</td>
+</tr>
+<tr>
+<td>화투</td>
+<td>45</td>
+<td>광땡/땡/알리·독사·구삥·장삥·세륙/끗 mod 10 — 6문장 이상</td>
+</tr>
+<tr>
+<td>마작</td>
+<td>(미정)</td>
+<td>면자 분할 + 텐파이 — 문장은 짧으나 판독 부하 최고</td>
+</tr>
+</tbody></table>
+<p>슬롯은 <strong>규칙 학습 비용이 전 종족 최저</strong>다. 심지어 판독 부하도 최저다(5라인만 보면 되고, 체스는 8라인).</p>
+<h3 id="6-3-서사-충돌-판을-까는-쪽-인데-튜토리얼인가">6.3 서사 충돌 — &quot;판을 까는 쪽&quot;인데 튜토리얼인가<a class="heading-anchor" href="#6-3-서사-충돌-판을-까는-쪽-인데-튜토리얼인가" aria-label="Section link">#</a></h3>
+<p><strong>충돌하지 않는다. 오히려 게임 구조와 맞는다.</strong></p>
+<p>GDD §07의 전투 구조는 &quot;좌측이 내 진영, 우측에서 적이 진격, 본거지 성문을 지킨다&quot;이다. <strong>플레이어는 처음부터 방어자다.</strong> 하우스로 시작한다는 건 &quot;당신이 뱅크이고, 다섯 가문이 그걸 깨러 온다&quot;가 되어 디펜스 전제와 정확히 겹친다. 프로젝트명이 <code>HouseRulez</code>인 것도 이쪽이 자연스럽다 — 플레이어가 하우스에 <em>합류</em>하는 게 아니라 플레이어가 곧 하우스다.</p>
+<p><strong>&quot;트위스트에는 기준선이 필요하다&quot;는 반론에 대해</strong>: 이 게임의 핵심은 &quot;같은 3×3을 종족마다 다르게 읽는다&quot;인데, 그 대비는 <strong>기준선이 있어야 성립한다.</strong> 3×3 릴을 슬롯으로 읽는 것이 유일한 무표(unmarked) 해석이다. 슬롯을 먼저 배우면 체스는 &quot;같은 릴인데 줄이 8개고 그림 값이 사라졌다&quot;는 <strong>명확한 편차</strong>로 읽힌다. 반대로 체스로 시작하면 그 편차가 무엇으로부터의 편차인지 알 수 없다.</p>
+<h3 id="6-4-알려진-비용-숨기지-않는다">6.4 알려진 비용 (숨기지 않는다)<a class="heading-anchor" href="#6-4-알려진-비용-숨기지-않는다" aria-label="Section link">#</a></h3>
+<p><strong>슬롯의 1스핀 CV 1.17 / 무소환 4.96%는 체스(0.64 / 0.5%)보다 초심자에게 거칠다.</strong> GDD §13이 해금 순서를 만든 목적은 초심자 이탈 방지였고, 그 목적은 학습 부하뿐 아니라 관대함에도 걸린다. 슬롯은 <strong>두 지표가 갈리는 유일한 종족</strong>이다(마작이 학습비용과 판독비용에서 갈렸던 것과 같은 형태의 예외).</p>
+<p>완화 근거:</p>
+<ul>
+<li>연차 척도(홀드 2 · 스핀 3)에서 <strong>전멸률 0.86%</strong> — 12연차 런 하나에 빈손 연차가 한 번이라도 나올 확률은 약 10%다. GDD §05가 포커의 무소환 8.9%를 &quot;3회 모두 빈손일 확률 0.07%&quot;로 정당화한 것과 같은 논리다.</li>
+<li>초심자에게 연차당 12.81%의 777은 강한 유인이다.</li>
+</ul>
+<p><strong>차선안은 슬롯을 2번(체스 다음)에 두는 것</strong>이다 — 체스가 학습·분산 두 지표 모두 최저라 튜토리얼 자리를 지키고, 슬롯이 2번에 오면 &quot;8라인·심볼 등가&quot; → &quot;5라인·심볼 등급&quot;으로 두 축이 동시에 바뀌어 트위스트 대비가 가장 크다. → §10-2</p>
+<hr>
+<h2 id="7-조건-b-혼혈-페널티-면제는-기각한다-브리프-가설-반증">7. <strong>조건 B — 혼혈 페널티 면제는 기각한다 (브리프 가설 반증)</strong><a class="heading-anchor" href="#7-조건-b-혼혈-페널티-면제는-기각한다-브리프-가설-반증" aria-label="Section link">#</a></h2>
+<h3 id="7-1-브리프의-가설">7.1 브리프의 가설<a class="heading-anchor" href="#7-1-브리프의-가설" aria-label="Section link">#</a></h3>
+<blockquote>
+<p>&quot;GDD 06장 <code>PurityCurve</code>가 &#39;혼혈은 릴 수학상 순손해(첫 약탈 −12%)&#39;라고 스스로 반박해뒀는데, 슬롯의 배당표는 심볼이 뭐든 등급만 매기면 읽힌다. 슬롯을 &#39;혼혈 페널티가 없는 유일한 종족&#39;으로 설계할 수 있다.&quot;</p>
+</blockquote>
+<p><strong>전반부는 참, 후반부는 거짓이다.</strong> 전리품 심볼에 등급을 매기는 것 자체는 가능하다(슬롯만 가능한 일이 맞다). 하지만 <strong>그렇게 해도 전력이 회복되지 않는다.</strong></p>
+<h3 id="7-2-측정-전리품에-중위-등급을-부여했을-때-50만-시행">7.2 측정 — 전리품에 중위 등급을 부여했을 때 (50만 시행)<a class="heading-anchor" href="#7-2-측정-전리품에-중위-등급을-부여했을-때-50만-시행" aria-label="Section link">#</a></h3>
+<p>전리품 심볼 전부에 벨~BAR 사이 중위 등급(3매치 10.5 / 2매치 1.6)을 주고 슬롯 판정을 그대로 돌린 결과:</p>
+<table>
+<thead>
+<tr>
+<th>심볼 풀</th>
+<th>상태</th>
+<th>평균 전력</th>
+<th>CV</th>
+<th>무소환률</th>
+<th>순혈 대비</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>6</td>
+<td>순혈</td>
+<td>6.26</td>
+<td>1.17</td>
+<td>4.95%</td>
+<td>100.0%</td>
+</tr>
+<tr>
+<td>8</td>
+<td>1회 약탈</td>
+<td>4.23</td>
+<td>1.24</td>
+<td>11.69%</td>
+<td><strong>67.7%</strong></td>
+</tr>
+<tr>
+<td>10</td>
+<td>2회 약탈</td>
+<td>3.18</td>
+<td>1.30</td>
+<td>18.99%</td>
+<td>50.8%</td>
+</tr>
+<tr>
+<td>13</td>
+<td>3회 약탈</td>
+<td>2.30</td>
+<td>1.37</td>
+<td>28.68%</td>
+<td>36.7%</td>
+</tr>
+</tbody></table>
+<p><strong>첫 약탈에서 −32.3%.</strong> 체스의 −12%보다 <strong>2.7배 나쁘다.</strong></p>
+<p><strong>이유는 배당이 아니라 매칭 확률이다.</strong> 슬롯의 전력은 전부 &quot;같은 게 맞았나&quot;에서 나오는데, 풀이 6→8로 늘면 라인당 3매치 확률이 1/36 → 1/64로, 2매치 확률이 41.7% → 32.8%로 떨어진다. <strong>등급을 아무리 잘 매겨도 맞을 확률 자체가 줄어드는 건 못 막는다.</strong></p>
+<h3 id="7-3-표준-규칙-gdd-06-을-그대로-적용하면-오히려-낫다">7.3 표준 규칙(GDD §06)을 그대로 적용하면 오히려 낫다<a class="heading-anchor" href="#7-3-표준-규칙-gdd-06-을-그대로-적용하면-오히려-낫다" aria-label="Section link">#</a></h3>
+<p>GDD §06의 표준 규칙은 &quot;이질 심볼이 하나라도 낀 라인은 주판정에서 제외, 이질 심볼끼리는 부판정 짝(짝당 5.5, 최대 2짝)&quot;이다. 체스로 먼저 재현 검증한 뒤 슬롯에 적용(30만 시행):</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>풀</th>
+<th>주판정 전력</th>
+<th>주판정 성립률</th>
+<th>순혈 대비 주판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스 (GDD 기재)</td>
+<td>8</td>
+<td>2.56</td>
+<td>74.8%</td>
+<td>42.0%</td>
+</tr>
+<tr>
+<td>체스 (재현)</td>
+<td>8</td>
+<td><strong>2.58</strong></td>
+<td><strong>74.9%</strong></td>
+<td>42.2%</td>
+</tr>
+<tr>
+<td><strong>슬롯</strong></td>
+<td>8</td>
+<td><strong>2.64</strong></td>
+<td>60.8%</td>
+<td><strong>42.4%</strong></td>
+</tr>
+<tr>
+<td>체스 (재현)</td>
+<td>10</td>
+<td>1.32</td>
+<td>49.6%</td>
+<td>21.6%</td>
+</tr>
+<tr>
+<td><strong>슬롯</strong></td>
+<td>10</td>
+<td><strong>1.35</strong></td>
+<td>37.0%</td>
+<td><strong>21.7%</strong></td>
+</tr>
+<tr>
+<td>체스 (재현)</td>
+<td>13</td>
+<td>0.60</td>
+<td>27.2%</td>
+<td>9.8%</td>
+</tr>
+<tr>
+<td><strong>슬롯</strong></td>
+<td>13</td>
+<td><strong>0.61</strong></td>
+<td>18.9%</td>
+<td><strong>9.8%</strong></td>
+</tr>
+</tbody></table>
+<p><strong>주판정 감쇠가 체스와 소수점까지 동일하다.</strong> 둘 다 라인 판정이라 <code>(순혈종수 / 전체풀)³</code>로 똑같이 깎이기 때문이다. 부판정 짝(체스 기준 1회 약탈 시 0.51짝 × 5.5 = 2.81)을 더하면 슬롯도 체스와 같은 <strong>약 −13%</strong> 대역에 앉는다.</p>
+<p>성립률이 슬롯 쪽에서 낮은 것(60.8% vs 74.9%)은 <strong>슬롯이 5라인, 체스가 8라인</strong>이라 &quot;적어도 한 줄은 순혈&quot;일 기회가 적어서다. 전력 총합에는 영향이 없다.</p>
+<h3 id="7-4-결론">7.4 결론<a class="heading-anchor" href="#7-4-결론" aria-label="Section link">#</a></h3>
+<p><strong>슬롯에 혼혈 면제를 주지 않는다. GDD §06 표준 규칙을 그대로 적용한다.</strong></p>
+<ol>
+<li>등급 부여 방식은 측정 결과 −32%로 <strong>표준 규칙(−13%)보다 나쁘다.</strong> 가설이 노린 이득이 실재하지 않는다.</li>
+<li>표준 규칙을 쓰면 슬롯의 혼혈 곡선이 체스와 사실상 같다 — <strong>밸런싱 축이 하나도 늘지 않는다</strong>(GDD §13 &quot;4종족 × 4판정 = 밸런싱 비용 4배&quot; 리스크를 키우지 않는다).</li>
+<li>면제를 만들려면 &quot;전리품이 등급도 유지하고 + 라인도 안 죽이고 + 부판정도 받는다&quot;를 새로 발명해야 하는데, 이건 GDD에 근거가 없는 <strong>기획 결정</strong>이다.</li>
+</ol>
+<p><strong>다만 살아남는 좁은 주장이 하나 있다</strong> — 슬롯은 <em>이질 심볼에 등급을 매길 수 있는 유일한 종족</em>이라는 사실 자체는 참이다. 이건 종족 상시 특성이 아니라 <strong>코어 소재</strong>로 쓰는 게 맞다. GDD §03 CoreTable에 이미 &quot;판정 규칙을 건드리는 코어&quot;(객장의 규칙 S / 이중 장부 S) 계통이 있으므로, 예컨대 <em>환전(換錢) — 전리품 심볼을 슬롯 등급표에 편입한다</em> 같은 S등급 코어의 자리다. → §10-5 (이 문서에서 수치를 정하지 않는다)</p>
+<hr>
+<h2 id="8-housetable-csv-추가-행과-액센트-색">8. <code>HouseTable.csv</code> 추가 행과 액센트 색<a class="heading-anchor" href="#8-housetable-csv-추가-행과-액센트-색" aria-label="Section link">#</a></h2>
+<h3 id="8-1-액센트-색-d45c9e">8.1 액센트 색 — <code>D45C9E</code><a class="heading-anchor" href="#8-1-액센트-색-d45c9e" aria-label="Section link">#</a></h3>
+<p>마작 스펙 §7.2와 같은 방법론(Rec.601 휘도 + 색상각 분리). 절대 규칙: 환경 최암부 <code>#363B4A</code>(휘도 59.2)보다 밝을 것.</p>
+<p>기존 5색 실측:</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>색</th>
+<th>휘도</th>
+<th>색상각</th>
+<th>채도(HLS)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>(한계) 환경 최암부</td>
+<td><code>#363B4A</code></td>
+<td>59.2</td>
+<td>225.0°</td>
+<td>15.6%</td>
+</tr>
+<tr>
+<td>화투</td>
+<td><code>#D1554C</code></td>
+<td>121.0</td>
+<td>4.1°</td>
+<td>59.1%</td>
+</tr>
+<tr>
+<td>포커</td>
+<td><code>#D6A441</code></td>
+<td>167.7</td>
+<td>39.9°</td>
+<td>64.5%</td>
+</tr>
+<tr>
+<td>장기</td>
+<td><code>#57A277</code></td>
+<td>134.7</td>
+<td>145.6°</td>
+<td>30.1%</td>
+</tr>
+<tr>
+<td>체스</td>
+<td><code>#7FA7C9</code></td>
+<td>158.9</td>
+<td>207.6°</td>
+<td>40.7%</td>
+</tr>
+<tr>
+<td>마작</td>
+<td><code>#9B7FD4</code></td>
+<td>145.1</td>
+<td>259.8°</td>
+<td>49.7%</td>
+</tr>
+</tbody></table>
+<p>색상환의 빈 구간: 포커 39.9° → 장기 145.6°가 105.7°(황록), 마작 259.8° → 화투 364.1°가 <strong>104.3°(자홍)</strong>. 두 구간이 거의 같은 폭이다.</p>
+<table>
+<thead>
+<tr>
+<th>후보</th>
+<th>색</th>
+<th>휘도</th>
+<th>색상각</th>
+<th>채도</th>
+<th>기존 최근접</th>
+<th>판단</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>A (채택)</strong></td>
+<td><strong><code>#D45C9E</code> 네온 마젠타</strong></td>
+<td><strong>135.4</strong></td>
+<td><strong>327.0°</strong></td>
+<td><strong>58.3%</strong></td>
+<td>화투와 37.1°</td>
+<td>휘도가 기존 121~168 대역 중앙. 채도 58.3%로 환경(15.6%)과 확실히 갈린다. <strong>카지노 네온의 색</strong>이라 정체성과 직결</td>
+</tr>
+<tr>
+<td>B (대안)</td>
+<td><code>#E06BA8</code> 밝은 마젠타</td>
+<td>148.9</td>
+<td>328.7°</td>
+<td>65.4%</td>
+<td>화투와 35.3°</td>
+<td>분리는 A와 같고 더 밝다. 32px 대좌에서 A가 어두워 보이면 이쪽</td>
+</tr>
+<tr>
+<td>C (기각)</td>
+<td><code>#8FB347</code> 황록</td>
+<td>155.9</td>
+<td>80.0°</td>
+<td>43.2%</td>
+<td>포커와 40.1°</td>
+<td>각도는 충분하나 <strong>32px 대좌에서 포커 금색과 혼동 위험</strong> — 둘 다 노랑 계열</td>
+</tr>
+<tr>
+<td>D (기각)</td>
+<td><code>#D45C7E</code> 로즈</td>
+<td>131.8</td>
+<td>343.0°</td>
+<td>58.3%</td>
+<td>화투와 21.1°</td>
+<td>화투 적색과 21° — 기존 최소 간격(화투↔포커 35.8°)보다 좁다. 기각</td>
+</tr>
+</tbody></table>
+<p><strong>A의 37.1°는 기존 색들 사이의 최소 간격(화투 4.1° ↔ 포커 39.9° = 35.8°)보다 넓다</strong> — 새 색이 기존 배치보다 촘촘해지지 않는다.</p>
+<h3 id="8-2-housetable-csv에-추가할-행">8.2 <code>HouseTable.csv</code>에 추가할 행<a class="heading-anchor" href="#8-2-housetable-csv에-추가할-행" aria-label="Section link">#</a></h3>
+<p>컬럼 순서: <code>Id,Key,NameKey,AccentColor,PoolCount,AxisPower,AxisVariance,AxisCeiling,AxisLearning,SpriteFolder,BackgroundPath,isUnlocked,isUseBet</code></p>
+<pre><code>1,slot,HouseSlot,D45C9E,6,62,70,86,5,slot,Image/Title/bg_slot_neonstrip,1,0
+</code></pre>
+<p><strong>축 값 유도</strong> (마작 스펙 §9-10이 세운 규칙 <code>AxisPower = 평균×10</code>, <code>AxisVariance = CV×60</code>를 그대로 적용 — 기존 5행 전부와 일치함을 검산했다):</p>
+<table>
+<thead>
+<tr>
+<th>축</th>
+<th>유도</th>
+<th>값</th>
+<th>검산</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>AxisPower</code></td>
+<td>6.24 × 10</td>
+<td><strong>62</strong></td>
+<td>체스 6.11→61 ○ / 장기 6.27→63 ○ / 화투 6.20→62 ○ / 포커 6.23→62 ○ / 마작 6.26→62 ○</td>
+</tr>
+<tr>
+<td><code>AxisVariance</code></td>
+<td>1.169 × 60</td>
+<td><strong>70</strong></td>
+<td>체스 0.64→38 ○ / 장기 0.67→40 ○ / 화투 1.53→92 ○ / 포커 1.62→97 ○ / 마작 1.03→62 ○</td>
+</tr>
+<tr>
+<td><code>AxisCeiling</code></td>
+<td><strong>공식 없음 — 제안값</strong></td>
+<td><strong>86</strong></td>
+<td>→ 아래</td>
+</tr>
+<tr>
+<td><code>AxisLearning</code></td>
+<td><strong>공식 없음 — 제안값</strong></td>
+<td><strong>5</strong></td>
+<td>→ 아래</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong><code>AxisCeiling</code> 86은 제안값이다.</strong> 기존 값(체스 45 / 장기 65 / 화투 100 / 포커 100 / 마작 0=미정)에 공식이 없다. 데이터에 근거한 환산을 하나 제시한다 — 1스핀 분포의 <strong>99%분위 / 평균</strong> 비: 체스 19.9/6.12 = <strong>3.25</strong> → 축값 45. 슬롯은 38.8/6.25 = <strong>6.21</strong> → 45 × (6.21/3.25) = <strong>86</strong>. (화투·포커가 100인 것은 상한 포화로 보인다.)</li>
+<li><strong><code>AxisLearning</code> 5는 제안값이다.</strong> 브리프가 전제한 &quot;학습 비용 전 종족 최저&quot;를 현행 최저값 체스 10 아래에 놓은 것이다. 0은 마작의 미정값과 구분되지 않아 피했다.</li>
+<li>두 값 모두 <strong>§10-3에서 사용자 확인 대상</strong>이다.</li>
+</ul>
+<h3 id="8-3-id-재번호-슬롯을-1번에-둘-경우">8.3 Id 재번호 (슬롯을 1번에 둘 경우)<a class="heading-anchor" href="#8-3-id-재번호-슬롯을-1번에-둘-경우" aria-label="Section link">#</a></h3>
+<p><code>Id 순서 = 해금 순서</code>가 현행 관례이므로 기존 5행의 Id가 각 +1 된다. <strong>재번호 후 전체:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>Key</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1</strong></td>
+<td><strong>slot</strong></td>
+<td>신규</td>
+</tr>
+<tr>
+<td>2</td>
+<td>chess</td>
+<td>1 → 2</td>
+</tr>
+<tr>
+<td>3</td>
+<td>janggi</td>
+<td>2 → 3</td>
+</tr>
+<tr>
+<td>4</td>
+<td>hwatu</td>
+<td>3 → 4</td>
+</tr>
+<tr>
+<td>5</td>
+<td>poker</td>
+<td>4 → 5</td>
+</tr>
+<tr>
+<td>6</td>
+<td>mahjong</td>
+<td>5 → 6</td>
+</tr>
+</tbody></table>
+<p><strong>세이브 데이터는 안전하다.</strong> 선택 종족은 Id가 아니라 문자열 Key로 저장된다 — <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Player\PlayerData.cs:17</code> (<code>selectedHouseKey</code>), 조회는 <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Player\PlayerManager.cs:127</code> (<code>GetSelectedHouseRecord()</code> → <code>HouseTable.GetRecordByKey()</code>). Id를 참조하는 코드는 현재 없다.</p>
+<p><strong>Id 6으로 덧붙이는 차선안</strong> (재번호 없음, §10-2에서 이쪽을 고를 경우):</p>
+<pre><code>6,slot,HouseSlot,D45C9E,6,62,70,86,5,slot,Image/Title/bg_slot_neonstrip,1,0
+</code></pre>
+<hr>
+<h2 id="9-아트-발주서">9. 아트 발주서<a class="heading-anchor" href="#9-아트-발주서" aria-label="Section link">#</a></h2>
+<blockquote>
+<p><strong>다음 단계에서 <code>code-writer</code>가 이 절만 보고 스프라이트를 만든다. 아래 규격은 GDD §10에서 그대로 옮긴 것이며 협상 대상이 아니다.</strong></p>
+</blockquote>
+<h3 id="9-1-절대-규격">9.1 절대 규격<a class="heading-anchor" href="#9-1-절대-규격" aria-label="Section link">#</a></h3>
+<ul>
+<li><strong>심볼: 32×32 PNG, 정확히 4색만.</strong><ul>
+<li>투명 <code>(0,0,0,0)</code></li>
+<li>본체 <code>#F6F5F0</code></li>
+<li>외곽 <code>#2A2C33</code></li>
+<li>음영 <code>#ADACA4</code></li>
+</ul>
+</li>
+<li><strong>안티에일리어싱 금지.</strong> 중간색이 한 픽셀이라도 들어가면 안 된다.</li>
+<li><strong>검정 계열(<code>#14161C</code> / <code>#050609</code> / <code>#282C39</code>)은 적 유닛 전용이라 절대 사용 금지.</strong> GDD §10의 유일한 절대 규칙 — &quot;화면 어디든 검정이 보이면 그건 무조건 적&quot;이다.</li>
+<li>파일 위치: <code>Assets/Resources/Image/InGame/Actor/slot/{key}.png</code></li>
+<li>블러 사본: <code>{key}_blur.png</code> (32×32, 릴 회전 중 표시용)</li>
+<li>프리뷰 사본: <code>{key}_x8.png</code> (256×256, <strong>니어리스트 8배 확대</strong>)</li>
+<li>세 사본 모두 필요하다. <code>HouseSpriteLoader</code>가 <code>_blur</code>/<code>_x8</code> 접미사로 필터링한다(<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:44</code>).</li>
+</ul>
+<h3 id="9-2-심볼-6종-32-32-안에서-어떻게-그릴지">9.2 심볼 6종 — 32×32 안에서 어떻게 그릴지<a class="heading-anchor" href="#9-2-심볼-6종-32-32-안에서-어떻게-그릴지" aria-label="Section link">#</a></h3>
+<p>여백 상하좌우 3px, 실제 도형은 약 26×26 안에 담는다. 등급이 올라갈수록 화면 점유가 커지도록 그려서, <strong>크기 자체가 배당 서열의 2차 단서</strong>가 되게 한다.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>키</th>
+<th>형태 지시</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>slot_01_cherry</code></td>
+<td><strong>체리</strong> — 줄기로 이어진 두 알, 좌하단 무게중심. 알 지름 각 10px, 좌알이 2px 낮게 겹치듯 배치. 줄기는 우상단으로 뻗는 1px 곡선 두 가닥, 끝에 잎 1장(4×6px). 각 알의 우하단 1/3만 음영 <code>#ADACA4</code>. <strong>화투 <code>hwatu_03_cherry</code>(벚꽃, 꽃잎 5장의 방사형)와 실루엣이 절대 겹치면 안 된다 — 이쪽은 원 두 개의 과일이다.</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>slot_02_lemon</code></td>
+<td><strong>레몬</strong> — 가로로 누운 타원(24×14), 좌우 끝에 뾰족한 꼭지 2px씩 돌출. 하단 1/3 음영. 표면에 세로 결 2줄(음영색 1px, 중앙에서 좌우 5px 간격)을 넣어 감귤류임을 표시. <strong>유일한 가로로 긴 실루엣.</strong></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>slot_03_bell</code></td>
+<td><strong>벨</strong> — 아래로 벌어지는 사다리꼴 종신(상단 폭 10px → 하단 폭 22px, 높이 17px), 하단에 1px 굽 라인, 그 아래 추 한 알(4×4px). 상단에 손잡이 고리(3×3px 속 빈 사각). 우측 1/3을 음영으로 채워 원통 곡률을 낸다. <strong>유일한 상단 돌기.</strong></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>slot_04_bar</code></td>
+<td><strong>BAR</strong> — 가로 직사각 26×13, 외곽 1px <code>#2A2C33</code>, 내부 본체색. 중앙에 <code>BAR</code> 3글자를 5×7px 픽셀 폰트로 <strong>음영색 각인</strong>(글자 사이 1px). 세로 중앙 정렬.</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>slot_05_bar2</code></td>
+<td><strong>2BAR</strong> — <code>slot_04_bar</code>와 같은 막대를 2단으로. 각 막대 26×11, 사이 간격 3px, 전체 높이 25px. <strong>두 막대 모두 <code>BAR</code> 각인</strong>(정통 표기 그대로). 판독의 핵심은 글자가 아니라 <strong>막대 개수</strong>이므로 두 막대의 상하 간격을 확실히 벌린다.</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>slot_06_seven</code></td>
+<td><strong>세븐</strong> — 숫자 7. 상단 가로획 22×5px, 거기서 좌하단으로 내려오는 사선 획 두께 5px. 32칸을 거의 꽉 채워(28×28) 최상위 등급임을 크기로 알린다. 사선 획의 우측 모서리에만 음영 1px. <strong>유일한 사선 실루엣이자 유일한 문자 단독 심볼.</strong></td>
+</tr>
+</tbody></table>
+<h3 id="9-3-배경">9.3 배경<a class="heading-anchor" href="#9-3-배경" aria-label="Section link">#</a></h3>
+<ul>
+<li>경로: <code>Assets/Resources/Image/Title/bg_slot_neonstrip.png</code></li>
+<li>규격: <strong>640×288, 가로 seamless</strong> (기존 5장과 동일. <code>TitleBackgroundScroller</code>가 uvRect를 밀어 순환시킨다 — <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Title\TitleBackgroundScroller.cs</code>)</li>
+<li><strong>테마 이름: <code>neonstrip</code></strong> (기존: castle / fortress / moonfield / frontier / teahouse)</li>
+<li>소재: <strong>사막 고속도로변 카지노 간판 거리, 20세기 후반.</strong> 큼직한 네온 간판 실루엣과 아치, 원경에 낮은 산등성이.</li>
+<li><strong>문화권 중복 검토</strong>: 포커가 <code>frontier</code>(미국 서부 19c)로 이미 미국이다. 마작 스펙 §7.1이 장기↔마작 중복을 &quot;시대로 가른다&quot;로 해소한 것과 같은 방식 — <strong>한 세기 차이 + 완전히 다른 레지스터</strong>(대낮의 목조 살롱 ↔ 네온 간판 거리)로 갈린다.</li>
+<li>⚠ <strong>밤 장면으로 그리면 안 된다.</strong> 네온 = 어두운 배경이 직관이지만 <strong>검정 계열이 금지</strong>돼 있다. GDD §10이 원경 성벽에 쓴 해법을 그대로 쓴다 — &quot;어둡게 깔지 않고 오히려 밝은 안개색으로 처리&quot;. 환경 팔레트(<code>#707892</code> / <code>#585F74</code> / <code>#828CA6</code>)로 그리고, 간판 튜브만 액센트 <code>#D45C9E</code>로 살린다. 최암부 한계는 <code>#363B4A</code>다.</li>
+</ul>
+<h3 id="9-4-릴-프레임">9.4 릴 프레임<a class="heading-anchor" href="#9-4-릴-프레임" aria-label="Section link">#</a></h3>
+<ul>
+<li>경로: <code>Assets/Resources/Image/InGame/Reel/frame_slot.png</code></li>
+<li>규격: <strong>136×260</strong> (기존 <code>frame_chess.png</code> 등 5장과 동일 명명·규격)</li>
+</ul>
+<h3 id="9-5-대좌-플린스">9.5 대좌(플린스)<a class="heading-anchor" href="#9-5-대좌-플린스" aria-label="Section link">#</a></h3>
+<p>GDD §13 완화안 &quot;종족별 강조색을 대좌에만 입힌다&quot;에 따라, 슬롯 대좌는 <code>#D45C9E</code>. <strong>심볼 본체는 흰색 유지</strong> — 위 4색 규칙을 벗어나지 않는다. 대좌는 심볼 스프라이트가 아니라 릴 셀 UI 쪽이라 이 발주에 포함되지 않는다.</p>
+<h3 id="9-6-생성-완료-2026-08-27-0">9.6 생성 완료 — 2026-08-27-0<a class="heading-anchor" href="#9-6-생성-완료-2026-08-27-0" aria-label="Section link">#</a></h3>
+<p><strong>§9 발주분 20개 파일 생성 완료.</strong> 브랜치 <code>work/2026-08-27-slot-house</code>. 테이블은 손대지 않았다(밸런스 미승인).</p>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>파일</th>
+<th>크기</th>
+<th>고유 색</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>심볼 6</td>
+<td><code>Assets/Resources/Image/InGame/Actor/slot/slot_0{1..6}_*.png</code></td>
+<td>32×32</td>
+<td><strong>각 4색</strong> (투명/<code>F6F5F0</code>/<code>2A2C33</code>/<code>ADACA4</code>)</td>
+</tr>
+<tr>
+<td>블러 6</td>
+<td>〃 <code>_blur.png</code></td>
+<td>32×32</td>
+<td>43~60색 (기존 블러와 동일 성격)</td>
+</tr>
+<tr>
+<td>프리뷰 6</td>
+<td>〃 <code>_x8.png</code></td>
+<td>256×256</td>
+<td>각 4색</td>
+</tr>
+<tr>
+<td>배경 1</td>
+<td><code>Assets/Resources/Image/Title/bg_slot_neonstrip.png</code></td>
+<td>640×288</td>
+<td>13색</td>
+</tr>
+<tr>
+<td>프레임 1</td>
+<td><code>Assets/Resources/Image/InGame/Reel/frame_slot.png</code></td>
+<td>136×260</td>
+<td>7색</td>
+</tr>
+</tbody></table>
+<ul>
+<li><strong>블러 변환은 추측이 아니라 역산이다.</strong> <code>chess_*</code> 5쌍을 대조해 «세로 7탭 박스(반경 3) · 상단은 0확장 / 하단은 가장자리 클램프 · 알파는 단순 평균, RGB는 알파가중 평균»을 도출했고, 체스 5종 전부에서 재현 오차 0으로 검증한 뒤 같은 변환을 슬롯에 적용했다.</li>
+<li><strong>BAR ↔ 2BAR 판독 대책</strong>: 글자 수로 구분시키지 않았다. BAR는 26×13 한 덩이를 세로 중앙에만 두고(y10<del>22), 2BAR는 26×11 두 덩이를 y3</del>13 / y17~27에 두어 <strong>사이 3px를 완전 투명으로 비웠다</strong>. 실루엣 총 높이가 13 vs 25로 두 배 가까이 갈리므로, 글자를 읽지 않아도 덩어리 개수와 화면 점유로 먼저 구분된다.</li>
+<li><strong>배경/프레임 제작 방법</strong>: 생성 모델을 쓰지 않고 전부 Python + Pillow로 픽셀을 직접 찍었다. 배경은 기존 5장을 픽셀 단위로 분석해 확인한 화풍(베이어 4×4 디더 그라데이션 하늘 + 안개색 원경 능선 + 밴드형 지면)을 그대로 재현했고, 능선·디더·차선 주기를 전부 640의 약수로 맞춰 가로 seamless를 유지했다. 검정 3색(<code>14161C</code>/<code>050609</code>/<code>282C39</code>)은 미사용이며 최암부는 <code>363B4A</code>다. 프레임은 <code>frame_poker.png</code>를 골격으로 삼아 액센트만 <code>D45C9E</code>로 치환하고 좌우 기둥에 3줄 페이라인 표식을 더했다 — <strong>릴 창 위치는 기존 5장과 동일한 y54<del>149 / x20</del>115 (96×96)로 일치 확인</strong>.</li>
+<li><code>.meta</code>는 종류별 형제 파일(<code>chess_king.png.meta</code> / <code>bg_chess_castle.png.meta</code> / <code>frame_chess.png.meta</code>)을 복사해 GUID·스프라이트 ID·서브스프라이트 rect만 교체했다. 신규 GUID 20개는 프로젝트 전체 <code>.meta</code>와 대조해 충돌 없음을 확인했다.</li>
+<li><strong>미검증</strong> — Unity 에디터에서 실제 임포트/표시는 확인하지 못했다.</li>
+</ul>
+<hr>
+<h2 id="10-문서에-없어서-확인이-필요한-부분-미결정">10. 문서에 없어서 확인이 필요한 부분 (미결정)<a class="heading-anchor" href="#10-문서에-없어서-확인이-필요한-부분-미결정" aria-label="Section link">#</a></h2>
+<p>임의로 정하지 않고 남긴 항목이다. <strong>1~3은 결정하지 않으면 구현을 시작할 수 없다.</strong></p>
+<h3 id="10-1-슬롯-전용-홀드-상한-2칸-승인-필요-최우선">10-1. 슬롯 전용 홀드 상한 2칸 — <strong>승인 필요 (최우선)</strong><a class="heading-anchor" href="#10-1-슬롯-전용-홀드-상한-2칸-승인-필요-최우선" aria-label="Section link">#</a></h3>
+<p>§5의 조건 A. GDD §03은 홀드 상한을 전 종족 공통 4칸으로 썼고, <code>GameConfigTable.csv</code>에는 아직 홀드 항목 자체가 없다(현재 6행: HomeHpMax/RunYearMax/RunStartGold/SpinCoinPerYear/SwapCountPerYear/BattleSpeedFast).</p>
+<ul>
+<li><strong>(a) 슬롯만 2칸 (권장)</strong> — 연차 14.23 / CV 0.94. 체스와 평균이 붙고 분산만 갈린다.</li>
+<li>(b) 기본값 4칸 유지 — 연차 22.91로 <strong>전 종족 1위.</strong> GDD의 &quot;같은 기대값&quot; 축이 깨진다.</li>
+<li>(c) 3칸 절충 — 연차 20.40 / CV 0.79. 포커(21.95) 근처.</li>
+</ul>
+<p>구현 형태도 함께 정해야 한다: <code>GameConfigTable</code>에 스칼라로 두면 종족별 차등이 안 되므로 <strong><code>HouseTable</code>에 <code>HoldMax</code> 컬럼 추가</strong>가 맞다(마작의 6칸도 같은 컬럼으로 표현된다). 마작 스펙 §9-16이 남긴 &quot;<code>HouseTable</code>에 판정 계통 컬럼 추가 시점&quot; 결정과 묶인다.</p>
+<h3 id="10-2-해금-순서-승인-필요">10-2. 해금 순서 — <strong>승인 필요</strong><a class="heading-anchor" href="#10-2-해금-순서-승인-필요" aria-label="Section link">#</a></h3>
+<p>§6의 판단은 **슬롯 = 1번(튜토리얼)**이다. 근거는 현행 규칙(학습 난이도 순)을 그대로 따른 결과이며, 서사 충돌도 해소된다고 봤다. 다만:</p>
+<ul>
+<li><strong>(a) 슬롯 1번 (권장)</strong> — 기존 5행 Id가 각 +1. 세이브는 안전(§8.3). <strong>GDD §09의 &quot;체스로 시작해…&quot; 메타 진행 문구 정정이 필요하다</strong>(문서 수정은 이 스펙 범위 밖 — 사용자 판단).</li>
+<li>(b) 슬롯 2번 (체스 다음) — 체스가 튜토리얼 자리를 지키고, 트위스트 대비는 최대. Id 재번호는 4행.</li>
+<li>(c) 슬롯 6번 (덧붙이기) — 재번호 0행이지만 <strong>학습 난이도 순 규칙과 정면으로 어긋난다.</strong></li>
+</ul>
+<p>§6.4의 비용(슬롯 CV 1.17이 체스 0.64보다 초심자에게 거칠다)이 (a)를 뒤집을 만한지가 판단 지점이다.</p>
+<h3 id="10-3-axisceiling-axislearning-값-승인-필요">10-3. <code>AxisCeiling</code> / <code>AxisLearning</code> 값 — <strong>승인 필요</strong><a class="heading-anchor" href="#10-3-axisceiling-axislearning-값-승인-필요" aria-label="Section link">#</a></h3>
+<p>§8.2의 86 / 5는 제안값이다. 기존 5행에 공식이 없어 역산이 불가능했다(<code>AxisPower</code>·<code>AxisVariance</code>는 공식이 확인돼 그대로 적용했다).</p>
+<ul>
+<li><code>AxisCeiling</code> 86 — &quot;99%분위/평균 비를 체스 기준으로 선형 환산&quot;이라는 근거를 새로 만든 것이다. 이 환산법을 채택하면 <strong>마작의 <code>AxisCeiling</code> 0(미정)도 같은 방법으로 채울 수 있다.</strong></li>
+<li><code>AxisLearning</code> 5 — 브리프가 전제한 &quot;전 종족 최저&quot;를 체스 10 아래에 놓은 값.</li>
+</ul>
+<h3 id="10-4-체리-1매치-배당을-되살릴지">10-4. 체리 1매치 배당을 되살릴지<a class="heading-anchor" href="#10-4-체리-1매치-배당을-되살릴지" aria-label="Section link">#</a></h3>
+<p>정통 슬롯의 &quot;체리는 1개만 나와도 준다&quot;(브리프가 언급한 1개 0.4 / 2개 1.2)를 뺐다. 넣으면 무소환률이 4.96%에서 0.6% 수준으로 무너져 체스 대역이 되고, 판정 문법에 심볼 1종만의 예외가 생긴다. <strong>프로토타입에서 무소환 4.96%가 너무 가혹하다고 판단되면 되살릴 레버로 남긴다.</strong></p>
+<h3 id="10-5-슬롯-전용-코어-수치-미정">10-5. 슬롯 전용 코어 — 수치 미정<a class="heading-anchor" href="#10-5-슬롯-전용-코어-수치-미정" aria-label="Section link">#</a></h3>
+<p>§7.4가 남긴 &quot;전리품 심볼을 슬롯 등급표에 편입하는 S등급 코어&quot;의 이름·효과량·등급. GDD §03 CoreTable에 예시만 있고 슬롯 항목은 없다. <strong>이 문서에서 수치를 만들지 않았다.</strong></p>
+<h3 id="10-6-6종족-시-12연차-구조-마작-스펙-9-13과-같은-미결">10-6. 6종족 시 12연차 구조 — 마작 스펙 §9-13과 같은 미결<a class="heading-anchor" href="#10-6-6종족-시-12연차-구조-마작-스펙-9-13과-같은-미결" aria-label="Section link">#</a></h3>
+<p>GDD §09는 심판 웨이브 3회(4·8·12연차)에 각 종족 왕이 한 번씩 나오는 &quot;적 3종족&quot; 전제로 짜여 있다. 5종족일 때 이미 적이 4로 슬롯이 모자랐고, 6종족이면 5가 된다. <strong>런당 적 종족 선정 방식이 아직 정해지지 않았다.</strong></p>
+<h3 id="10-7-gdd-06-부판정-짝의-정확한-정의">10-7. GDD §06 부판정 짝의 정확한 정의<a class="heading-anchor" href="#10-7-gdd-06-부판정-짝의-정확한-정의" aria-label="Section link">#</a></h3>
+<p>§7.3 재현에서 <strong>주판정 전력과 성립률은 체스 기준으로 소수점까지 일치했으나, 부판정 짝 개수만 어긋났다</strong>(내 계산 0.66짝 vs GDD 기재 0.51짝, 풀 8 기준). GDD 본문이 &quot;이질 심볼끼리는 짝 판정&quot;이라고만 써서 <strong>짝의 범위(보드 전체인지 라인 안인지, 같은 종족끼리만인지)가 특정되지 않는다.</strong> 슬롯 결론(체스와 동일 감쇠)은 주판정만으로 성립하므로 영향받지 않지만, <strong>판정기를 구현할 때는 이 정의를 먼저 확정해야 한다.</strong></p>
+<h3 id="10-8-배경-테마명-neonstrip-미국-문화권-중복">10-8. 배경 테마명 <code>neonstrip</code> / 미국 문화권 중복<a class="heading-anchor" href="#10-8-배경-테마명-neonstrip-미국-문화권-중복" aria-label="Section link">#</a></h3>
+<p>§9.3의 판단은 &quot;포커(19c 서부)와 시대·레지스터로 갈린다&quot;이지만, 마작 스펙 §7.1이 장기↔마작 중복을 다룰 때 사용자 승인을 받았던 것과 같은 성격의 결정이다.</p>
+<hr>
+<h2 id="11-기존-구현과의-접점">11. 기존 구현과의 접점<a class="heading-anchor" href="#11-기존-구현과의-접점" aria-label="Section link">#</a></h2>
+<h3 id="11-1-현재-구현-상태">11.1 현재 구현 상태<a class="heading-anchor" href="#11-1-현재-구현-상태" aria-label="Section link">#</a></h3>
+<p><strong>이미 있는 것 — 슬롯 종족의 판정에 그대로 쓰이는 코드가 이미 돌고 있다.</strong></p>
+<table>
+<thead>
+<tr>
+<th>대상</th>
+<th>경로</th>
+<th>상태</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>5 페이라인 데이터</strong></td>
+<td><code>Assets/Resources/Table/SlotLineTable.csv</code></td>
+<td><strong>완성.</strong> Top/Middle/Bottom/DiagonalDown/DiagonalUp 5행. 슬롯 종족이 쓸 라인 구성과 <strong>정확히 일치</strong>한다. 수정 불필요</td>
+</tr>
+<tr>
+<td>페이라인 레코드</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\SlotLineRecord.cs:6</code> (<code>GetRow()</code>는 <code>:14</code>, <code>SlotLineTable</code>은 <code>:31</code>)</td>
+<td>완성</td>
+</tr>
+<tr>
+<td><strong>3매치 판정기(원형)</strong></td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotMachine.cs:254</code> (<code>IsLineMatched()</code>)</td>
+<td><strong>이미 <code>SlotLineTable</code>의 5라인 전체를 훑어 &quot;라인 3칸이 같은 심볼인가&quot;를 판정한다.</strong> <code>PAYLINE_RANK</code>의 3매치 분기가 사실상 구현돼 있다</td>
+</tr>
+<tr>
+<td>라인 순회</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotMachine.cs:227</code> (<code>PlayWinEffect()</code>)</td>
+<td>완성. 주석이 &quot;배당/재화 정산은 아직 없다 — 지금은 &#39;맞았다&#39;를 화면으로만 알린다&quot;고 명시</td>
+</tr>
+<tr>
+<td>심볼 인덱스 = 말 종류</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotSymbol.cs:62</code> (<code>symbolType</code>)</td>
+<td>완성. <strong>이 정수가 곧 배당 등급이 된다</strong>(§2.2)</td>
+</tr>
+<tr>
+<td>종족 레코드</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:6</code> / <code>HouseTable</code>은 <code>:28</code></td>
+<td>완성. 컬럼 13개</td>
+</tr>
+<tr>
+<td>스프라이트 로더</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:39</code> (<code>HouseSpriteLoader</code>)</td>
+<td>완성. <code>_blur</code>/<code>_x8</code> 필터(<code>:44</code>), 블러 사전(<code>:82</code>)</td>
+</tr>
+<tr>
+<td>테이블 등록</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\TableManager.cs:39</code> / <code>:49</code> / <code>:59</code></td>
+<td>완성. <code>HouseTable</code>·<code>SlotLineTable</code> 둘 다 등록돼 있다</td>
+</tr>
+<tr>
+<td>종족 선택 UI</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Title\UIHouseSelect.cs:111</code> (<code>Build()</code>), <code>:131</code> (<code>BuildHouseButtons()</code>)</td>
+<td>완성. <code>HouseTable.list</code>를 Id 순서로 순회 — <strong>행 추가만으로 버튼이 늘어난다</strong></td>
+</tr>
+<tr>
+<td>선택 종족 저장</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Player\PlayerData.cs:17</code> / <code>PlayerManager.cs:127</code></td>
+<td>완성. <strong>문자열 Key 기반이라 Id 재번호에 안전</strong>(§8.3)</td>
+</tr>
+</tbody></table>
+<p><strong>아직 없는 것 — 판정 계통 전부.</strong> <code>ePatternType</code> enum, <code>Judge.csv</code>/<code>Symbol.csv</code>, 여섯 종족의 판정 함수, 전력→소환 유닛 환산. 마작 스펙 §8.1이 기록한 상태에서 달라지지 않았다.</p>
+<h3 id="11-2-새로-필요한-것">11.2 새로 필요한 것<a class="heading-anchor" href="#11-2-새로-필요한-것" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>대상</th>
+<th>경로(예정)</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>enum 값</td>
+<td><code>Assets\Scripts\Glory\GlobalEnum.cs</code></td>
+<td><code>ePatternType</code>에 <strong><code>PaylineRank</code> 한 값 추가</strong>. GDD §11이 요구한 &quot;enum에 값 하나 + 판정 함수 하나&quot;를 정확히 지킨다. <code>eHouse</code>에 <code>Slot</code> 추가</td>
+</tr>
+<tr>
+<td>판정기</td>
+<td><code>Assets\Scripts\InGame\Judge\SlotJudge.cs</code></td>
+<td><strong>순수 static 클래스. <code>MonoBehaviour</code> 상속 금지</strong> — GDD §13이 &quot;판정기를 UI·전투와 완전히 분리된 순수 함수로 둔다. 이 분리를 초기에 안 하면 뒤에 되돌릴 수 없다&quot;고 명시한 예외. <code>UIHouseSlotMachine.IsLineMatched()</code>의 로직을 UI에서 떼어내 여기로 옮기고, 2매치 분기와 심볼별 배당 조회를 더한다</td>
+</tr>
+<tr>
+<td>배당 테이블</td>
+<td><code>Assets\Resources\Table\SlotPayTable.csv</code></td>
+<td><code>Id,SymbolIndex,SymbolKey,PayTriple,PayDouble</code> 6행. <strong>CODE.MD &quot;튜닝값/관계 데이터는 하드코딩 금지 — 테이블(CSV)로&quot; 규칙 대상이다.</strong> 심볼 1개당 붙는 속성이므로 새 <code>Dictionary</code>가 아니라 레코드가 값을 들고 있어야 한다. <code>Judge.csv</code>가 만들어지면 그쪽 <code>SubType</code>+<code>Power</code> 컬럼으로 흡수해도 된다(마작 스펙 §8.4 참조)</td>
+</tr>
+<tr>
+<td>Record</td>
+<td><code>Assets\Scripts\Table\SlotPayRecord.cs</code></td>
+<td><code>StringRecord.cs</code> 관례대로 Record + Table 서브클래스를 한 파일에</td>
+</tr>
+<tr>
+<td><code>HouseTable</code> 컬럼</td>
+<td><code>Assets\Resources\Table\HouseTable.csv</code></td>
+<td><code>HoldMax</code> 추가 (→ §10-1 승인 시). 슬롯 2 / 마작 6 / 나머지 4</td>
+</tr>
+<tr>
+<td>스프라이트</td>
+<td><code>Assets\Resources\Image\InGame\Actor\slot\</code></td>
+<td>6종 × 3사본 = 18장 (→ §9.2)</td>
+</tr>
+<tr>
+<td>배경</td>
+<td><code>Assets\Resources\Image\Title\bg_slot_neonstrip.png</code></td>
+<td>640×288 가로 seamless (→ §9.3)</td>
+</tr>
+<tr>
+<td>릴 프레임</td>
+<td><code>Assets\Resources\Image\InGame\Reel\frame_slot.png</code></td>
+<td>136×260 (→ §9.4)</td>
+</tr>
+<tr>
+<td>StringTable 행</td>
+<td><code>Assets\Resources\Table\StringTable.csv</code></td>
+<td>→ §12</td>
+</tr>
+</tbody></table>
+<h3 id="11-3-충돌-가능-지점">11.3 충돌 가능 지점<a class="heading-anchor" href="#11-3-충돌-가능-지점" aria-label="Section link">#</a></h3>
+<ol>
+<li><p><strong><code>UIHouseSlotMachine.IsLineMatched()</code>는 &quot;3매치&quot;만 안다.</strong> 슬롯 종족을 붙이면 같은 5라인을 두 곳에서 다르게 판정하게 된다(타이틀 연출용 vs 실제 종족 판정). <strong>판정 로직을 <code>SlotJudge</code>로 단일화하고 <code>UIHouseSlotMachine</code>은 그 결과를 받아 연출만 하도록 바꿔야 한다.</strong> 안 하면 &quot;화면은 튕겼는데 전력은 0&quot; 같은 불일치가 남는다.</p>
+</li>
+<li><p><strong><code>SlotLineTable</code>은 지금 전 종족 공용이 아니다.</strong> 타이틀 슬롯머신 연출에서만 쓰인다. 슬롯 종족이 이 테이블을 <strong>판정 근거</strong>로 쓰기 시작하면, 체스(8라인)·장기(8라인)가 쓸 라인 테이블이 따로 필요해진다. <strong><code>SlotLineTable</code>에 <code>HouseKey</code> 컬럼을 붙여 종족별 라인 집합을 담을지, 아니면 슬롯 전용으로 남기고 체스/장기용 테이블을 새로 만들지</strong>를 판정기 착수 시점에 정해야 한다.</p>
+<ul>
+<li>CLAUDE.md의 재사용 우선 원칙상 <strong>먼저 <code>HouseKey</code> 컬럼 확장을 검토</strong>하는 게 맞다. 다만 CODE.MD의 &quot;여러 개념이 하나의 저장소를 공유할 때 서로 다른 갱신 경로가 서로를 침범&quot; 함정((5)번)에 해당할 수 있으니, 라인 조회 API는 처음부터 <code>GetLines(houseKey)</code> 형태로 두어 나중에 저장소만 분리할 수 있게 한다.</li>
+</ul>
+</li>
+<li><p><strong>심볼 인덱스 == 배당 등급이라는 전제가 파일명에 걸려 있다.</strong> §2.2 참조. <code>slot_01_cherry</code> ~ <code>slot_06_seven</code>의 인덱스 접두사를 빼면 <code>Resources.LoadAll</code>의 알파벳 순서가 등급 순서와 어긋나(<code>bar</code> → <code>bar2</code> → <code>bell</code> → <code>cherry</code> → <code>lemon</code> → <code>seven</code>) <strong>배당이 조용히 뒤섞인다.</strong> 에러도 안 난다 — CODE.MD가 경고한 &quot;조용히 기본값으로 귀결&quot;과 같은 계열의 함정이다. <code>SlotPayTable.csv</code>에 <code>SymbolKey</code>를 함께 두고 로드 시 이름 대조로 검증하는 편이 안전하다.</p>
+</li>
+<li><p><strong>CSV 파서에 따옴표 처리가 없다.</strong> <code>TableManager.LoadCsvTable()</code>이 <code>Split(&#39;,&#39;)</code>로 끝난다(마작 스펙 §8.4-2). <code>AccentColor = D45C9E</code>는 안전하지만 심볼 표시명은 CSV에 넣지 말고 <strong>StringTable 키로 참조</strong>할 것.</p>
+</li>
+<li><p><strong><code>AxisVariance</code> 70이 화면 막대에서 화투(92)·포커(97)와 붙어 보일 수 있다.</strong> 축값 스케일(CV×60)이 상단에서 포화하기 때문이다. 종족 선택 화면에서 슬롯이 &quot;화투급 도박&quot;으로 읽히면 오해다 — 실제로는 마작(62)과 화투(92)의 중간이다. 표시 스케일 재검토가 필요할 수 있다(이 문서 범위 밖).</p>
+</li>
+</ol>
+<hr>
+<h2 id="12-필요한-신규-stringtable-키">12. 필요한 신규 StringTable 키<a class="heading-anchor" href="#12-필요한-신규-stringtable-키" aria-label="Section link">#</a></h2>
+<p>현재 <code>StringTable.csv</code>는 25행이며 컬럼은 <code>Id,Key,Kr,En,Cn,Jp</code>다. <strong>4개 언어 열을 전부 채운다.</strong></p>
+<h3 id="12-1-지금-당장-필요-종족-선택-화면이-종족명을-못-찾으면-빈칸이-뜬다">12.1 지금 당장 필요 (종족 선택 화면이 종족명을 못 찾으면 빈칸이 뜬다)<a class="heading-anchor" href="#12-1-지금-당장-필요-종족-선택-화면이-종족명을-못-찾으면-빈칸이-뜬다" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>Key</th>
+<th>Kr</th>
+<th>En</th>
+<th>Cn</th>
+<th>Jp</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>26</td>
+<td><code>HouseSlot</code></td>
+<td>슬롯</td>
+<td>Slot</td>
+<td>老虎机</td>
+<td>スロット</td>
+</tr>
+</tbody></table>
+<h3 id="12-2-판정-ui를-붙일-때-필요-배당표-표시">12.2 판정 UI를 붙일 때 필요 (배당표 표시)<a class="heading-anchor" href="#12-2-판정-ui를-붙일-때-필요-배당표-표시" aria-label="Section link">#</a></h3>
+<p><strong>슬롯은 심볼 등급이 판정에 참여하는 유일한 종족이라, 배당표를 화면에 보여주지 않으면 규칙이 전달되지 않는다.</strong> 다른 5종족에는 없는 UI 요구다.</p>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>Key</th>
+<th>Kr</th>
+<th>En</th>
+<th>Cn</th>
+<th>Jp</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>27</td>
+<td><code>JudgePaylineRank</code></td>
+<td>배당 판정</td>
+<td>Payline Rank</td>
+<td>赔付线判定</td>
+<td>ペイライン判定</td>
+</tr>
+<tr>
+<td>28</td>
+<td><code>SlotPayTitle</code></td>
+<td>배당표</td>
+<td>Paytable</td>
+<td>赔付表</td>
+<td>配当表</td>
+</tr>
+<tr>
+<td>29</td>
+<td><code>SlotPayTriple</code></td>
+<td>3매치</td>
+<td>3 Match</td>
+<td>三连</td>
+<td>3つ揃い</td>
+</tr>
+<tr>
+<td>30</td>
+<td><code>SlotPayDouble</code></td>
+<td>2매치</td>
+<td>2 Match</td>
+<td>二连</td>
+<td>2つ揃い</td>
+</tr>
+<tr>
+<td>31</td>
+<td><code>SymbolSlotCherry</code></td>
+<td>체리</td>
+<td>Cherry</td>
+<td>樱桃</td>
+<td>チェリー</td>
+</tr>
+<tr>
+<td>32</td>
+<td><code>SymbolSlotLemon</code></td>
+<td>레몬</td>
+<td>Lemon</td>
+<td>柠檬</td>
+<td>レモン</td>
+</tr>
+<tr>
+<td>33</td>
+<td><code>SymbolSlotBell</code></td>
+<td>벨</td>
+<td>Bell</td>
+<td>铃铛</td>
+<td>ベル</td>
+</tr>
+<tr>
+<td>34</td>
+<td><code>SymbolSlotBar</code></td>
+<td>BAR</td>
+<td>BAR</td>
+<td>BAR</td>
+<td>BAR</td>
+</tr>
+<tr>
+<td>35</td>
+<td><code>SymbolSlotBar2</code></td>
+<td>2BAR</td>
+<td>2BAR</td>
+<td>2BAR</td>
+<td>2BAR</td>
+</tr>
+<tr>
+<td>36</td>
+<td><code>SymbolSlotSeven</code></td>
+<td>세븐</td>
+<td>Seven</td>
+<td>七</td>
+<td>セブン</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>기존 5종족은 심볼 표시명 키가 없다(심볼을 이름으로 부르는 UI가 아직 없음). 31~36은 <strong>슬롯 배당표 UI가 실제로 만들어질 때</strong> 추가하면 된다.</p>
+</blockquote>
+<hr>
+<h2 id="13-참고">13. 참고<a class="heading-anchor" href="#13-참고" aria-label="Section link">#</a></h2>
+<ul>
+<li>연관 스펙: <a href="mahjong-house.html">mahjong-house</a> (<code>.claude/design/mahjong-house.html</code>) — 밸런스 척도·홀드 모델·해금 순서 규칙·액센트 방법론의 출처</li>
+<li>연관 클래스: <a href="../class/HouseRecord.md">HouseRecord</a> (<code>.claude/class/HouseRecord.md</code>), <a href="../class/UIHouseSlotMachine.md">UIHouseSlotMachine</a> (<code>.claude/class/UIHouseSlotMachine.md</code>), <a href="../class/UISlotMachineReel.md">UISlotMachineReel</a> (<code>.claude/class/UISlotMachineReel.md</code>), <a href="../class/UIHouseSelect.md">UIHouseSelect</a> (<code>.claude/class/UIHouseSelect.md</code>), <a href="../class/TableManager.md">TableManager</a> (<code>.claude/class/TableManager.md</code>), <a href="../class/StringTable.md">StringTable</a> (<code>.claude/class/StringTable.md</code>), <a href="../class/PlayerManager.md">PlayerManager</a> (<code>.claude/class/PlayerManager.md</code>), <a href="../class/GameConfigTable.md">GameConfigTable</a> (<code>.claude/class/GameConfigTable.md</code>)</li>
+<li>연관 테이블: <code>SlotLineTable.csv</code>(그대로 재사용), <code>HouseTable.csv</code>(1행 추가 + Id 재번호), <code>StringTable.csv</code>(1~11행 추가)</li>
+</ul>
+<hr>
+<h2 id="개정-이력">개정 이력<a class="heading-anchor" href="#개정-이력" aria-label="Section link">#</a></h2>
+<h3 id="2026-08-27-0-초판">2026-08-27-0 — 초판<a class="heading-anchor" href="#2026-08-27-0-초판" aria-label="Section link">#</a></h3>
+<ul>
+<li>판정 문법 <code>PAYLINE_RANK</code> 정의. 다른 5종족과의 구분 축을 &quot;심볼 등급이 배당에 참여하는가&quot;로 특정 (§1)</li>
+<li>심볼 풀 6종 확정, 파일명 인덱스 접두사의 구현상 근거 제시 (§2)</li>
+<li>배당표 확정: 3매치 3/5/8/13/20/33 · 2매치 0.5/0.8/1.2/2/3/5 (§3)</li>
+<li>1스핀 50만 시행 × 5시드. 체스 재현 검증 후 평균 6.24 / CV 1.17 / 무소환 4.96% (§4)</li>
+<li><strong>CV 목표와 잭팟의 충돌은 &quot;목표치가 1.0이 아니라 1.17이어야 했다&quot;로 해소</strong> — 마작이 이미 CV 1.03을 차지하고 있다는 사실이 브리프에서 누락돼 있었다 (§4.4)</li>
+<li><strong>홀드를 모델에 넣으면 슬롯이 연차 척도 1위(22.91)가 되는 것을 발견.</strong> 슬롯만 홀드 2칸 권장 (§5)</li>
+<li><strong>혼혈 면제 가설을 시뮬레이션으로 반증</strong>(등급 부여 시 −32.3%, 표준 규칙 −13%). 표준 규칙 채택 (§7)</li>
+<li>해금 순서: &quot;풀 크기 순&quot; 규칙이 이미 &quot;학습 난이도 순&quot;으로 재정의돼 있어 6종 동률 충돌이 존재하지 않음을 확인. 슬롯 1번 권장 (§6)</li>
+<li>액센트 <code>D45C9E</code>, 배경 테마 <code>neonstrip</code>, 아트 발주서 작성 (§8·§9)</li>
+</ul>
+<hr>
+<h2 id="검증-상태">검증 상태<a class="heading-anchor" href="#검증-상태" aria-label="Section link">#</a></h2>
+<ul>
+<li><strong>시뮬레이션</strong>: 체스 1스핀(GDD §05)과 체스 연차(마작 스펙 §3.5) 두 지점에서 기존 기재값을 재현한 뒤 계산했다. 슬롯 수치는 기존 표에 그대로 이어 붙일 수 있다.</li>
+<li><strong>미검증</strong>: 코드·테이블·씬·이미지를 <strong>하나도 수정하지 않았다.</strong> 이 문서는 스펙만이다. Unity 실행 검증 없음.</li>
+<li><strong>선행 승인 필요</strong>: §10-1(홀드 2칸) · §10-2(해금 순서) · §10-3(축 값). 이 셋이 정해지기 전에는 <code>HouseTable.csv</code> 행을 확정할 수 없다.</li>
+</ul>
+
+    </article>
+  </div>
+</body>
+</html>

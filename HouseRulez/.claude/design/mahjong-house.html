@@ -1,0 +1,1782 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Orca design document converter">
+  <meta name="source" content="mahjong-house.md">
+  <title>마작 — 5번째 종족 추가 검토 및 구현 스펙 쨌 HouseRulez Design</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10141b;
+      --panel: #171d27;
+      --panel-2: #1d2531;
+      --text: #e8edf5;
+      --muted: #9ba8bb;
+      --line: #303b4c;
+      --accent: #7fa7c9;
+      --accent-2: #d6a441;
+      --code: #0c1118;
+      --good: #57a277;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% -10%, rgba(127,167,201,.16), transparent 30rem),
+        radial-gradient(circle at 95% 0%, rgba(214,164,65,.10), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+      line-height: 1.72;
+    }
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 80px; }
+    .document-header {
+      padding: 28px 32px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(127,167,201,.13), rgba(23,29,39,.94) 48%, rgba(214,164,65,.08));
+      box-shadow: 0 18px 50px rgba(0,0,0,.22);
+      margin-bottom: 20px;
+    }
+    .eyebrow { margin: 0 0 6px; color: var(--accent); font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .document-header h1 { margin: 0; font-size: clamp(1.65rem, 4vw, 2.65rem); line-height: 1.2; }
+    .source { margin: 10px 0 0; color: var(--muted); font-size: .86rem; }
+    .toc, article {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(23,29,39,.94);
+      box-shadow: 0 12px 40px rgba(0,0,0,.16);
+    }
+    .toc { padding: 16px 22px; margin-bottom: 20px; }
+    .toc summary { cursor: pointer; color: var(--accent-2); font-weight: 800; }
+    .toc ol { columns: 2 320px; column-gap: 32px; margin: 14px 0 2px; padding-left: 22px; }
+    .toc li { break-inside: avoid; margin: 4px 0; color: var(--muted); }
+    .toc .toc-level-3 { margin-left: 16px; font-size: .92em; }
+    .toc a { color: inherit; text-decoration: none; }
+    .toc a:hover { color: var(--text); }
+    article { padding: clamp(22px, 4vw, 48px); overflow: hidden; }
+    article > h1:first-child { display: none; }
+    h1, h2, h3, h4, h5, h6 { color: #f5f7fb; line-height: 1.35; scroll-margin-top: 20px; }
+    h2 { margin: 2.2em 0 .7em; padding-bottom: .38em; border-bottom: 1px solid var(--line); font-size: 1.58rem; }
+    h3 { margin: 1.8em 0 .55em; color: #c9d9e8; font-size: 1.25rem; }
+    h4 { margin: 1.45em 0 .45em; color: #d8c18d; }
+    .heading-anchor { margin-left: .45em; color: transparent; text-decoration: none; font-size: .72em; }
+    h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor { color: var(--muted); }
+    p { margin: .7em 0; }
+    a { color: #9bc7ed; text-underline-offset: 3px; }
+    strong { color: #fff; }
+    blockquote { margin: 1.15em 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: rgba(127,167,201,.08); color: #cbd5e2; }
+    blockquote > :first-child { margin-top: 0; }
+    blockquote > :last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.5em; }
+    li { margin: .28em 0; }
+    code { padding: .15em .4em; border: 1px solid #2c3747; border-radius: 5px; background: var(--code); color: #d8e8f6; font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; }
+    pre { overflow-x: auto; padding: 17px 19px; border: 1px solid #293344; border-radius: 10px; background: var(--code); line-height: 1.55; }
+    pre code { padding: 0; border: 0; background: transparent; }
+    table { width: 100%; margin: 1.15em 0 1.6em; border-collapse: separate; border-spacing: 0; font-size: .92rem; display: block; overflow-x: auto; }
+    thead { background: #222c39; }
+    th, td { min-width: 105px; padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #f0dcae; font-weight: 800; }
+    tr > :first-child { border-left: 1px solid var(--line); }
+    thead tr:first-child > * { border-top: 1px solid var(--line); }
+    tr:first-child > :first-child { border-top-left-radius: 8px; }
+    tr:first-child > :last-child { border-top-right-radius: 8px; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
+    hr { margin: 2.2em 0; border: 0; border-top: 1px solid var(--line); }
+    img { max-width: 100%; height: auto; }
+    input[type="checkbox"] { accent-color: var(--good); }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 18px, 1180px); padding-top: 10px; }
+      .document-header { padding: 22px 20px; border-radius: 12px; }
+      article { padding: 20px 16px; border-radius: 12px; }
+      .toc { border-radius: 12px; }
+      .toc ol { columns: 1; }
+      table { font-size: .82rem; }
+      th, td { padding: 8px; }
+    }
+    @media print {
+      :root { color-scheme: light; --bg: #fff; --panel: #fff; --text: #15191f; --muted: #555; --line: #bbb; --code: #f3f4f6; }
+      body { background: #fff; }
+      .shell { width: 100%; padding: 0; }
+      .document-header, .toc, article { box-shadow: none; }
+      .document-header { background: #fff; }
+      .toc { display: none; }
+      article { border: 0; padding: 0; }
+      a { color: inherit; }
+      pre, table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="document-header">
+      <p class="eyebrow">HouseRulez 쨌 Design Specification</p>
+      <h1>마작 — 5번째 종족 추가 검토 및 구현 스펙</h1>
+      <p class="source">Canonical HTML 쨌 Previous source: <code>mahjong-house.md</code></p>
+    </header>
+    <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#출처-문서">출처 문서</a></li><li class="toc-level-2"><a href="#결론-조건부-가능">결론 — 조건부 가능</a></li><li class="toc-level-2"><a href="#1-검증-방법-기존-수치를-먼저-재현했다">1. 검증 방법 — 기존 수치를 먼저 재현했다</a></li><li class="toc-level-2"><a href="#2-판정-규칙-면자-완전분할-meldpartition">2. 판정 규칙 — 면자 완전분할 (MeldPartition)</a></li><li class="toc-level-3"><a href="#2-1-규칙-정의">2.1 규칙 정의</a></li><li class="toc-level-3"><a href="#2-2-판정-알고리즘-구현-지시">2.2 판정 알고리즘 (구현 지시)</a></li><li class="toc-level-3"><a href="#2-3-ui-요구사항-다른-종족과-다른-점">2.3 UI 요구사항 (다른 종족과 다른 점)</a></li><li class="toc-level-2"><a href="#3-점수-구조와-밸런스">3. 점수 구조와 밸런스</a></li><li class="toc-level-3"><a href="#3-1-성립-확률-풀-9종-9칸-정확값">3.1 성립 확률 (풀 9종 &#183; 9칸 &#183; 정확값)</a></li><li class="toc-level-3"><a href="#3-2-계수-권장안">3.2 계수 (권장안)</a></li><li class="toc-level-3"><a href="#3-3-구간별-전력과-최종-밸런스">3.3 구간별 전력과 최종 밸런스</a></li><li class="toc-level-3"><a href="#3-4-judgebalance-표에-넣을-행-기존-종족과-직접-비교">3.4 JudgeBalance 표에 넣을 행 (기존 종족과 직접 비교)</a></li><li class="toc-level-3"><a href="#3-5-정정-2026-08-25-홀드를-넣으면-마작은-빈-자리에-맞는-게-아니라-혼자-약하다">3.5 정정 (2026-08-25) — 홀드를 넣으면 마작은 &quot;빈 자리에 맞는&quot; 게 아니라 혼자 약하다</a></li><li class="toc-level-3"><a href="#3-6-상단-꼬리-실측-04-축-막대용-참고">3.6 상단 꼬리 실측 (&#167;04 축 막대용 참고)</a></li><li class="toc-level-3"><a href="#3-7-재계산-2026-08-25-확정-기구는-홀드-6칸-쯔모-연차-1회-계수는-그대로">3.7 재계산 (2026-08-25) — 확정 기구는 홀드 6칸 + 쯔모 연차 1회, 계수는 그대로</a></li><li class="toc-level-2"><a href="#4-심볼-풀-통수패-筒子-1-9-9종">4. 심볼 풀 — 통수패(筒子) 1~9, 9종</a></li><li class="toc-level-3"><a href="#4-1-왜-34종이-아니라-9종인가-수치-근거">4.1 왜 34종이 아니라 9종인가 (수치 근거)</a></li><li class="toc-level-3"><a href="#4-2-어느-수패를-쓰나-통자-筒子-권장">4.2 어느 수패를 쓰나 — 통자(筒子) 권장</a></li><li class="toc-level-3"><a href="#4-3-symbol-csv-행-9행-추가">4.3 Symbol.csv 행 (9행 추가)</a></li><li class="toc-level-2"><a href="#5-종족-전쟁-전리품과의-상호작용-가장-큰-리스크">5. 종족 전쟁 / 전리품과의 상호작용 — 가장 큰 리스크</a></li><li class="toc-level-3"><a href="#5-1-puritycurve-체스와-나란히-30만-시행">5.1 PurityCurve — 체스와 나란히 (30만 시행)</a></li><li class="toc-level-3"><a href="#5-2-무엇이-문제인가">5.2 무엇이 문제인가</a></li><li class="toc-level-3"><a href="#5-3-선택지-결정-필요-9-2">5.3 선택지 (결정 필요 — &#167;9-2)</a></li><li class="toc-level-2"><a href="#6-홀드-잠금-상호작용-마작만-구조가-다르다">6. 홀드(잠금) 상호작용 — 마작만 구조가 다르다</a></li><li class="toc-level-3"><a href="#선택지-결정-필요-9-3">선택지 (결정 필요 — &#167;9-3)</a></li><li class="toc-level-2"><a href="#7-아트-배경과-액센트-색">7. 아트 — 배경과 액센트 색</a></li><li class="toc-level-3"><a href="#7-1-문화권-분리">7.1 문화권 분리</a></li><li class="toc-level-3"><a href="#7-2-액센트-색">7.2 액센트 색</a></li><li class="toc-level-2"><a href="#8-기존-구현과의-접점">8. 기존 구현과의 접점</a></li><li class="toc-level-3"><a href="#8-1-현재-구현-상태-종족-메타는-착수됨-판정-계통은-전부-미구현">8.1 현재 구현 상태 — 종족 메타는 착수됨, 판정 계통은 전부 미구현</a></li><li class="toc-level-3"><a href="#8-2-이미-있는-것-재사용">8.2 이미 있는 것 (재사용)</a></li><li class="toc-level-3"><a href="#8-3-새로-필요한-것">8.3 새로 필요한 것</a></li><li class="toc-level-3"><a href="#8-4-충돌-가능-지점">8.4 충돌 가능 지점</a></li><li class="toc-level-2"><a href="#9-문서에-없어서-확인이-필요한-부분-미결정">9. 문서에 없어서 확인이 필요한 부분 (미결정)</a></li><li class="toc-level-3"><a href="#9-1-해금-순서-결정됨-2026-08-25-b-마작을-마지막에">9-1. 해금 순서 — 결정됨 (2026-08-25) &#183; (b) 마작을 마지막에</a></li><li class="toc-level-3"><a href="#9-2-전리품-상호작용-결정됨-2026-08-25-a-그대로-둔다">9-2. 전리품 상호작용 — 결정됨 (2026-08-25) &#183; (a) 그대로 둔다</a></li><li class="toc-level-3"><a href="#9-3-홀드-텐파이-결정됨-2026-08-25-a-b-둘-다-홀드-6칸-쯔모-연차-1회">9-3. 홀드/텐파이 — 결정됨 (2026-08-25) &#183; (a)+(b) 둘 다 &#183; 홀드 6칸 + 쯔모 연차 1회</a></li><li class="toc-level-3"><a href="#9-4-5종족-시-12연차-외교-구조-결정됨-2026-08-25-그대로-간다">9-4. 5종족 시 12연차&#183;외교 구조 — 결정됨 (2026-08-25) &#183; 그대로 간다</a></li><li class="toc-level-3"><a href="#9-5-액센트-색-사실상-확정-2026-08-25">9-5. 액센트 색 — 사실상 확정 (2026-08-25)</a></li><li class="toc-level-3"><a href="#9-6-수패-종류">9-6. 수패 종류</a></li><li class="toc-level-3"><a href="#9-7-전력-p-소환-유닛-수-환산-규칙">9-7. 전력 P → 소환 유닛 수 환산 규칙</a></li><li class="toc-level-3"><a href="#9-8-judge-csv-스키마-확장-승인">9-8. Judge.csv 스키마 확장 승인</a></li><li class="toc-level-3"><a href="#9-9-gdd-타이틀-문서-정정-승인">9-9. GDD / 타이틀 문서 정정 승인</a></li><li class="toc-level-3"><a href="#9-10-04-축-막대값-편집상-값">9-10. &#167;04 축 막대값 (편집상 값)</a></li><li class="toc-level-3"><a href="#9-11-마작-전용-코어">9-11. 마작 전용 코어</a></li><li class="toc-level-3"><a href="#9-12-마작-선전포고-코어-보상-개수-2-vs-1-5">9-12. 마작 선전포고 코어 보상 개수 (2 vs 1.5)</a></li><li class="toc-level-3"><a href="#9-13-5종족-시-런당-적-3종족-선정-방식">9-13. 5종족 시 런당 적 3종족 선정 방식</a></li><li class="toc-level-3"><a href="#9-14-기존-넷의-홀드-4-연차값-정밀-재측정">9-14. 기존 넷의 홀드-4 연차값 정밀 재측정</a></li><li class="toc-level-3"><a href="#9-15-쯔모의-ui-템포-처리">9-15. 쯔모의 UI/템포 처리</a></li><li class="toc-level-3"><a href="#9-16-housetable에-판정-계통-컬럼-추가-시점-형태">9-16. HouseTable에 판정 계통 컬럼 추가 시점/형태</a></li><li class="toc-level-2"><a href="#10-요약-한-줄-정체성">10. 요약 — 한 줄 정체성</a></li><li class="toc-level-2"><a href="#참고">참고</a></li><li class="toc-level-2"><a href="#개정-이력">개정 이력</a></li><li class="toc-level-2"><a href="#검증-상태">검증 상태</a></li></ol></details>
+    <article>
+<h1 id="마작-5번째-종족-추가-검토-및-구현-스펙">마작 — 5번째 종족 추가 검토 및 구현 스펙<a class="heading-anchor" href="#마작-5번째-종족-추가-검토-및-구현-스펙" aria-label="Section link">#</a></h1>
+<p>작성일 2026-08-25 · <strong>개정 2026-08-25-1</strong> (초판 2026-08-25-0)</p>
+<blockquote>
+<p><strong>개정 요약</strong> — 초판은 연차 계산에서 <strong>홀드(잠금)를 빠뜨렸다.</strong> 홀드를 넣어 다시 재면 마작은 &quot;분산 사다리의 빈 자리에 맞는&quot; 종족이 아니라 <strong>혼자 약한 종족</strong>이었다(마작 8.79 vs 기존 넷 13.11<del>22.56). 원인과 정정은 <strong>§3.5</strong>, 재계산과 확정 기구는 <strong>§3.7</strong>. 사용자 결정 4건(§9-1</del>9-4)도 이 개정에서 확정됐다.</p>
+</blockquote>
+<h2 id="출처-문서">출처 문서<a class="heading-anchor" href="#출처-문서" aria-label="Section link">#</a></h2>
+<ul>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Design\reel_of_four_houses_GDD.html</code> — 전체 GDD. 특히 §04 네 종족(판정 규칙·축 값), §05 판정 밸런스(JudgeBalance / SutdaBet / 심볼 풀 논거), §06 종족 전쟁(PurityCurve), §10 화면 설계(색 팔레트·검정 규칙), §11 데이터 테이블 스키마, §13 리스크(해금 순서·심볼 판독), §14 미결정</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Design\title_screen_design.html</code> — 타이틀 구현 현황, 종족별 배경 4장, 해금 순서 언급, 미결 항목(Q1~Q4)</li>
+<li>위임 브리프 <code>.claude\design\_brief-mahjong.html</code> (이 문서가 나오면 삭제 대상)</li>
+</ul>
+<hr>
+<h2 id="결론-조건부-가능">결론 — <strong>조건부 가능</strong><a class="heading-anchor" href="#결론-조건부-가능" aria-label="Section link">#</a></h2>
+<p>마작은 이 게임의 설계 축을 깨지 않는다. 다만 <strong>기구(홀드 상한)를 마작에 맞게 손대는 것이 전제</strong>다 — 손대지 않으면 마작은 다섯 중 혼자 약하다(§3.5). 아래 조건 4건은 2026-08-25에 모두 결정됐다.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>근거</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>판정 축이 겹치지 않는다</strong> — 기존 넷은 전부 <em>위치</em>(라인 8개 또는 열 3개)를 읽는다. 마작은 위치를 전혀 보지 않고 9칸을 하나의 손패로 보아 <strong>3장씩 완전분할</strong>이 되는지 묻는다. 다섯 번째 축으로 성립.</td>
+<td>통과</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>밸런스가 빈 구간을 메운다(1스핀 척도)</strong> — 마작 CV <strong>1.03</strong>. 기존 사다리 0.64 → 0.67 → <strong>(빈 구간)</strong> → 1.53 → 1.62. 평균 전력 <strong>6.24</strong>로 기존 6.11~6.27 대역 안. ※ 단, 이건 <em>판정 함수</em> 벤치마크다. <strong>홀드를 넣은 연차 척도에서는 보정 없이는 통과하지 못한다 → §3.5</strong></td>
+<td>조건부 통과</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>풀 크기 9종이 밸런스상 유일한 정답이다</strong> — 풀 5~13 전수 계산에서 9만 무소환 3.83% / 화료 2.65%로 앉는다(§4.1). ※ 해금 순서는 풀 크기가 아니라 <strong>난이도 순</strong>으로 재정의해 마작을 마지막에 둔다(§9-1).</td>
+<td>통과</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>조건 A — 학습비용 축 충돌 → 해금 순서를 난이도 순으로 재정의.</strong> 마작을 <strong>마지막(5번째)</strong> 에 둔다. &quot;심볼 수 = 난이도&quot;라는 GDD §13 규칙 문장을 &quot;학습 난이도 순&quot;으로 고친다(§9-1).</td>
+<td><strong>결정됨 08-25</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>조건 B — 혼혈 페널티를 그대로 둔다.</strong> 마작 = &quot;순혈로만 완성되는 종족&quot;. 이질 심볼 1장이면 화료 원천 불가(화료율 2.62% → <strong>0.46%</strong>). 보상은 릴 밖으로 돌린다 — 선전포고 승리 시 코어 2개(§5.3, §9-2).</td>
+<td><strong>결정됨 08-25</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>조건 C — 홀드 확장 + 쯔모 둘 다 채택.</strong> 마작만 <strong>홀드 6칸</strong>, 그리고 <strong>쯔모 연차 1회</strong>(1장 뽑고 1장 버림). 이건 버프가 아니라 §3.5의 구조적 약세를 메우는 <strong>필수 보정</strong>이다(§3.7).</td>
+<td><strong>결정됨 08-25</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>12연차 구조는 그대로.</strong> 5종족이 되어도 연차 수·심판 웨이브 구조를 건드리지 않는다(§9-4).</td>
+<td><strong>결정됨 08-25</strong></td>
+</tr>
+<tr>
+<td>8</td>
+<td>문화권 중복(장기=한국·중국 고대 vs 마작=중국), 액센트 색 부족</td>
+<td>해결안 있음(아래 §7)</td>
+</tr>
+</tbody></table>
+<p><strong>남은 것은 밸런스가 아니라 기구 확정과 아트 판단이다.</strong> 확정 기구(홀드 6칸 + 쯔모 연차 1회)에서 마작의 연차 전력은 18.36 · CV 0.85 · 화료율 32.57%로, 기존 넷 대역(13.11~22.56)의 정중앙 3위에 앉는다(§3.7).</p>
+<hr>
+<h2 id="1-검증-방법-기존-수치를-먼저-재현했다">1. 검증 방법 — 기존 수치를 먼저 재현했다<a class="heading-anchor" href="#1-검증-방법-기존-수치를-먼저-재현했다" aria-label="Section link">#</a></h2>
+<p>숫자를 새로 만들기 전에, GDD §05 JudgeBalance 표의 네 종족 판정 함수를 GDD 본문의 JS 판정기(<code>reel_of_four_houses_GDD.html</code> 748~972줄 <code>judge()</code>)를 그대로 옮겨 각 50만 회 재현했다. 마작 수치는 <strong>이 재현이 맞은 뒤에</strong> 같은 척도로 계산한 것이다.</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>GDD 기재값 (평균/SD/CV/무소환)</th>
+<th>재현값</th>
+<th>일치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>6.11 / 3.90 / 0.64 / 0.5%</td>
+<td>6.11 / 3.89 / 0.64 / 0.4%</td>
+<td>○</td>
+</tr>
+<tr>
+<td>장기</td>
+<td>6.27 / 4.18 / 0.67 / 1.2%</td>
+<td>6.28 / 4.20 / 0.67 / 1.2%</td>
+<td>○</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>6.23 / 10.10 / 1.62 / 8.9%</td>
+<td>6.24 / 10.11 / 1.62 / 9.0%</td>
+<td>○</td>
+</tr>
+<tr>
+<td>화투(판돈0)</td>
+<td>6.20 / 9.48 / 1.53 / 0.1%</td>
+<td>6.21 / 9.52 / 1.53 / 0.1%</td>
+<td>○</td>
+</tr>
+<tr>
+<td>화투 연차(3굴림 best-of-3)</td>
+<td><strong>13.15</strong> (SutdaBet 표)</td>
+<td><strong>13.15</strong></td>
+<td>○</td>
+</tr>
+</tbody></table>
+<p>연차 수치까지 소수 둘째 자리로 맞았으므로, 아래 마작 수치는 <strong>GDD 표에 그대로 한 행 추가할 수 있는 값</strong>이다.</p>
+<p>마작 쪽은 몬테카를로가 아니라 <strong>완전 열거</strong>로 계산했다. 마작 판정은 위치를 안 보므로 9칸의 결과가 <strong>다중집합</strong>으로 환원되고, 9종에서 9장을 뽑는 다중집합은 C(17,8) = <strong>24,310가지</strong>뿐이다. 전체 경우의 수 9⁹ = 387,420,489을 다항계수로 가중하면 오차 없는 <strong>정확한 확률</strong>이 나온다. 아래 확률은 전부 근사가 아니라 정확값이다.</p>
+<hr>
+<h2 id="2-판정-규칙-면자-완전분할-meldpartition">2. 판정 규칙 — 면자 완전분할 (MeldPartition)<a class="heading-anchor" href="#2-판정-규칙-면자-완전분할-meldpartition" aria-label="Section link">#</a></h2>
+<h3 id="2-1-규칙-정의">2.1 규칙 정의<a class="heading-anchor" href="#2-1-규칙-정의" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong>9칸을 3장씩 세 묶음으로 나눈다. 각 묶음이 <em>같은 숫자 3장</em>(커쯔) 또는 <em>연속한 세 숫자</em>(슌쯔)면 면자로 성립한다. 세 묶음이 전부 성립하면 화료(和了).</strong></p>
+</blockquote>
+<ul>
+<li><strong>위치를 전혀 보지 않는다.</strong> 어느 칸에 있든 상관없이 9칸 전체에서 묶는다. 이것이 기존 넷과 갈리는 지점이다.</li>
+<li>세 묶음을 다 못 채우면 <strong>성립한 면자 수만큼만</strong> 부분 점수. 남는 패는 버린다.</li>
+<li><strong>텐파이(대기)</strong> — 화료는 못 했지만 <em>한 장만 바꾸면 화료가 되는</em> 상태. 실제 마작의 유국텐파이료(流局聴牌料)를 그대로 옮긴 것으로, 마작에서 화료 다음으로 중요한 상태다.</li>
+<li>머리(자또/対子)는 쓰지 않는다. 실제 마작은 14장 = 4면자 + 머리 1이지만, 릴은 9칸 = <strong>3면자로 정확히 떨어진다.</strong> 9칸 3×3 구조와 3면자가 맞아떨어지는 것이 이 종족이 3×3 릴에 들어맞는 이유다.</li>
+</ul>
+<h3 id="2-2-판정-알고리즘-구현-지시">2.2 판정 알고리즘 (구현 지시)<a class="heading-anchor" href="#2-2-판정-알고리즘-구현-지시" aria-label="Section link">#</a></h3>
+<p>브리프가 제시한 &quot;280가지 3분할 완전탐색&quot;은 <strong>불필요하다.</strong> 9!/(3!³·3!) = 280가지가 맞지만, 위치 무관이므로 <strong>숫자별 개수 배열(int[9])로 환원한 뒤 재귀 분해</strong>하면 훨씬 싸다.</p>
+<pre><code>// 입력: counts[0..8] = 숫자 1~9의 등장 횟수 (합 9)
+// 출력: (최대 면자 수 m, 그 최대를 낼 때의 최대 커쯔 수 k)
+Decompose(counts):
+    i = 개수가 0이 아닌 가장 낮은 숫자
+    if 없음: return (0, 0)
+    best = (0, 0)
+    // 1) 커쯔로 뗀다
+    if counts[i] &gt;= 3:
+        r = Decompose(counts에서 i를 3개 뺀 것)
+        best = max(best, (r.m + 1, r.k + 1))
+    // 2) 슌쯔로 뗀다
+    if i &lt;= 6 &amp;&amp; counts[i+1] &gt; 0 &amp;&amp; counts[i+2] &gt; 0:
+        r = Decompose(counts에서 i, i+1, i+2를 1개씩 뺀 것)
+        best = max(best, (r.m + 1, r.k))
+    // 3) 이 패 1장을 버린다
+    r = Decompose(counts에서 i를 1개 뺀 것)
+    best = max(best, r)
+    return best
+
+Tenpai(counts):  // 화료가 아닐 때만 조회
+    for t in 1..9:
+        if Decompose(counts + t장).m &gt;= 3: return true
+    return false
+</code></pre>
+<ul>
+<li>비교 순서는 <code>(면자 수, 커쯔 수)</code> 사전식 — 면자 수를 먼저 최대화하고, 동률이면 커쯔 수를 최대화한다(커쯔가 점수가 높으므로).</li>
+<li>최대 재귀 깊이 9, 분기 3. 메모이제이션 없이도 스핀당 마이크로초 단위. <strong>다섯 종족 중 가장 싼 판정기다.</strong></li>
+<li>GDD §13 리스크 &quot;판정기를 UI·전투와 완전히 분리된 순수 함수로 둔다&quot;를 그대로 지킬 수 있다 — 이 함수는 <code>MonoBehaviour</code>도, <code>Transform</code>도, 셀 좌표도 필요 없다.</li>
+</ul>
+<h3 id="2-3-ui-요구사항-다른-종족과-다른-점">2.3 UI 요구사항 (다른 종족과 다른 점)<a class="heading-anchor" href="#2-3-ui-요구사항-다른-종족과-다른-점" aria-label="Section link">#</a></h3>
+<p>기존 넷은 성립한 <strong>라인/열</strong>을 하이라이트하면 끝이다. 마작은 성립한 3칸이 보드 어디에나 흩어질 수 있으므로:</p>
+<ul>
+<li><strong>묶음 3개를 서로 구분되는 마커로 표시</strong>해야 한다(대좌에 ①②③ 또는 세 단계 밝기). 한 색으로 뭉뚱그리면 어느 3장이 한 면자인지 읽을 수 없다.</li>
+<li>텐파이일 때는 <strong>기다리는 숫자</strong>를 표시해야 의미가 전달된다(평균 대기 폭 1.85종, 아래 §6).</li>
+<li>분해 결과가 여러 개일 수 있다(예: 2,3,4,5,6,7은 234+567로도 345+567로도 안 됨 → 실제로는 234/567 유일하지만, 111234에서 111을 커쯔로 뗄지 123+1을 뗄지 갈리는 경우가 있다). <strong>알고리즘이 고른 하나만</strong> 표시한다 — 위 비교 순서가 결정적(deterministic)이므로 표시도 결정적이다.</li>
+</ul>
+<hr>
+<h2 id="3-점수-구조와-밸런스">3. 점수 구조와 밸런스<a class="heading-anchor" href="#3-점수-구조와-밸런스" aria-label="Section link">#</a></h2>
+<h3 id="3-1-성립-확률-풀-9종-9칸-정확값">3.1 성립 확률 (풀 9종 · 9칸 · 정확값)<a class="heading-anchor" href="#3-1-성립-확률-풀-9종-9칸-정확값" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>상태</th>
+<th>정확 확률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0면자 (무소환)</td>
+<td><strong>3.8344%</strong></td>
+</tr>
+<tr>
+<td>1면자</td>
+<td>42.1771%</td>
+</tr>
+<tr>
+<td>2면자 · 노텐</td>
+<td>2.9450%</td>
+</tr>
+<tr>
+<td>2면자 · <strong>텐파이</strong></td>
+<td><strong>48.3922%</strong></td>
+</tr>
+<tr>
+<td><strong>화료(3면자)</strong></td>
+<td><strong>2.6514%</strong></td>
+</tr>
+<tr>
+<td>├ 3슌쯔 (일기통관 제외)</td>
+<td>1.0342%</td>
+</tr>
+<tr>
+<td>├ 2슌1커</td>
+<td>1.1211%</td>
+</tr>
+<tr>
+<td>├ 1슌2커</td>
+<td>0.3644%</td>
+</tr>
+<tr>
+<td>├ 3커쯔 (삼커쯔)</td>
+<td>0.0380%</td>
+</tr>
+<tr>
+<td>└ <strong>일기통관</strong> (1~9가 각 1장씩)</td>
+<td><strong>0.0937%</strong></td>
+</tr>
+</tbody></table>
+<ul>
+<li>화료 2.65%는 화투 광땡 3.06%와 같은 대역이다. GDD가 광땡을 3.06%로 조인 것과 같은 기준을 통과한다.</li>
+<li>일기통관(0.0937% ≈ 1068스핀에 1회)은 <strong>9칸에 1~9가 정확히 한 장씩</strong> 뜬 경우다. 3×3 릴에서 숫자가 하나도 겹치지 않는 유일한 배열이라, 화면만 봐도 잭팟인 걸 안다.</li>
+<li>1면자는 못 채운 게 아니라 <strong>거의 항상 뭔가는 나온다</strong>는 뜻 — 무소환 3.83%는 체스(0.5%)와 포커(8.9%) 사이.</li>
+</ul>
+<h3 id="3-2-계수-권장안">3.2 계수 (권장안)<a class="heading-anchor" href="#3-2-계수-권장안" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>요소</th>
+<th>계수</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>면자 1개당</strong></td>
+<td><strong>+2.4</strong></td>
+<td>커쯔/슌쯔 구분 없음. 1면자 2.4 / 2면자 4.8 / 3면자 7.2</td>
+</tr>
+<tr>
+<td><strong>텐파이</strong></td>
+<td><strong>+3.6</strong></td>
+<td>화료 못 한 상태에서만(m ≤ 2). 유국텐파이료</td>
+</tr>
+<tr>
+<td><strong>화료</strong></td>
+<td><strong>+24</strong></td>
+<td>3면자 성립 시</td>
+</tr>
+<tr>
+<td><strong>화료 · 커쯔 1개당</strong></td>
+<td><strong>+8</strong></td>
+<td>화료했을 때만 적용. 토이토이/삼안커의 자리</td>
+</tr>
+<tr>
+<td><strong>일기통관</strong></td>
+<td><strong>+56</strong></td>
+<td>화료 + 1~9 각 1장</td>
+</tr>
+</tbody></table>
+<p>부분 성립에는 커쯔 프리미엄을 주지 않는다 — 주면 마작이 &quot;같은 것 3개 모으기&quot;가 되어 체스 정렬·포커 트리플과 체감이 겹친다. <strong>커쯔 보너스는 화료라는 문턱을 넘은 뒤에만</strong> 열린다.</p>
+<h3 id="3-3-구간별-전력과-최종-밸런스">3.3 구간별 전력과 최종 밸런스<a class="heading-anchor" href="#3-3-구간별-전력과-최종-밸런스" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>구간</th>
+<th>확률</th>
+<th>전력</th>
+<th>평균 기여</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>노텐 0면자</td>
+<td>3.8344%</td>
+<td>0.00</td>
+<td>0.000</td>
+</tr>
+<tr>
+<td>노텐 1면자</td>
+<td>42.1771%</td>
+<td>2.40</td>
+<td>1.012</td>
+</tr>
+<tr>
+<td>노텐 2면자</td>
+<td>2.9450%</td>
+<td>4.80</td>
+<td>0.141</td>
+</tr>
+<tr>
+<td><strong>텐파이 2면자</strong></td>
+<td>48.3922%</td>
+<td>8.40</td>
+<td><strong>4.065</strong></td>
+</tr>
+<tr>
+<td>화료 3슌쯔</td>
+<td>1.0342%</td>
+<td>31.20</td>
+<td>0.323</td>
+</tr>
+<tr>
+<td>화료 2슌1커</td>
+<td>1.1211%</td>
+<td>39.20</td>
+<td>0.439</td>
+</tr>
+<tr>
+<td>화료 1슌2커</td>
+<td>0.3644%</td>
+<td>47.20</td>
+<td>0.172</td>
+</tr>
+<tr>
+<td>화료 3커쯔</td>
+<td>0.0380%</td>
+<td>55.20</td>
+<td>0.021</td>
+</tr>
+<tr>
+<td><strong>일기통관</strong></td>
+<td>0.0937%</td>
+<td><strong>87.20</strong></td>
+<td>0.082</td>
+</tr>
+</tbody></table>
+<p><strong>평균 전력 6.26 · 표준편차 6.47 · 변동계수 1.03 · 무소환 3.83%</strong></p>
+<h3 id="3-4-judgebalance-표에-넣을-행-기존-종족과-직접-비교">3.4 JudgeBalance 표에 넣을 행 (기존 종족과 직접 비교)<a class="heading-anchor" href="#3-4-judgebalance-표에-넣을-행-기존-종족과-직접-비교" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>심볼 풀</th>
+<th>계수</th>
+<th>평균 전력</th>
+<th>표준편차</th>
+<th>변동계수</th>
+<th>무소환률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>6</td>
+<td>정렬 8.0 / 반정렬 1.3</td>
+<td>6.11</td>
+<td>3.90</td>
+<td>0.64</td>
+<td>0.5%</td>
+</tr>
+<tr>
+<td>장기</td>
+<td>7</td>
+<td>넘기 3.8 / 대포 +3.8 / 진 0.95</td>
+<td>6.27</td>
+<td>4.18</td>
+<td>0.67</td>
+<td>1.2%</td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>9</strong></td>
+<td><strong>면자 2.4 / 텐파이 3.6 / 화료 24 / 커쯔 +8 / 일통 +56</strong></td>
+<td><strong>6.26</strong></td>
+<td><strong>6.47</strong></td>
+<td><strong>1.03</strong></td>
+<td><strong>3.8%</strong></td>
+</tr>
+<tr>
+<td>화투 · 판돈0</td>
+<td>12</td>
+<td>섯다 족보 ×0.2055</td>
+<td>6.20</td>
+<td>9.48</td>
+<td>1.53</td>
+<td>0.1%</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>13</td>
+<td>트리플 40 / 스트 11 / 페어 1</td>
+<td>6.23</td>
+<td>10.10</td>
+<td>1.62</td>
+<td>8.9%</td>
+</tr>
+<tr>
+<td>화투 · 판돈2</td>
+<td>12</td>
+<td>×3.2 · 특수끗 이하 몰수</td>
+<td>18.13</td>
+<td>31.28</td>
+<td>1.73</td>
+<td>51.2%</td>
+</tr>
+</tbody></table>
+<p><strong>분산 사다리: 체스 0.64 → 장기 0.67 → 마작 1.03 → 화투 1.53 → 포커 1.62 → 화투판돈2 1.73.</strong>
+GDD가 &quot;0.67과 1.53 사이가 비어 있다&quot;고 쓰지는 않았지만, 표를 보면 여기가 유일한 큰 공백이다. 마작이 이 자리를 메우면 사다리가 균등해진다.</p>
+<p>연차 단위(스핀 3회, 최고 채택 — SutdaBet 표와 같은 방식, 25만 시행):</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>연차 기대전력</th>
+<th>표준편차</th>
+<th>변동계수</th>
+<th>전멸률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>9.38</td>
+<td>4.37</td>
+<td>0.47</td>
+<td>0.00%</td>
+</tr>
+<tr>
+<td>장기</td>
+<td>9.85</td>
+<td>4.29</td>
+<td>0.44</td>
+<td>0.00%</td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>10.12</strong></td>
+<td><strong>9.12</strong></td>
+<td><strong>0.90</strong></td>
+<td><strong>0.00%</strong></td>
+</tr>
+<tr>
+<td>화투(판돈0)</td>
+<td>13.15</td>
+<td>13.00</td>
+<td>0.99</td>
+<td>0.00%</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>13.49</td>
+<td>14.01</td>
+<td>1.04</td>
+<td>0.06%</td>
+</tr>
+</tbody></table>
+<p>마작은 연차 단위에서 체스/장기 쪽에 붙는다 — 화료가 3스핀 중 한 번이라도 뜰 확률이 7.7%밖에 안 되기 때문이다.</p>
+<blockquote>
+<p><strong>⚠ 위 두 표(1스핀 행과 best-of-3 연차 행)는 홀드를 계산에 넣지 않았다. 홀드를 넣으면 결론이 뒤집힌다 — 다음 절 §3.5를 반드시 함께 읽을 것.</strong></p>
+</blockquote>
+<hr>
+<h3 id="3-5-정정-2026-08-25-홀드를-넣으면-마작은-빈-자리에-맞는-게-아니라-혼자-약하다">3.5 <strong>정정 (2026-08-25)</strong> — 홀드를 넣으면 마작은 &quot;빈 자리에 맞는&quot; 게 아니라 <strong>혼자 약하다</strong><a class="heading-anchor" href="#3-5-정정-2026-08-25-홀드를-넣으면-마작은-빈-자리에-맞는-게-아니라-혼자-약하다" aria-label="Section link">#</a></h3>
+<h4 id="무엇이-틀렸나">무엇이 틀렸나<a class="heading-anchor" href="#무엇이-틀렸나" aria-label="Section link">#</a></h4>
+<p>초판의 §3.3~3.4는 <strong>홀드(잠금)를 모델에 넣지 않았다.</strong> 1스핀 랜덤 보드와 &quot;best-of-3(독립 3판 중 최고 채택)&quot;만 계산했다. 그런데 GDD §03 SpinEconomy의 실제 기구는 <strong>&quot;기본 스핀 3 + 홀드 최대 4칸, 잠근 칸은 재스핀에서 유지&quot;</strong> 다 — 연차의 실제 진행은 <code>스핀 → 홀드 → 재스핀 → 홀드 → 재스핀 → 최종 보드 1회 판정</code>이지 best-of-3가 아니다.</p>
+<p>(GDD 자신도 SutdaBet 표를 &quot;남은 횟수만큼 굴려 최고를 채택&quot;으로 계산해 홀드를 뺐다. 초판이 그 모델을 그대로 따라간 것이라 <strong>재현은 맞았지만 실제 기구를 반영한 값은 아니었다.</strong>)</p>
+<p>다섯 종족 전부를 <strong>같은 홀드 모델</strong>(홀드 ≤4칸 · 스핀 3회 · 1-스텝 그리디 최적 홀드)로 다시 돌린 결과:</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>판정 단위</th>
+<th><strong>연차 평균</strong></th>
+<th>sd</th>
+<th><strong>연차 CV</strong></th>
+<th>무소환</th>
+<th>연차 잭팟률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>라인 3칸</td>
+<td><strong>13.83</strong></td>
+<td>6.87</td>
+<td>0.50</td>
+<td>0.00%</td>
+<td>—</td>
+</tr>
+<tr>
+<td>장기</td>
+<td>라인 3칸</td>
+<td><strong>13.11</strong></td>
+<td>6.48</td>
+<td>0.49</td>
+<td>0.01%</td>
+<td>—</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>라인 3칸</td>
+<td><strong>21.95</strong></td>
+<td>20.43</td>
+<td>0.93</td>
+<td>0.10%</td>
+<td>트리플 <strong>27.25%</strong></td>
+</tr>
+<tr>
+<td>화투</td>
+<td>열 3칸</td>
+<td><strong>22.56</strong></td>
+<td>19.07</td>
+<td>0.85</td>
+<td>0.03%</td>
+<td>광땡+삼광 <strong>38.35%</strong></td>
+</tr>
+<tr>
+<td><strong>마작(홀드4)</strong></td>
+<td><strong>9칸 전체</strong></td>
+<td><strong>8.79</strong></td>
+<td>7.95</td>
+<td>0.90</td>
+<td>0.02%</td>
+<td>화료 <strong>6.38%</strong></td>
+</tr>
+</tbody></table>
+<p><strong>마작은 가장 약한 기존 종족(장기 13.11)보다도 33% 낮고, 화투(22.56)의 39% 수준이다.</strong> 모델링 실수가 아니라 구조적 결과다 — 원인은 아래에 있다.</p>
+<p>동시에 확인된 것: <strong>홀드를 넣으면 모든 종족의 잭팟이 흔해진다.</strong> 화투 광땡은 1스핀 3.06% → 연차 <strong>38.35%</strong>, 포커 트리플은 1스핀 4.66% → 연차 <strong>27.25%</strong>. 초판이 &quot;마작 화료 32%는 GDD의 잭팟 기준(광땡 3.06%)을 깬다&quot;고 우려한 것은 <strong>연차값과 1스핀값을 잘못 비교한 것</strong>이었다. 연차 척도에서 30%대 잭팟은 이 게임의 정상 대역이다.</p>
+<h4 id="왜-마작만-약한가-홀드-상한-4칸은-3칸-판정-단위-에-맞춰져-있다">왜 마작만 약한가 — 홀드 상한 4칸은 &quot;3칸 판정 단위&quot;에 맞춰져 있다<a class="heading-anchor" href="#왜-마작만-약한가-홀드-상한-4칸은-3칸-판정-단위-에-맞춰져-있다" aria-label="Section link">#</a></h4>
+<p>원인은 <strong>판정 단위의 크기와 홀드 상한의 관계</strong>다.</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>판정 단위</th>
+<th>한 단위를 잠그는 데 필요한 칸</th>
+<th>홀드 4칸으로</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스·장기·포커</td>
+<td>라인 1개 = <strong>3칸</strong></td>
+<td>3</td>
+<td><strong>단위 하나를 완전히 잠그고 1칸이 남는다.</strong> 게다가 홀드한 칸이 <strong>여러 라인에 동시에 걸린다</strong>(중앙칸은 4개 라인에 기여) — 홀드 1칸이 판정 단위 여러 개에 재사용된다</td>
+</tr>
+<tr>
+<td>화투</td>
+<td>열 1개 = <strong>3칸</strong>, 3열 중 <strong>최고 하나만</strong> 채택</td>
+<td>3</td>
+<td><strong>한 열만 잠그면 그 연차 점수의 하한이 확정된다.</strong> 나머지 두 열은 어차피 버리는 손이라 잠글 이유가 없다 — 4칸이 필요한 전부다</td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>9칸 전체의 완전분할</strong></td>
+<td>화료 보호 = <strong>6칸</strong>(2면자) / 텐파이 유지 = <strong>8칸</strong></td>
+<td><strong>판정 단위의 절반도 못 잠근다.</strong> 면자 1개(3칸)를 잠가도 3면자 중 1/3일 뿐이고, 나머지 6칸이 전부 다시 맞아떨어져야 화료다. <strong>홀드한 칸이 다른 판정 단위에 재사용되지 않는다</strong></td>
+</tr>
+</tbody></table>
+<p>즉 <strong>홀드 상한 4칸은 &quot;3칸짜리 판정 단위 하나 + 여유 1칸&quot;으로 암묵적으로 튜닝된 값</strong>이고, 기존 넷은 전부 판정 단위가 3칸이라 우연히 맞아떨어진다. 마작만 판정 단위가 9칸이라 이 상한 아래로 떨어진다.</p>
+<p><strong>이건 마작의 밸런스 문제가 아니라 이 게임 홀드 규칙의 숨은 전제가 드러난 것이다.</strong> 그리고 §2.1에서 마작의 정체성으로 꼽은 바로 그 성질(위치 무관 · 9칸 완전분할)이 원인이라, 계수로 메울 수 있는 종류가 아니다 — 계수를 올리면 1스핀 평균이 6.2대를 벗어나고, 그대로 두면 연차에서 혼자 약하다. <strong>기구(홀드 상한)로 풀어야 한다.</strong></p>
+<h4 id="그래서-결론의-방향이-바뀐다">그래서 결론의 방향이 바뀐다<a class="heading-anchor" href="#그래서-결론의-방향이-바뀐다" aria-label="Section link">#</a></h4>
+<p>사용자가 채택한 <strong>홀드 확장 + 쯔모(§9-3)는 밸런스를 깨는 과한 보정이 아니라, 마작을 다른 넷과 같은 선에 올리기 위해 필요한 보정이다.</strong> 초판이 &quot;조작 자유도가 올라간 만큼 계수를 낮춰 상쇄해야 한다&quot;고 본 것은 홀드를 뺀 모델에 근거한 판단이었고, <strong>정정 후에는 계수를 낮출 이유가 없다</strong>(→ §3.7).</p>
+<hr>
+<h3 id="3-6-상단-꼬리-실측-04-축-막대용-참고">3.6 상단 꼬리 실측 (§04 축 막대용 참고)<a class="heading-anchor" href="#3-6-상단-꼬리-실측-04-축-막대용-참고" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>평균</th>
+<th>P90</th>
+<th>P99</th>
+<th>P99.9</th>
+<th>관측 최대</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>6.12</td>
+<td>11.90</td>
+<td>19.90</td>
+<td>29.20</td>
+<td>50.60</td>
+</tr>
+<tr>
+<td>장기</td>
+<td>6.27</td>
+<td>12.35</td>
+<td>19.95</td>
+<td>27.55</td>
+<td>45.60</td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>6.25</strong></td>
+<td><strong>8.40</strong></td>
+<td><strong>39.20</strong></td>
+<td><strong>55.20</strong></td>
+<td><strong>87.20</strong></td>
+</tr>
+<tr>
+<td>화투</td>
+<td>6.22</td>
+<td>14.38</td>
+<td>61.65</td>
+<td>61.65</td>
+<td>61.65</td>
+</tr>
+<tr>
+<td>포커</td>
+<td>6.25</td>
+<td>13.00</td>
+<td>45.00</td>
+<td>65.00</td>
+<td>164.00</td>
+</tr>
+</tbody></table>
+<p>마작의 P90이 8.40으로 다섯 중 가장 낮은데 P99는 39.20으로 셋째다 — <strong>평상시는 가장 밋밋하고 터질 때만 크게 터진다.</strong> GDD §04의 축 막대는 실측에서 유도된 값이 아니라 편집상의 값이므로(평균 막대 ≈ 평균×10, 분산 막대 ≈ CV×60은 맞지만 상한 막대는 어느 통계와도 안 맞는다) 마작 막대값은 §9 미결정으로 남긴다.</p>
+<hr>
+<h3 id="3-7-재계산-2026-08-25-확정-기구는-홀드-6칸-쯔모-연차-1회-계수는-그대로">3.7 <strong>재계산 (2026-08-25)</strong> — 확정 기구는 <strong>홀드 6칸 + 쯔모 연차 1회</strong>, 계수는 그대로<a class="heading-anchor" href="#3-7-재계산-2026-08-25-확정-기구는-홀드-6칸-쯔모-연차-1회-계수는-그대로" aria-label="Section link">#</a></h3>
+<p>§9-3 결정(홀드 확장 + 쯔모 둘 다 채택)에 따라, 홀드 상한 H와 쯔모 횟수 T를 바꿔가며 연차 최종 보드를 다시 계산했다. 계수는 초판값(면자 2.4 / 텐파이 3.6 / 화료 24 / 커쯔 +8 / 일통 +56)을 고정하고 <strong>기구만</strong> 바꾼 것이다(25만 시행).</p>
+<p><strong>쯔모 모델</strong>: 마작 원본대로 <em>1장 뽑고 10장 중 1장 버림</em>. 따라서 점수가 절대 내려가지 않는다(단조 비감소).</p>
+<table>
+<thead>
+<tr>
+<th>H</th>
+<th>T</th>
+<th>연차 평균</th>
+<th>sd</th>
+<th>연차 CV</th>
+<th>화료율</th>
+<th>일기통관</th>
+<th>텐파이</th>
+<th>무소환</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>4</td>
+<td>0</td>
+<td>8.79</td>
+<td>7.95</td>
+<td>0.90</td>
+<td>6.38%</td>
+<td>0.132%</td>
+<td>69.18%</td>
+<td>0.023%</td>
+<td>밴드 한참 아래 (현행, §3.5)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>0</td>
+<td>11.36</td>
+<td>9.84</td>
+<td>0.87</td>
+<td>10.77%</td>
+<td>0.234%</td>
+<td>83.98%</td>
+<td>0.005%</td>
+<td>여전히 장기(13.11) 아래 — 홀드만으론 부족</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td><strong>1</strong></td>
+<td><strong>18.36</strong></td>
+<td><strong>15.54</strong></td>
+<td><strong>0.85</strong></td>
+<td><strong>32.57%</strong></td>
+<td><strong>0.844%</strong></td>
+<td><strong>66.36%</strong></td>
+<td><strong>0.001%</strong></td>
+<td><strong>권장</strong></td>
+</tr>
+<tr>
+<td>6</td>
+<td>2</td>
+<td>23.85</td>
+<td>17.34</td>
+<td>0.73</td>
+<td>48.97%</td>
+<td>1.304%</td>
+<td>50.46%</td>
+<td>0.000%</td>
+<td>화투(22.56) 초과 + CV 붕괴</td>
+</tr>
+<tr>
+<td>8</td>
+<td>0</td>
+<td>14.14</td>
+<td>13.57</td>
+<td>0.96</td>
+<td>18.43%</td>
+<td>0.887%</td>
+<td>78.78%</td>
+<td>0.003%</td>
+<td>밴드 진입하나 CV가 포커(0.93) 초과</td>
+</tr>
+<tr>
+<td>8</td>
+<td>1</td>
+<td>22.53</td>
+<td>18.35</td>
+<td>0.81</td>
+<td>42.89%</td>
+<td>2.220%</td>
+<td>55.87%</td>
+<td>0.002%</td>
+<td>화투 수준. 최상위 잭팟까지 흔해짐</td>
+</tr>
+</tbody></table>
+<h4 id="왜-6-1-인가-세-축이-전부-3위에-맞는다">왜 (6, 1)인가 — 세 축이 전부 3위에 맞는다<a class="heading-anchor" href="#왜-6-1-인가-세-축이-전부-3위에-맞는다" aria-label="Section link">#</a></h4>
+<p>기존 넷의 연차 대역은 <strong>13.11 ~ 22.56</strong>이고, 마작은 분산 순위 3위(체스·장기 &lt; 마작 &lt; 화투·포커)여야 한다.</p>
+<table>
+<thead>
+<tr>
+<th>축</th>
+<th>마작 (6,1)</th>
+<th>기존 넷</th>
+<th>위치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>연차 평균</td>
+<td><strong>18.36</strong></td>
+<td>장기 13.11 · 체스 13.83 · 포커 21.95 · 화투 22.56</td>
+<td>밴드 정중앙, 3위</td>
+</tr>
+<tr>
+<td>연차 CV</td>
+<td><strong>0.85</strong></td>
+<td>장기 0.49 · 체스 0.50 · 화투 0.85 · 포커 0.93</td>
+<td>화투와 동률 3위</td>
+</tr>
+<tr>
+<td>잭팟률</td>
+<td>화료 <strong>32.57%</strong></td>
+<td>포커 트리플 27.25% · 화투 광땡 38.35%</td>
+<td>두 값 사이, 3위</td>
+</tr>
+<tr>
+<td>최상위 잭팟</td>
+<td>일기통관 <strong>0.844%</strong> (연차 약 118회에 1회)</td>
+<td>—</td>
+<td>희소성 유지</td>
+</tr>
+</tbody></table>
+<p>기각한 조합의 이유:</p>
+<ul>
+<li><strong>(6,0)</strong> — 홀드만 6칸으로 늘려도 11.36. 장기 13.11에도 못 미친다. <strong>홀드 확장만으로는 격차가 안 메워진다</strong>(쯔모가 필요한 수치적 근거).</li>
+<li><strong>(8,0)</strong> — 평균 14.14로 밴드에는 들어가지만 CV 0.96이 포커 0.93을 넘어 <strong>분산 1위</strong>가 된다. 홀드 8칸은 사실상 &quot;1칸만 다시 굴리기&quot;라 잭팟만 골라 뽑는 형태가 되기 때문이다. 순위가 어긋난다.</li>
+<li><strong>(6,2)</strong> — 23.85로 화투를 넘고, <strong>CV가 0.73으로 오히려 떨어진다.</strong> 화료가 48.97%로 절반을 넘으면 &quot;화료했나 못 했나&quot;가 더 이상 분산의 원천이 아니게 되어, 마작이 저분산 종족으로 미끄러진다. <strong>과보정은 전력만 올리는 게 아니라 정체성을 지운다.</strong></li>
+<li><strong>(8,1)</strong> — 22.53으로 화투 수준. 일기통관이 2.22%까지 흔해져 최상위 잭팟이 잭팟이 아니게 된다.</li>
+</ul>
+<p><strong>홀드 6칸(=2면자를 지킬 수 있는 최소 크기)과 쯔모 1회는 서로 곱해져 튀지 않는다</strong> — (6,1)의 18.36은 (6,0) 11.36과 (8,1) 22.53 사이에 얌전히 앉는다. 반대로 쯔모를 2회로 늘리면 즉시 밴드를 벗어나므로, <strong>쯔모 횟수가 이 종족의 유일한 민감 파라미터</strong>다. 밸런스 조정은 계수가 아니라 여기서 해야 한다.</p>
+<h4 id="계수-변경-없음">계수 — <strong>변경 없음</strong><a class="heading-anchor" href="#계수-변경-없음" aria-label="Section link">#</a></h4>
+<table>
+<thead>
+<tr>
+<th>요소</th>
+<th>초판(홀드 미반영)</th>
+<th><strong>정정 후 확정</strong></th>
+<th>변경</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>면자 1개당</td>
+<td>2.4</td>
+<td><strong>2.4</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>텐파이</td>
+<td>+3.6</td>
+<td><strong>+3.6</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>화료</td>
+<td>+24</td>
+<td><strong>+24</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>화료·커쯔 1개당</td>
+<td>+8</td>
+<td><strong>+8</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>일기통관</td>
+<td>+56</td>
+<td><strong>+56</strong></td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p>초판이 &quot;조작 자유도가 올라간 만큼 계수를 낮춰 상쇄&quot;를 예상했으나, §3.5의 정정으로 전제가 뒤집혔다 — <strong>마작은 상쇄해야 할 만큼 세진 게 아니라, 보정하지 않으면 혼자 약한 상태였다.</strong> 계수를 낮추면 (6,1)의 18.36이 다시 밴드 아래로 내려간다.</p>
+<p>따라서 <strong>§3.3의 1스핀 JudgeBalance 행(평균 6.26 · CV 1.03 · 무소환 3.83%)은 그대로 유효하다.</strong> 그 행은 <em>판정 함수</em>의 벤치마크이고 기구와 무관하다.</p>
+<h4 id="초판-대비-최종-변화-요약">초판 대비 최종 변화 요약<a class="heading-anchor" href="#초판-대비-최종-변화-요약" aria-label="Section link">#</a></h4>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>초판 (2026-08-25-0)</th>
+<th><strong>정정판 (2026-08-25-1)</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>연차 모델</td>
+<td>best-of-3 (홀드 미반영)</td>
+<td><strong>홀드 H칸 · 스핀 3회 · 쯔모 T회</strong></td>
+</tr>
+<tr>
+<td>기존 넷 연차 기준선</td>
+<td>9.38 / 9.85 / 13.15 / 13.49</td>
+<td><strong>13.83 / 13.11 / 21.95 / 22.56</strong></td>
+</tr>
+<tr>
+<td>마작 연차값</td>
+<td>10.12 (밴드 안으로 오판)</td>
+<td>홀드4에서 <strong>8.79 (혼자 약함)</strong> → <strong>(6,1)에서 18.36</strong></td>
+</tr>
+<tr>
+<td>홀드/쯔모</td>
+<td>(c) 그대로 두기 전제</td>
+<td><strong>홀드 6칸 + 쯔모 연차 1회 확정</strong></td>
+</tr>
+<tr>
+<td>화료율 해석</td>
+<td>32%는 잭팟 기준 위반으로 판단</td>
+<td><strong>연차 척도에선 정상</strong>(포커 27.25%·화투 38.35% 사이)</td>
+</tr>
+<tr>
+<td>계수</td>
+<td>2.4 / 3.6 / 24 / 8 / 56</td>
+<td><strong>동일 (변경 없음)</strong></td>
+</tr>
+<tr>
+<td>1스핀 JudgeBalance 행</td>
+<td>6.26 / 1.03 / 3.83%</td>
+<td><strong>동일 (변경 없음)</strong></td>
+</tr>
+</tbody></table>
+<h4 id="모델-한계-해석-시-감안할-것">모델 한계 (해석 시 감안할 것)<a class="heading-anchor" href="#모델-한계-해석-시-감안할-것" aria-label="Section link">#</a></h4>
+<ul>
+<li>홀드 정책은 다섯 종족 모두 <strong>1-스텝 그리디</strong>(다음 보드의 기대값만 최대화)다. 완전 최적(2단계 DP)보다 약간 낮게 나오지만 <strong>다섯 종족에 동일하게 적용</strong>했으므로 비교는 유효하다.</li>
+<li>기존 넷의 연차값은 몬테카를로 8,000회(잭팟률은 4,000회)라 ±2~3%의 표본 오차가 있다. 마작은 25만 회. <strong>순위 판단에는 충분하지만 소수 둘째 자리를 그대로 신뢰하지 말 것.</strong></li>
+<li>코어(가중치 왜곡·고정 축·역회전)와 추가 스핀(골드 25 → +1)은 어느 종족에도 반영하지 않았다.</li>
+</ul>
+<hr>
+<h2 id="4-심볼-풀-통수패-筒子-1-9-9종">4. 심볼 풀 — 통수패(筒子) 1~9, 9종<a class="heading-anchor" href="#4-심볼-풀-통수패-筒子-1-9-9종" aria-label="Section link">#</a></h2>
+<h3 id="4-1-왜-34종이-아니라-9종인가-수치-근거">4.1 왜 34종이 아니라 9종인가 (수치 근거)<a class="heading-anchor" href="#4-1-왜-34종이-아니라-9종인가-수치-근거" aria-label="Section link">#</a></h3>
+<p>브리프의 &quot;수패 한 종류만 써서 9종으로 줄이는 안&quot;은 <strong>밸런스상 유일하게 성립하는 선택</strong>이다. 풀 크기를 5~13으로 바꿔가며 정확값을 계산했다.</p>
+<table>
+<thead>
+<tr>
+<th>풀 크기</th>
+<th>무소환(0면자)</th>
+<th>화료(3면자)</th>
+<th>판정 상태</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>5</td>
+<td>0.0000%</td>
+<td><strong>15.66%</strong></td>
+<td>화료가 잭팟이 아니다</td>
+</tr>
+<tr>
+<td>6</td>
+<td>0.0000%</td>
+<td><strong>9.97%</strong></td>
+<td>마찬가지</td>
+</tr>
+<tr>
+<td>7</td>
+<td>0.84%</td>
+<td>6.34%</td>
+<td>여전히 흔함</td>
+</tr>
+<tr>
+<td>8</td>
+<td>2.03%</td>
+<td>4.07%</td>
+<td>경계</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td><strong>3.83%</strong></td>
+<td><strong>2.65%</strong></td>
+<td><strong>광땡 3.06%와 같은 대역</strong></td>
+</tr>
+<tr>
+<td>10</td>
+<td>6.27%</td>
+<td>1.76%</td>
+<td>화료가 희박해지기 시작</td>
+</tr>
+<tr>
+<td>12</td>
+<td>12.46%</td>
+<td>0.81%</td>
+<td>무소환이 포커보다 나쁨</td>
+</tr>
+<tr>
+<td>13</td>
+<td><strong>15.96%</strong></td>
+<td>0.57%</td>
+<td>포커 8.9%의 두 배 — 이탈 구간</td>
+</tr>
+</tbody></table>
+<ul>
+<li>풀 6종은 GDD가 이미 폐기한 그 실패 모드다(&quot;9칸에 6종을 뿌리면 비둘기집 원리로 반드시 중복이 생겨서 판정이 사실상 고장 납니다&quot;). 마작에서도 화료 9.97%로 똑같이 고장 난다.</li>
+<li>풀 13종 이상(자패를 섞는 안)은 무소환 16%. GDD가 포커 8.9%를 &quot;그대로 둔다&quot;고 판단한 상한의 두 배다.</li>
+<li><strong>9가 유일한 정답이고, 그 9는 마작 원본의 수패 1~9와 정확히 같다.</strong> GDD §05의 논리 &quot;수백 년간 다듬어진 구성이라 그 자체가 밸런스 데이터&quot;가 마작에서도 그대로 성립한다.</li>
+</ul>
+<h3 id="4-2-어느-수패를-쓰나-통자-筒子-권장">4.2 어느 수패를 쓰나 — <strong>통자(筒子) 권장</strong><a class="heading-anchor" href="#4-2-어느-수패를-쓰나-통자-筒子-권장" aria-label="Section link">#</a></h3>
+<p>세 종류 중 32px 모노크롬에서 0.3초 안에 읽히는 것을 골라야 한다(GDD §13의 흑싸리/홍싸리 문제와 같은 유형).</p>
+<table>
+<thead>
+<tr>
+<th>후보</th>
+<th>판독성</th>
+<th>판단</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>통자 (筒, 원 1~9개)</strong></td>
+<td>원 개수마다 <strong>고유한 기하 배치</strong>(1=대원 하나, 5=사각+중앙, 8=2×4, <strong>9=3×3</strong>)라 개수를 세지 않고 <strong>실루엣</strong>으로 읽힌다</td>
+<td><strong>권장.</strong> 9통이 3×3 격자라 이 게임의 릴과 시각적으로 운이 맞는다</td>
+</tr>
+<tr>
+<td>만자 (萬, 一~九萬)</td>
+<td>한자 획수 차이. 六/八, 三/五가 32px에서 뭉갠다. 문자라 로컬라이제이션 인상도 생긴다</td>
+<td>비권장</td>
+</tr>
+<tr>
+<td>삭자 (索, 대나무)</td>
+<td>1索만 참새 그림으로 튀고 2~9는 막대 개수 세기. 7索/8索 오인식</td>
+<td>비권장</td>
+</tr>
+</tbody></table>
+<p>색 문제도 통자가 낫다 — 만자는 붉은색(화투 <code>#D1554C</code>와 충돌), 삭자는 녹색(장기 <code>#57A277</code>과 충돌)이 원본 색이다. 통자는 청/적 혼용이라 어느 쪽에도 묶이지 않는다. 어차피 모노크롬이므로 대좌 색만 §7의 액센트로 칠하면 된다.</p>
+<h3 id="4-3-symbol-csv-행-9행-추가">4.3 Symbol.csv 행 (9행 추가)<a class="heading-anchor" href="#4-3-symbol-csv-행-9행-추가" aria-label="Section link">#</a></h3>
+<p><code>Symbol.csv</code> 스키마 <code>Id, HouseId, SpriteKey, RankValue, MonthValue, BaseWeight</code> 기준:</p>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>HouseId</th>
+<th>SpriteKey</th>
+<th>RankValue</th>
+<th>MonthValue</th>
+<th>BaseWeight</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>39</td>
+<td>5</td>
+<td>mahjong_01_pin</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>40</td>
+<td>5</td>
+<td>mahjong_02_pin</td>
+<td>2</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>…</td>
+<td>5</td>
+<td>…</td>
+<td>…</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>47</td>
+<td>5</td>
+<td>mahjong_09_pin</td>
+<td>9</td>
+<td>0</td>
+<td>1</td>
+</tr>
+</tbody></table>
+<ul>
+<li><code>RankValue</code>가 곧 판정에 쓰는 숫자다. 포커와 같은 컬럼을 재사용한다(포커도 <code>RankValue</code> 1~13). 새 컬럼 필요 없음.</li>
+<li><code>MonthValue</code>는 화투 전용이므로 0.</li>
+<li><code>BaseWeight</code> 균등 시작(GDD §03 &quot;릴당 가중치 균등 시작&quot;).</li>
+<li>Id 39부터인 것은 GDD가 Symbol.csv 행 수를 38로 잡았기 때문(6+7+13+12=38). 마작 추가 후 <strong>47행</strong>.</li>
+</ul>
+<p><strong>주의 — 마작에는 죽은 패가 없다.</strong> 화투는 12종 중 2종(오동·비)이 판정에 참여 못 하는 기본 페널티가 있지만, 마작은 9종 전부가 면자에 들어간다. 마작의 페널티는 다른 데 있다 — 아래 §5.</p>
+<hr>
+<h2 id="5-종족-전쟁-전리품과의-상호작용-가장-큰-리스크">5. 종족 전쟁 / 전리품과의 상호작용 — <strong>가장 큰 리스크</strong><a class="heading-anchor" href="#5-종족-전쟁-전리품과의-상호작용-가장-큰-리스크" aria-label="Section link">#</a></h2>
+<p>GDD §06: 이질 심볼이 라인에 하나라도 끼면 그 라인은 주판정에서 제외되고, 이질끼리는 부판정(짝당 5.5, 최대 2짝)으로 별도 계산된다.</p>
+<p>마작에 그대로 적용하면 <strong>이질 심볼은 면자에 들어갈 수 없다.</strong> 화료는 9칸 전부를 소모하므로, <strong>이질 심볼이 릴에 1장이라도 뜨면 그 스핀은 화료가 원천 불가</strong>다.</p>
+<h3 id="5-1-puritycurve-체스와-나란히-30만-시행">5.1 PurityCurve — 체스와 나란히 (30만 시행)<a class="heading-anchor" href="#5-1-puritycurve-체스와-나란히-30만-시행" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>심볼 풀</th>
+<th>상태</th>
+<th>주판정 전력</th>
+<th>주판정 성립률</th>
+<th>총 전력</th>
+<th>변동계수</th>
+<th><strong>화료율</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>6</td>
+<td>순혈</td>
+<td>6.12</td>
+<td>99.6%</td>
+<td>6.12</td>
+<td>0.64</td>
+<td>—</td>
+</tr>
+<tr>
+<td>체스</td>
+<td>8</td>
+<td>1회 약탈</td>
+<td>2.58</td>
+<td>74.9%</td>
+<td>6.02</td>
+<td>0.59</td>
+<td>—</td>
+</tr>
+<tr>
+<td>체스</td>
+<td>10</td>
+<td>2회 약탈</td>
+<td>1.32</td>
+<td>49.6%</td>
+<td>6.20</td>
+<td>0.59</td>
+<td>—</td>
+</tr>
+<tr>
+<td>체스</td>
+<td>13</td>
+<td>3회 약탈</td>
+<td>0.60</td>
+<td>27.0%</td>
+<td>6.15</td>
+<td>0.62</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>9</strong></td>
+<td><strong>순혈</strong></td>
+<td><strong>6.24</strong></td>
+<td><strong>96.2%</strong></td>
+<td><strong>6.24</strong></td>
+<td><strong>1.03</strong></td>
+<td><strong>2.62%</strong></td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>11</strong></td>
+<td><strong>1회 약탈</strong></td>
+<td><strong>3.13</strong></td>
+<td><strong>79.9%</strong></td>
+<td><strong>5.27</strong></td>
+<td><strong>0.74</strong></td>
+<td><strong>0.456%</strong></td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>13</strong></td>
+<td><strong>2회 약탈</strong></td>
+<td><strong>1.96</strong></td>
+<td><strong>62.9%</strong></td>
+<td><strong>5.20</strong></td>
+<td><strong>0.68</strong></td>
+<td><strong>0.099%</strong></td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td><strong>16</strong></td>
+<td><strong>3회 약탈</strong></td>
+<td><strong>1.18</strong></td>
+<td><strong>43.4%</strong></td>
+<td><strong>5.16</strong></td>
+<td><strong>0.69</strong></td>
+<td><strong>0.015%</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>재현 정확도에 대한 단서</strong>: 체스 주판정(2.58 / 74.9%)은 GDD 표(2.56 / 74.8%)와 소수점까지 일치한다. 다만 부판정 짝 수가 내 계산에서 0.63짝으로 나와 GDD 기재값 0.51짝보다 관대하다(GDD가 짝을 어떻게 세는지 본문에 정의가 없다). 그래서 <strong>총 전력의 절대값보다 &quot;체스 대비 마작의 상대 낙폭&quot;을 봐야 한다.</strong> GDD 척도(0.51/0.63 = 0.816)로 부판정을 깎으면 마작 총 전력은 4.88 / 4.60 / 4.43이 되고, 낙폭은 더 커진다.</p>
+</blockquote>
+<h3 id="5-2-무엇이-문제인가">5.2 무엇이 문제인가<a class="heading-anchor" href="#5-2-무엇이-문제인가" aria-label="Section link">#</a></h3>
+<ul>
+<li>체스는 약탈해도 총 전력이 평평하다(6.12 → 6.02 → 6.20). GDD가 &quot;첫 약탈에서 12% 떨어지고 그 뒤로 평평&quot;이라 쓴 그 곡선이다.</li>
+<li>마작은 <strong>첫 약탈에서 16% 떨어지고, 변동계수가 1.03 → 0.74로 무너진다.</strong> 즉 혼혈 마작은 전력만 잃는 게 아니라 <strong>종족 정체성(고분산)까지 잃고 저분산 종족이 되어버린다.</strong></li>
+<li>화료율 2.62% → 0.456%. <strong>약탈 1회로 마작의 잭팟이 5분의 1로 줄어든다.</strong> GDD가 &quot;혼혈의 보상은 릴 밖에 있어야 한다&quot;고 결론 냈지만, 마작은 릴 안의 손실 폭이 다른 종족보다 명백히 크다.</li>
+</ul>
+<h3 id="5-3-선택지-결정-필요-9-2">5.3 선택지 (결정 필요 — §9-2)<a class="heading-anchor" href="#5-3-선택지-결정-필요-9-2" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>안</th>
+<th>내용</th>
+<th>트레이드오프</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>(a) 그대로 둔다</strong></td>
+<td>마작 = &quot;순혈로만 완성되는 종족&quot;. 화친이 정답인 유일한 종족</td>
+<td>가장 단순하고, &quot;청일색&quot;이라는 마작 개념과 맞다. 다만 외교가 마작에서만 선택이 아니게 되어 GDD §06의 핵심 재미가 죽는다</td>
+</tr>
+<tr>
+<td><strong>(b) 마작 전용 부판정 강화</strong></td>
+<td>이질 심볼 짝 계수를 마작만 5.5 → 9.0 정도로 올려 총 전력을 6.2대로 복구</td>
+<td>전력은 복구되지만 화료율은 못 살린다. 변동계수 붕괴도 못 막는다</td>
+</tr>
+<tr>
+<td><strong>(c) 이질 심볼을 와일드로</strong></td>
+<td>이질 심볼 1장까지는 면자 아무 자리나 메우는 와일드(화투 비광의 마작판)</td>
+<td>마작 정체성 유지 + 약탈 보상. 다만 화료율이 오히려 <strong>올라가서</strong> 다시 밸런싱해야 한다(미계산)</td>
+</tr>
+<tr>
+<td><strong>(d) 마작은 약탈 대상에서 제외</strong></td>
+<td>마작 플레이 시 전리품이 심볼이 아니라 코어/골드로 대체</td>
+<td>구조가 하나 더 갈라진다. 최소 변경은 아님</td>
+</tr>
+</tbody></table>
+<h4 id="결정-2026-08-25-a-그대로-둔다-부판정-계수-상향-b-은-채택하지-않는다">결정 (2026-08-25) — <strong>(a) 그대로 둔다.</strong> 부판정 계수 상향(b)은 채택하지 않는다.<a class="heading-anchor" href="#결정-2026-08-25-a-그대로-둔다-부판정-계수-상향-b-은-채택하지-않는다" aria-label="Section link">#</a></h4>
+<p>마작은 <strong>&quot;순혈로만 완성되는 종족&quot;</strong> 으로 확정한다. 화친이 정답인 유일한 종족이라는 성격을 받아들이고, <strong>보상은 릴 밖으로 돌린다.</strong></p>
+<p><strong>선전포고 승리 보상: 코어 1개 → 마작만 2개.</strong> 근거:</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>1회 약탈 시 릴 전력 손실</th>
+<th>GDD가 정한 대가</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체스</td>
+<td>6.10 → 5.38 = <strong>−12%</strong></td>
+<td>코어 1개 (&quot;릴 전력 −12%를 코어 하나로 갚는 구조&quot;, GDD §06)</td>
+</tr>
+<tr>
+<td><strong>마작</strong></td>
+<td>6.24 → 5.27 = <strong>−15.5%</strong></td>
+<td>GDD 비율(12% ↔ 1개)을 그대로 적용하면 <strong>1.3개</strong></td>
+</tr>
+</tbody></table>
+<p>전력만 보면 1.3개지만, 마작은 여기에 <strong>잭팟 자체를 잃는다</strong> — 화료율 2.62% → 0.456%(<strong>−83%</strong>). 이 손실은 평균 전력에 거의 안 잡히면서(화료 기여분이 평균의 15%뿐) 체감으로는 종족 정체성이 통째로 사라지는 크기다. 그래서 <strong>반올림해서 2개</strong>로 제안한다.</p>
+<blockquote>
+<p><strong>튜닝 여지</strong>: 2개가 과하면 &quot;코어 1개 + 골드 40&quot;(화친 보상과 같은 골드량)으로 1.5개 상당을 주는 중간안이 있다. 프로토타입 4단계 게이트(&quot;순혈 빌드와 혼혈 빌드의 클리어율 차이가 10%p 이내인가?&quot;)에서 마작만 따로 재는 것으로 확정한다. → §9-12</p>
+</blockquote>
+<hr>
+<h2 id="6-홀드-잠금-상호작용-마작만-구조가-다르다">6. 홀드(잠금) 상호작용 — 마작만 구조가 다르다<a class="heading-anchor" href="#6-홀드-잠금-상호작용-마작만-구조가-다르다" aria-label="Section link">#</a></h2>
+<p>GDD §03 SpinEconomy: 홀드 최대 4칸, 전 종족 공통.</p>
+<p>마작 판정은 위치 무관이므로 <strong>홀드는 &quot;이 칸을 지킨다&quot;가 아니라 &quot;이 패를 남긴다&quot;가 된다.</strong> 이건 마작(手牌를 만들고 버리는 게임) 그 자체라 오히려 맞다. 문제는 상한이다.</p>
+<table>
+<thead>
+<tr>
+<th>지키고 싶은 것</th>
+<th>필요 칸 수</th>
+<th>홀드 4칸으로 가능?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1면자</td>
+<td>3</td>
+<td>○ (+1칸 여유)</td>
+</tr>
+<tr>
+<td>2면자</td>
+<td>6</td>
+<td><strong>×</strong></td>
+</tr>
+<tr>
+<td>텐파이형(2면자 + 대기 2장)</td>
+<td>8</td>
+<td><strong>×</strong></td>
+</tr>
+</tbody></table>
+<p><strong>마작의 시그니처 조작 — &quot;텐파이를 유지한 채 한 장만 갈아끼우기&quot; — 를 홀드 4칸으로는 할 수 없다.</strong></p>
+<p>수치로 보면 홀드 자체는 잘 통한다. 9칸에서 최적 4칸을 홀드하고 5칸을 재굴림했을 때의 정확 기대값:</p>
+<ul>
+<li>홀드 없이 재굴림: <strong>6.19</strong></li>
+<li>최적 4칸 홀드 후 재스핀: <strong>8.33 (+34.6%)</strong></li>
+<li>선택된 홀드 칸 수 분포: 4칸 96.3% / 3칸 2.2% / 나머지 1.5% → <strong>거의 항상 &quot;완성 면자 3장 + 유망패 1장&quot;을 잡는다</strong></li>
+</ul>
+<p>그리고 텐파이 상태의 대기 폭(정확값):</p>
+<table>
+<thead>
+<tr>
+<th>대기 폭</th>
+<th>텐파이 중 비율</th>
+<th>1칸 교환 시 화료 확률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1종</td>
+<td>42.38%</td>
+<td>11.1%</td>
+</tr>
+<tr>
+<td>2종</td>
+<td>38.69%</td>
+<td>22.2%</td>
+</tr>
+<tr>
+<td>3종</td>
+<td>11.85%</td>
+<td>33.3%</td>
+</tr>
+<tr>
+<td>4종 이상</td>
+<td>7.08%</td>
+<td>44.4%~66.7%</td>
+</tr>
+<tr>
+<td><strong>평균 1.85종</strong></td>
+<td></td>
+<td><strong>평균 20.6%</strong></td>
+</tr>
+</tbody></table>
+<p>즉 **1칸만 다시 굴릴 수 있으면 텐파이에서 화료 확률이 평균 20.6%**다. 이 액션이 있으면 마작이 &quot;기다리는 게임&quot;이 되고, 없으면 &quot;굴려서 맞으면 좋고&quot;가 된다.</p>
+<h3 id="선택지-결정-필요-9-3">선택지 (결정 필요 — §9-3)<a class="heading-anchor" href="#선택지-결정-필요-9-3" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>안</th>
+<th>내용</th>
+<th>트레이드오프</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>(a) 홀드 상한을 마작만 6칸(또는 8칸)으로</strong></td>
+<td>SpinEconomy 표에 종족별 예외를 만든다</td>
+<td>최소 신규 시스템. 다만 GDD가 &quot;홀드 최대 4칸&quot;을 전 종족 공통으로 못 박아둬서 표 하나가 비대칭이 된다. 8칸은 사실상 &quot;1칸만 굴리기&quot;라 밸런스 재계산 필요</td>
+</tr>
+<tr>
+<td><strong>(b) 마작 고유 액션 「쯔모」 추가</strong></td>
+<td>스핀과 별개로, 9칸 중 <strong>1칸만</strong> 다시 굴리는 액션. 연차당 1~2회</td>
+<td>마작 그 자체. 화투의 &quot;고&quot;처럼 종족 고유 축이 하나 생긴다. 다만 GDD §13이 경고한 &quot;고가 템포와 충돌&quot;과 같은 문제가 생길 수 있어 즉시 자동 판정이어야 한다. <strong>신규 메커니즘이라 GDD에 근거 없음 — 창작이므로 사용자 승인 필수</strong></td>
+</tr>
+<tr>
+<td><strong>(c) 그대로 둔다</strong></td>
+<td>홀드 4칸 유지. 텐파이는 유지할 수 없고 텐파이 보너스(+3.6)로만 보상</td>
+<td>위 §3 계수가 이 전제로 계산되어 있다. 추가 작업 0. 대신 마작을 아는 사람은 &quot;왜 한 장을 못 바꾸지?&quot;라고 느낀다</td>
+</tr>
+</tbody></table>
+<h4 id="결정-2026-08-25-a-와-b-를-둘-다-채택-홀드-6칸-쯔모-연차-1회">결정 (2026-08-25) — <strong>(a)와 (b)를 둘 다 채택. 홀드 6칸 + 쯔모 연차 1회.</strong><a class="heading-anchor" href="#결정-2026-08-25-a-와-b-를-둘-다-채택-홀드-6칸-쯔모-연차-1회" aria-label="Section link">#</a></h4>
+<ul>
+<li><strong>(a) 홀드 상한: 마작만 6칸</strong> (다른 넷은 4칸 유지). 6칸 = <strong>2면자를 지킬 수 있는 최소 크기</strong>이고, 이게 마작의 판정 단위(9칸)에 대응하는 값이다 — 기존 넷의 &quot;4칸 = 3칸 판정 단위 + 여유 1칸&quot;과 같은 논리(§3.5).</li>
+<li><strong>(b) 쯔모: 연차 1회.</strong> 1장 뽑아 10장 중 1장을 버린다(원본 마작 그대로). 점수가 절대 내려가지 않는다. GDD §13이 화투의 &quot;고&quot;에 건 조건과 동일하게 <strong>선언 즉시 자동 판정 · 애니메이션 1.5초 이내</strong>로 처리한다.</li>
+</ul>
+<p><strong>이 조합이 밸런스를 깨지 않는다는 근거와, 쯔모 2회·홀드 8칸을 기각한 이유는 §3.7의 표에 있다.</strong> 요약하면 (6,1)에서 연차 18.36 · CV 0.85 · 화료 32.57%로 기존 넷 대역(13.11~22.56)의 정중앙 3위에 앉고, 쯔모를 2회로 늘리면 즉시 밴드를 벗어나며 <strong>CV가 오히려 0.73으로 떨어져 정체성이 무너진다.</strong></p>
+<p>§3의 계수 표(면자 2.4 / 텐파이 3.6 / 화료 24 / 커쯔 +8 / 일통 +56)는 <strong>그대로 유효하다.</strong> 초판은 (c) 전제였고 &quot;(a)/(b)를 채택하면 화료 계수를 낮춰야 한다&quot;고 적었으나, §3.5의 정정으로 그 전제가 뒤집혔다 — 홀드 확장은 상쇄해야 할 버프가 아니라 <strong>구조적 약세의 보정</strong>이라 계수를 낮추면 다시 밴드 아래로 내려간다.</p>
+<hr>
+<h2 id="7-아트-배경과-액센트-색">7. 아트 — 배경과 액센트 색<a class="heading-anchor" href="#7-아트-배경과-액센트-색" aria-label="Section link">#</a></h2>
+<h3 id="7-1-문화권-분리">7.1 문화권 분리<a class="heading-anchor" href="#7-1-문화권-분리" aria-label="Section link">#</a></h3>
+<p>현재 장기 배경이 <code>#57A277 · 한국·중국 고대</code>(<code>bg_janggi_fortress</code>)로 잡혀 있어 마작(중국)과 겹친다.</p>
+<table>
+<thead>
+<tr>
+<th>안</th>
+<th>내용</th>
+<th>판단</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>(a) 시대로 가른다 (권장)</strong></td>
+<td>장기를 <strong>한국 고대</strong>(성곽·고구려/조선)로 좁히고, 마작은 <strong>중국 근대 — 1930년대 상하이/홍콩 다관(茶館)·마작장</strong></td>
+<td>나머지 넷의 시대 스펙트럼(유럽 중세 / 한국 고대 / 미국 서부 19c / 일한 근세)에 20세기 초 도시가 하나 붙는다. <strong>다섯 중 유일한 실내·도시 배경</strong>이 되어 시각적으로도 즉시 구분된다</td>
+</tr>
+<tr>
+<td>(b) 마작을 일본 쇼와 마작장으로</td>
+<td>—</td>
+<td>화투(일본·한국)와 겹친다. 기각</td>
+</tr>
+<tr>
+<td>(c) 마작을 무국적 추상으로</td>
+<td>—</td>
+<td>나머지 넷이 전부 지역색이 뚜렷해 톤이 깨진다. 기각</td>
+</tr>
+</tbody></table>
+<p>(a) 채택 시 필요한 것:</p>
+<ul>
+<li>신규 배경 <code>Assets/Resources/Image/Title/bg_mahjong_teahouse.png</code> — 640×288, 가로 seamless(기존 4장과 동일 규격, <code>TitleBackgroundScroller</code>가 uvRect를 밀어 순환시킨다)</li>
+<li><strong><code>title_screen_design.html</code> §03의 장기 설명 &quot;한국·중국 고대&quot; → &quot;한국 고대&quot;로 정정 필요</strong> (문서 수정은 이 스펙의 범위 밖 — 사용자가 판단)</li>
+</ul>
+<h3 id="7-2-액센트-색">7.2 액센트 색<a class="heading-anchor" href="#7-2-액센트-색" aria-label="Section link">#</a></h3>
+<p>절대 규칙: 환경 최암부 <code>#363B4A</code>보다 밝을 것. 이 값의 Rec.601 휘도가 <strong>59.2</strong>다(0.299R + 0.587G + 0.114B = 0.299×54 + 0.587×59 + 0.114×74 = 59.2 — 브리프의 &quot;휘도 L59.2&quot;와 일치).</p>
+<p>기존 액센트의 실측:</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>색</th>
+<th>Rec.601 휘도</th>
+<th>색상각(Hue)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>(한계) 환경 최암부</td>
+<td><code>#363B4A</code></td>
+<td><strong>59.2</strong></td>
+<td>225.0°</td>
+</tr>
+<tr>
+<td>체스</td>
+<td><code>#7FA7C9</code></td>
+<td>158.9</td>
+<td>207.6°</td>
+</tr>
+<tr>
+<td>장기</td>
+<td><code>#57A277</code></td>
+<td>134.7</td>
+<td>145.6°</td>
+</tr>
+<tr>
+<td>포커</td>
+<td><code>#D6A441</code></td>
+<td>167.7</td>
+<td>39.9°</td>
+</tr>
+<tr>
+<td>화투</td>
+<td><code>#D1554C</code></td>
+<td>121.0</td>
+<td>4.1°</td>
+</tr>
+</tbody></table>
+<p>기존 액센트는 휘도 <strong>121~168</strong> 대역에 있다. 환경·UI는 전부 색상각 223~226°의 청회색이므로, 5번째 액센트는 <strong>그 회색대와도 떨어져야</strong> 한다.</p>
+<p>색상환의 빈 구간: 화투 4.1° → 포커 39.9°는 36°, 포커 → 장기는 106°, 장기 → 체스는 62°, <strong>체스 207.6° → 화투 364.1°가 156°로 가장 넓다.</strong> 이 구간의 중간(약 260~285°)이 자주/보라다.</p>
+<table>
+<thead>
+<tr>
+<th>후보</th>
+<th>색</th>
+<th>휘도</th>
+<th>Hue</th>
+<th>최근접 기존 액센트와의 각도</th>
+<th>판단</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>A (권장)</strong></td>
+<td><strong><code>#9B7FD4</code> 자수정 보라</strong></td>
+<td><strong>145.1</strong></td>
+<td>259.8°</td>
+<td>체스와 52°, 환경 회색과 35°</td>
+<td>휘도가 기존 대역 정중앙(145). 채도 49.7%로 환경(13~17%)과 확실히 갈린다</td>
+</tr>
+<tr>
+<td>B (대안)</td>
+<td><code>#B98FC9</code> 연보라</td>
+<td>162.2</td>
+<td>283.4°</td>
+<td>체스와 76°, 화투와 81°</td>
+<td>색상 분리는 가장 좋으나 채도 34.9%로 32px 대좌에서 회색에 가깝게 보일 위험</td>
+</tr>
+<tr>
+<td>C (대안)</td>
+<td><code>#C87FB8</code> 자홍</td>
+<td>155.3</td>
+<td>313.2°</td>
+<td>화투와 51°</td>
+<td>환경 회색에서 가장 멀다. 다만 마작 이미지와 톤이 안 맞을 수 있음</td>
+</tr>
+<tr>
+<td>D (기각)</td>
+<td><code>#5FB3B8</code> 청록</td>
+<td>154.5</td>
+<td>183.4°</td>
+<td><strong>체스와 24°, 장기와 38°</strong></td>
+<td>대좌라는 작은 색 조각에서 체스/장기와 혼동. 기각</td>
+</tr>
+</tbody></table>
+<p><strong>권장: <code>#9B7FD4</code>.</strong> 셋 다 휘도 한계 59.2를 크게 넘고 기존 121~168 대역 안이다. 최종 선택은 실제 대좌 렌더를 보고 결정(§9-5).</p>
+<hr>
+<h2 id="8-기존-구현과의-접점">8. 기존 구현과의 접점<a class="heading-anchor" href="#8-기존-구현과의-접점" aria-label="Section link">#</a></h2>
+<h3 id="8-1-현재-구현-상태-종족-메타는-착수됨-판정-계통은-전부-미구현">8.1 현재 구현 상태 — <strong>종족 메타는 착수됨, 판정 계통은 전부 미구현</strong><a class="heading-anchor" href="#8-1-현재-구현-상태-종족-메타는-착수됨-판정-계통은-전부-미구현" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong>2026-08-25 갱신</strong> — 이 스펙 초판을 쓴 뒤 별도 작업에서 <code>HouseTable</code>이 이미 만들어졌다. 아래는 실제 파일을 확인한 현재 상태다.</p>
+</blockquote>
+<p><strong>이미 들어간 것</strong> (이 스펙의 §7.2 · §9-1 권장이 그대로 반영돼 있다):</p>
+<ul>
+<li><code>Assets/Resources/Table/HouseTable.csv</code> — 5행. <strong>마작이 Id 5로 이미 존재</strong>한다.<ul>
+<li>액센트 <code>9B7FD4</code> = §7.2 권장안 A(<code>#9B7FD4</code>) 채택됨. <strong><code>#</code> 없이 6자리 hex로 저장</strong>하는 포맷이다.</li>
+<li><code>PoolCount</code> 9 = §4.1 확정값.</li>
+<li><strong>Id 순서 = 해금 순서 = 체스 → 장기 → 화투 → 포커 → 마작</strong> = §9-1 (b) 결정과 일치.</li>
+<li><code>AxisPower</code> 62 / <code>AxisVariance</code> 62 = §9-10에서 유도한 값(평균×10, CV×60)과 정확히 일치.</li>
+<li><code>AxisCeiling</code> 0 / <code>AxisLearning</code> 0 / <code>BackgroundPath</code> 빈칸 = <strong>§9-10, §7.1의 미결정 항목이 그대로 비어 있다.</strong></li>
+<li><code>isUnlocked</code> 0 (마작만 잠김).</li>
+</ul>
+</li>
+<li><code>Assets/Scripts/Table/HouseRecord.cs</code> — <code>HouseRecord</code> + <code>HouseTable</code>(<code>GetRecordByKey</code>). <code>StringRecord.cs</code> 관례(Record + Table 한 파일)를 따랐다.</li>
+<li><code>Assets/Scripts/Glory/Table/TableManager.cs</code> — <code>init()</code>에 <code>HouseTable</code> 등록 완료.</li>
+<li><code>Assets/Scripts/Title/UIHouseSelect.cs</code>, <code>UIHouseSelectButton.cs</code> — 종족 선택 UI 신규.</li>
+</ul>
+<p><strong>아직 없는 것 — 판정 계통 전부.</strong> <code>Symbol.csv</code> / <code>Judge.csv</code>, <code>ePatternType</code> enum, 그리고 다섯 종족의 판정 함수 자체가 미구현이다. 실제 <code>HouseTable</code> 스키마에는 <strong><code>JudgeType</code> · <code>SymbolPoolId</code> · <code>VarianceTier</code> 컬럼이 아직 없다</strong>(GDD §11 제안 스키마와 다름) — 판정기를 붙일 때 추가해야 한다. → §9-16</p>
+<p><strong>즉 마작 추가는 &quot;기존 4종족 구현을 뜯어고치는 일&quot;이 아니라 &quot;처음부터 5종족으로 설계하는 일&quot;이고, 종족 메타 레이어는 이미 5종족 전제로 깔려 있다.</strong> 지금이 종족을 늘리기에 가장 싼 시점이라는 판단은 그대로 유효하다.</p>
+<h3 id="8-2-이미-있는-것-재사용">8.2 이미 있는 것 (재사용)<a class="heading-anchor" href="#8-2-이미-있는-것-재사용" aria-label="Section link">#</a></h3>
+<ul>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\TableManager.cs:17</code> — <code>init()</code>. 27~31줄에 신규 테이블 등록 패턴이 주석으로 명시돼 있다. <code>HouseTable</code>/<code>SymbolTable</code>/<code>JudgeTable</code>을 그 아래에 같은 형태로 이어 붙인다. 멱등 가드(<code>m_isInitialized</code>)가 이미 있으므로 중복 로드 걱정 없음.</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\TableManager.cs:71</code> — <code>LoadCsvTable&lt;T&gt;()</code>. 리플렉션으로 헤더명 = 필드명 매칭. <strong>enum 필드는 <code>Enum.Parse(ignoreCase:true)</code>로 자동 변환된다</strong>(105~109줄) — <code>JudgeType</code> 컬럼을 문자열로 두고 C# enum으로 받으면 별도 파싱 코드가 필요 없다.</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\Table.cs:9</code> (<code>Table&lt;T&gt;</code>) / <code>:22</code> (<code>Record</code>, <code>Id</code> 필드 보유) — 신규 Record는 전부 <code>Record</code> 상속.</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\StringRecord.cs:4</code> — Record + Table 서브클래스를 한 파일에 두는 관례. 신규 테이블도 이 관례를 따른다.</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Title\TitleBackgroundScroller.cs:6</code> — 배경 스크롤. 텍스처만 갈아끼우면 마작 배경도 그대로 동작.</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Resources\Table\StringTable.csv</code> — 현재 4행(TitlePlay/TitleHouseSelect/TitleUpgrade/TitleSetting). 종족명 키를 여기에 추가.</li>
+</ul>
+<h3 id="8-3-새로-필요한-것">8.3 새로 필요한 것<a class="heading-anchor" href="#8-3-새로-필요한-것" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>대상</th>
+<th>경로(예정)</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>enum</td>
+<td><code>Assets\Scripts\Glory\GlobalEnum.cs</code> (현재 4개 enum, 1/7/14/22줄)</td>
+<td><code>eHouse { Chess, Janggi, Mahjong, Hwatu, Poker }</code>, <code>ePatternType { LineTriple, LineAba, MeldPartition, PairCount, HandRank }</code> — <strong>GDD §11이 <code>PatternType</code>에 네 값(<code>LINE_TRIPLE</code>/<code>LINE_ABA</code>/<code>HAND_RANK</code>/<code>PAIR_COUNT</code>)을 열거하고 &quot;종족을 추가한다는 건 이 enum에 값을 하나 더 넣고 판정 함수를 하나 더 쓰는 일이 되어야 한다&quot;고 못 박았다. 마작은 정확히 그 한 값(<code>MeldPartition</code>)이다.</strong> CSV 값은 <code>MELD_PARTITION</code>이든 <code>MeldPartition</code>이든 <code>ignoreCase</code> 파싱으로 둘 다 받는다</td>
+</tr>
+<tr>
+<td>Record</td>
+<td><del><code>HouseRecord.cs</code></del></td>
+<td><strong>완료됨(2026-08-25).</strong> 단 <code>JudgeType</code>/<code>SymbolPoolId</code>/<code>VarianceTier</code> 컬럼은 아직 없음 → §9-16</td>
+</tr>
+<tr>
+<td>Record</td>
+<td><code>Assets\Scripts\Table\SymbolRecord.cs</code></td>
+<td><code>Id, HouseId, SpriteKey, RankValue, MonthValue, BaseWeight</code></td>
+</tr>
+<tr>
+<td>Record</td>
+<td><code>Assets\Scripts\Table\JudgeRecord.cs</code></td>
+<td>GDD 스키마 + <strong><code>Power</code>(float) 확장 필요</strong> — §8.4 참조</td>
+</tr>
+<tr>
+<td>판정기</td>
+<td><code>Assets\Scripts\InGame\Judge\MahjongJudge.cs</code></td>
+<td><strong>순수 static 클래스. MonoBehaviour 상속 금지</strong> — GDD §13 리스크 완화안이 &quot;판정기를 UI·전투와 완전히 분리된 순수 함수로 둔다. 이 분리를 초기에 안 하면 뒤에 되돌릴 수 없다&quot;고 명시. 프로젝트 기본 베이스 클래스가 MonoBehaviour인 것과 충돌하지만 <strong>GDD가 명시적으로 요구한 예외</strong>다</td>
+</tr>
+<tr>
+<td>스프라이트</td>
+<td><code>Assets\Resources\Image\InGame\Actor\mahjong\</code></td>
+<td>9장(1통~9통), 32px 모노크롬. 기존 <code>chess</code>/<code>janggi</code>/<code>poker</code>/<code>hwatu</code> 폴더와 동일 구조</td>
+</tr>
+<tr>
+<td>배경</td>
+<td><code>Assets\Resources\Image\Title\bg_mahjong_teahouse.png</code></td>
+<td>640×288 가로 seamless</td>
+</tr>
+<tr>
+<td>StringTable 행</td>
+<td><code>Assets\Resources\Table\StringTable.csv</code></td>
+<td><code>HouseChess</code>/<code>HouseJanggi</code>/<code>HouseMahjong</code>/<code>HouseHwatu</code>/<code>HousePoker</code> + 판정명 키(<code>JudgeMeldPartition</code> = 화료 등). Kr/En/Cn/Jp 4개 열 전부 채울 것</td>
+</tr>
+<tr>
+<td>타이틀</td>
+<td><code>Assets\Scripts\Title\TitleScene.cs:72</code> <code>OnClickHouseSelectButton()</code></td>
+<td>현재 주석이 <code>// TODO: 종족 선택 화면 — 체스/장기/포커/화투</code>. <strong>마작 포함 5종으로 갱신 필요</strong></td>
+</tr>
+</tbody></table>
+<h3 id="8-4-충돌-가능-지점">8.4 충돌 가능 지점<a class="heading-anchor" href="#8-4-충돌-가능-지점" aria-label="Section link">#</a></h3>
+<ol>
+<li><p><strong><code>Judge.csv</code> 스키마가 마작을 담지 못한다.</strong> GDD의 컬럼은 <code>Id, HouseId, PatternType, MinCount, SummonCount, GoldBonus</code>인데, 여기 어디에도 <strong>전력 계수(8.0 / 1.3 / 3.8 / 40 / 11 / 0.2055)를 넣을 자리가 없다.</strong> 이건 마작만의 문제가 아니라 다섯 종족 공통 결함이다. 최소 확장:</p>
+<ul>
+<li><code>Power</code>(float) — 요소 1개 성립 시 전력</li>
+<li><code>PerUnitPower</code>(float) — 반복 요소당 가산(마작 커쯔 프리미엄, 체스 반정렬 개수 등)</li>
+</ul>
+<p>확장 후 마작 행 5개:</p>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>HouseId</th>
+<th>PatternType</th>
+<th>SubType</th>
+<th>Power</th>
+<th>PerUnitPower</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>—</td>
+<td>5</td>
+<td>MeldPartition</td>
+<td>Meld</td>
+<td>0</td>
+<td><strong>2.4</strong></td>
+<td>면자 1개당</td>
+</tr>
+<tr>
+<td>—</td>
+<td>5</td>
+<td>MeldPartition</td>
+<td>Tenpai</td>
+<td><strong>3.6</strong></td>
+<td>0</td>
+<td>화료 실패 시에만</td>
+</tr>
+<tr>
+<td>—</td>
+<td>5</td>
+<td>MeldPartition</td>
+<td>Agari</td>
+<td><strong>24</strong></td>
+<td>0</td>
+<td>3면자 성립</td>
+</tr>
+<tr>
+<td>—</td>
+<td>5</td>
+<td>MeldPartition</td>
+<td>Kotsu</td>
+<td>0</td>
+<td><strong>8</strong></td>
+<td>화료 시 커쯔 1개당</td>
+</tr>
+<tr>
+<td>—</td>
+<td>5</td>
+<td>MeldPartition</td>
+<td>Ittsu</td>
+<td><strong>56</strong></td>
+<td>0</td>
+<td>일기통관</td>
+</tr>
+</tbody></table>
+</li>
+<li><p><strong>CSV 파서에 따옴표 처리가 없다.</strong> <code>TableManager.LoadCsvTable()</code> 94줄이 <code>lines[i].Split(&#39;,&#39;)</code>로 끝난다. 필드 안에 쉼표가 들어가면 컬럼이 밀린다. <code>AccentColor = #9B7FD4</code>는 안전하지만, 판정명·설명 문자열은 CSV에 넣지 말고 <strong>StringTable 키로 참조</strong>할 것.</p>
+</li>
+<li><p><strong><code>VarianceTier</code> 값이 재배열된다.</strong> 마작을 3번째 분산 티어에 넣으면 화투/포커의 티어 번호가 밀린다. 체스1 / 장기2 / <strong>마작3</strong> / 화투4 / 포커5. <code>House.csv</code> 전 행이 바뀌므로 마작 행만 추가하고 끝내면 안 된다.</p>
+</li>
+<li><p><strong>12연차 구조가 &quot;적 3종족&quot; 전제로 짜여 있다.</strong> GDD §09: 심판 웨이브 3회(4·8·12연차)에 각 종족 왕이 한 번씩 나오는 구조. 5종족이면 적이 4가 되어 슬롯이 하나 모자란다. §9-4로 넘긴다.</p>
+</li>
+<li><p><strong>GDD §04 본문 문구 정정 필요.</strong> 포커 설명에 &quot;<strong>유일하게 심볼에 순서가 있는 종족</strong>이라 스트레이트가 성립합니다&quot;라고 적혀 있는데, 마작 수패도 순서가 있다. 다만 <strong>판정 방식은 다르다</strong> — 포커는 <em>라인 안에서</em> 연속을 보고, 마작은 <em>위치 무관하게</em> 연속을 본다. 실측 차이:</p>
+<ul>
+<li>포커(풀13) 스핀당 스트레이트 1개 이상: <strong>21.58%</strong></li>
+<li>마작(풀9) 스핀당 2면자 이상: <strong>51.34%</strong></li>
+</ul>
+<p>같은 &quot;연속&quot; 개념이지만 성립 빈도와 읽는 단위가 완전히 다르다. 문구를 &quot;포커는 <strong>라인 안에서</strong> 순서를 읽는 유일한 종족&quot;으로 좁히면 해소된다. <strong>GDD 수정은 이 스펙의 범위 밖 — 사용자 판단.</strong></p>
+</li>
+</ol>
+<hr>
+<h2 id="9-문서에-없어서-확인이-필요한-부분-미결정">9. 문서에 없어서 확인이 필요한 부분 (미결정)<a class="heading-anchor" href="#9-문서에-없어서-확인이-필요한-부분-미결정" aria-label="Section link">#</a></h2>
+<p>임의로 정하지 않고 남긴 항목이다. 1~4는 <strong>결정하지 않으면 구현을 시작할 수 없다.</strong></p>
+<h3 id="9-1-해금-순서-결정됨-2026-08-25-b-마작을-마지막에">9-1. 해금 순서 — <strong>결정됨 (2026-08-25) · (b) 마작을 마지막에</strong><a class="heading-anchor" href="#9-1-해금-순서-결정됨-2026-08-25-b-마작을-마지막에" aria-label="Section link">#</a></h3>
+<p>GDD §13: &quot;해금 순서를 풀 크기 순으로 고정합니다 — 체스(6) → 장기(7) → 화투(12) → 포커(13). <strong>심볼 수가 곧 난이도 지표</strong>가 되므로, 별도의 난이도 표기 없이 자연스러운 학습 곡선이 만들어집니다.&quot;</p>
+<p>마작은 풀 9종이라 규칙대로면 <strong>3번째</strong>다. 그런데 마작의 부하는 심볼 수가 아니라 <strong>판독 방식</strong>에 있다 — 다른 넷은 정해진 라인/열만 보면 되지만 마작은 9칸 전체를 머릿속에서 재조합해야 한다.</p>
+<p>여기서 갈리는 이유는 <strong>&quot;학습비용&quot;과 &quot;판독비용&quot;이 마작에서만 반대 방향이기 때문</strong>이다:</p>
+<ul>
+<li><strong>규칙 문장 수는 짧다.</strong> &quot;3장씩 세 묶음, 같은 숫자 3개나 연속 3개&quot; — 섯다의 땡 서열 + 광땡 + 알리/독사/구삥/장삥/세륙 + 끗 mod 10 계산(GDD 학습비용 45)보다 훨씬 짧다.</li>
+<li><strong>읽어내는 부하는 최고다.</strong> 나머지 넷은 8라인 또는 3열이라는 고정 시야가 있는데 마작은 없다.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>안</th>
+<th>내용</th>
+<th>트레이드오프</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>(a) 규칙 유지 — 마작 3번째</strong></td>
+<td>체스6 → 장기7 → <strong>마작9</strong> → 화투12 → 포커13</td>
+<td>분산 사다리 순서(0.64→0.67→<strong>1.03</strong>→1.53→1.62)와도 완전히 일치한다. 규칙에 예외를 안 만든다. 다만 GDD가 지키려던 &quot;자연스러운 학습 곡선&quot;이라는 <em>목적</em>은 깨질 수 있다</td>
+</tr>
+<tr>
+<td><strong>(b) 규칙을 목적 기준으로 재정의 — 마작 마지막</strong></td>
+<td>체스6 → 장기7 → 화투12 → 포커13 → <strong>마작9(졸업 종족)</strong>. 규칙 문장을 &quot;풀 크기 순&quot;에서 &quot;판독 부하 순&quot;으로 고친다</td>
+<td>마작이 최종 해금 보상이 되어 메타 진행(GDD §09 &quot;메타 진행은 종족 해금 하나로 시작&quot;)의 목표점이 생긴다. &quot;위치를 안 보는 유일한 종족&quot;이라는 성격도 졸업 종족에 어울린다. 대신 GDD §13에 명시된 규칙 문장을 고쳐야 하고, &quot;심볼 수 = 난이도&quot;라는 무표기 난이도 지표를 잃는다</td>
+</tr>
+</tbody></table>
+<h4 id="확정-체스-6-장기-7-화투-12-포커-13-마작-9">확정: <strong>체스(6) → 장기(7) → 화투(12) → 포커(13) → 마작(9)</strong><a class="heading-anchor" href="#확정-체스-6-장기-7-화투-12-포커-13-마작-9" aria-label="Section link">#</a></h4>
+<p>기존 넷의 순서는 그대로 두고 마작만 끝에 붙인다. 이러면 풀 크기 순(6→7→12→13→<strong>9</strong>)이 깨지므로, <strong>GDD §13의 규칙 문장을 &quot;심볼 수 순&quot;에서 &quot;학습 난이도 순&quot;으로 재정의한다.</strong></p>
+<p>핵심은 <strong>기존 넷은 풀 크기 순과 난이도 순이 우연히 일치했고, 마작만 둘이 갈린다</strong>는 점이다 — 마작은 심볼이 9종으로 셋째지만 판정이 9칸 전체를 재조합하는 방식이라 판독 부하는 가장 높다. 규칙의 <em>목적</em>(&quot;별도의 난이도 표기 없이 자연스러운 학습 곡선&quot;)을 지키려면 기준을 심볼 수가 아니라 난이도로 못 박아야 한다.</p>
+<p><strong>GDD §13 정정 문안 (→ §9-9)</strong> — 현행:</p>
+<blockquote>
+<p><strong>완화</strong> 해금 순서를 풀 크기 순으로 고정합니다 — 체스(6) → 장기(7) → 화투(12) → 포커(13). 심볼 수가 곧 난이도 지표가 되므로, 별도의 난이도 표기 없이 자연스러운 학습 곡선이 만들어집니다.</p>
+</blockquote>
+<p>제안:</p>
+<blockquote>
+<p><strong>완화</strong> 해금 순서를 <strong>학습 난이도 순</strong>으로 고정합니다 — 체스(6) → 장기(7) → 화투(12) → 포커(13) → 마작(9). 앞의 넷은 <strong>심볼 수가 곧 난이도 지표</strong>라 풀 크기 순과 그대로 일치합니다. 마작만 갈립니다 — 심볼은 9종뿐이지만 판정이 라인이 아니라 <strong>9칸 전체의 재조합</strong>이라 판독 부하가 다섯 중 가장 높습니다. 심볼 수로는 셋째, 실제 난이도로는 마지막이므로 <strong>기준을 심볼 수가 아니라 난이도로 둡니다.</strong> 마작이 최종 해금 종족이 되어 메타 진행의 목표점 역할도 겸합니다.</p>
+</blockquote>
+<p>부수 효과: 마작이 최종 해금 보상이 되어 GDD §09 &quot;메타 진행은 종족 해금 하나로 시작&quot;의 도달점이 생긴다. &quot;위치를 안 보는 유일한 종족&quot;이라는 성격도 졸업 종족에 어울린다.</p>
+<h3 id="9-2-전리품-상호작용-결정됨-2026-08-25-a-그대로-둔다">9-2. 전리품 상호작용 — <strong>결정됨 (2026-08-25) · (a) 그대로 둔다</strong><a class="heading-anchor" href="#9-2-전리품-상호작용-결정됨-2026-08-25-a-그대로-둔다" aria-label="Section link">#</a></h3>
+<p>마작 = &quot;순혈로만 완성되는 종족&quot;으로 확정. 부판정 계수 상향(b)은 채택하지 않는다. 보상은 릴 밖으로 — <strong>선전포고 승리 시 코어 2개</strong>(근거는 §5.3). 코어 개수의 최종 튜닝은 §9-12로 넘긴다.</p>
+<h3 id="9-3-홀드-텐파이-결정됨-2026-08-25-a-b-둘-다-홀드-6칸-쯔모-연차-1회">9-3. 홀드/텐파이 — <strong>결정됨 (2026-08-25) · (a)+(b) 둘 다 · 홀드 6칸 + 쯔모 연차 1회</strong><a class="heading-anchor" href="#9-3-홀드-텐파이-결정됨-2026-08-25-a-b-둘-다-홀드-6칸-쯔모-연차-1회" aria-label="Section link">#</a></h3>
+<p>수치 근거는 §3.7. 이 결정은 버프가 아니라 §3.5에서 드러난 구조적 약세(마작 8.79 vs 기존 넷 13.11~22.56)의 <strong>필수 보정</strong>이다. 계수는 변경 없음.</p>
+<h3 id="9-4-5종족-시-12연차-외교-구조-결정됨-2026-08-25-그대로-간다">9-4. 5종족 시 12연차·외교 구조 — <strong>결정됨 (2026-08-25) · 그대로 간다</strong><a class="heading-anchor" href="#9-4-5종족-시-12연차-외교-구조-결정됨-2026-08-25-그대로-간다" aria-label="Section link">#</a></h3>
+<p>연차 수(12)와 심판 웨이브 구조(4·8·12)를 건드리지 않는다. 5종족이 되면 나를 제외한 적이 4종족이 되어 심판 웨이브 슬롯(3개)보다 하나 많아지므로, 실무적으로는 <strong>(a) 런당 적 종족 3개를 무작위 선정</strong>이 이 결정과 양립하는 유일한 처리다(연차 길이·구조 불변, 리플레이성 상승). 12연차 최종의 &quot;남은 모든 종족 연합군&quot;은 그 런에 뽑힌 3종족 기준으로 읽는다.</p>
+<blockquote>
+<p>이 절은 닫혔다. 다만 &quot;적 3종족을 어떻게 뽑는가&quot;(완전 무작위 / 해금된 종족 우선 / 플레이 종족과 상성)는 메타 진행 설계 시점의 세부 사항으로 남는다. → §9-13</p>
+</blockquote>
+<h3 id="9-5-액센트-색-사실상-확정-2026-08-25">9-5. 액센트 색 — <strong>사실상 확정 (2026-08-25)</strong><a class="heading-anchor" href="#9-5-액센트-색-사실상-확정-2026-08-25" aria-label="Section link">#</a></h3>
+<p>§7.2 권장안 A <code>#9B7FD4</code>가 이미 <code>HouseTable.csv</code>에 <code>9B7FD4</code>로 들어가 있다(§8.1). 휘도 145.1로 한계 59.2를 크게 넘고 기존 액센트 대역(121<del>168) 정중앙, 색상환에서 가장 넓은 빈 구간(체스 207.6° ↔ 화투 4.1°)에 위치한다.
+남은 것은 <strong>32px 대좌 실물 렌더 확인</strong>뿐이다. 회색 환경(채도 13</del>17%)에 묻히면 대안 B <code>#B98FC9</code>(휘도 162.2, 색상 분리 더 넓음) 또는 C <code>#C87FB8</code>(휘도 155.3, 환경 회색에서 가장 멂)으로 교체한다.</p>
+<h3 id="9-6-수패-종류">9-6. 수패 종류<a class="heading-anchor" href="#9-6-수패-종류" aria-label="Section link">#</a></h3>
+<p>§4.2에서 통자(筒子)를 권장했으나, 만자(萬子)의 한자 실루엣이 다른 종족(체스 말·화투 그림)과 더 잘 구분된다는 판단이 있으면 바뀔 수 있다. <strong>판정 로직은 무엇을 고르든 동일</strong>(RankValue 1~9)하므로 스프라이트 제작 전에만 정하면 된다.</p>
+<h3 id="9-7-전력-p-소환-유닛-수-환산-규칙">9-7. 전력 P → 소환 유닛 수 환산 규칙<a class="heading-anchor" href="#9-7-전력-p-소환-유닛-수-환산-규칙" aria-label="Section link">#</a></h3>
+<p>GDD 데모는 <code>유닛 환산 = P/3</code>으로 표시하지만 이건 데모 표시일 뿐이고, <code>Judge.csv</code>에 <code>SummonCount</code> 컬럼이 따로 있다. <strong>전 종족 공통 미결이지만 마작에서 특히 걸린다</strong> — 마작은 화료 시 <strong>정확히 9칸이 전부 성립</strong>하고 전장도 3×3이라, &quot;성립한 칸 = 소환 칸&quot;으로 두면 마작 화료 = 전장 만원(9기)이라는 깨끗한 결론이 나온다. 그 이상의 전력(커쯔 프리미엄·일기통관)은 유닛 수가 아니라 <strong>스탯 배수</strong>로 처리해야 한다. 이 해석을 채택할지 확인 필요.</p>
+<h3 id="9-8-judge-csv-스키마-확장-승인">9-8. Judge.csv 스키마 확장 승인<a class="heading-anchor" href="#9-8-judge-csv-스키마-확장-승인" aria-label="Section link">#</a></h3>
+<p>§8.4-1의 <code>Power</code> / <code>PerUnitPower</code> 컬럼 추가. 마작 때문이 아니라 다섯 종족 전부에 필요하다.</p>
+<h3 id="9-9-gdd-타이틀-문서-정정-승인">9-9. GDD / 타이틀 문서 정정 승인<a class="heading-anchor" href="#9-9-gdd-타이틀-문서-정정-승인" aria-label="Section link">#</a></h3>
+<ul>
+<li>GDD §04 포커 설명 &quot;유일하게 심볼에 순서가 있는 종족&quot; → &quot;라인 안에서 순서를 읽는 유일한 종족&quot; (§8.4-5)</li>
+<li><code>title_screen_design.html</code> §03 장기 배경 &quot;한국·중국 고대&quot; → &quot;한국 고대&quot; (§7.1)</li>
+<li><code>TitleScene.cs:73</code> 주석 &quot;체스/장기/포커/화투&quot; → 5종</li>
+<li>(이 문서는 GDD·타이틀 문서를 직접 수정하지 않았다)</li>
+</ul>
+<h3 id="9-10-04-축-막대값-편집상-값">9-10. §04 축 막대값 (편집상 값)<a class="heading-anchor" href="#9-10-04-축-막대값-편집상-값" aria-label="Section link">#</a></h3>
+<p>평균 전력 막대와 분산 막대는 기존 넷에서 규칙이 도출된다(평균×10, CV×60). 그 규칙대로면 마작은 <strong>평균 전력 62 / 분산 62</strong>. 상한 막대(체스45·장기65·포커100·화투100)는 어느 통계와도 대응이 안 맞아 유도 불가 — 실측 P99.9는 55.20, 이론 최댓값은 87.20(§3.6). 학습비용 막대도 §9-1의 판단에 따라 달라진다(규칙 문장 기준이면 30 근처, 판독 부하 기준이면 70 이상). <strong>아트/편집 판단이므로 비워둔다.</strong></p>
+<h3 id="9-11-마작-전용-코어">9-11. 마작 전용 코어<a class="heading-anchor" href="#9-11-마작-전용-코어" aria-label="Section link">#</a></h3>
+<p>GDD §03 CoreTable은 종족 무관 코어 6개만 예시한다. 화투에는 §05의 <code>DeadCardLayer</code>(판쓸이·비광)라는 종족 전용 코어가 따로 있다. 마작에도 대응물이 필요한지, 필요하면 무엇인지는 <strong>문서에 근거가 없어 창작하지 않았다.</strong> (구조적으로 붙일 자리는 명확하다 — 텐파이 보너스 강화, 특정 숫자 가중치, 화료 시 스핀 코인 회수 등)</p>
+<hr>
+<h3 id="9-12-마작-선전포고-코어-보상-개수-2-vs-1-5">9-12. 마작 선전포고 코어 보상 개수 (2 vs 1.5)<a class="heading-anchor" href="#9-12-마작-선전포고-코어-보상-개수-2-vs-1-5" aria-label="Section link">#</a></h3>
+<p>§5.3에서 GDD 자체 비율(릴 전력 −12% ↔ 코어 1개)로 −15.5% → 1.3개를 유도했고, 화료율 −83%라는 정체성 손실을 감안해 2개를 제안했다. <strong>2개 / &quot;1개 + 골드 40&quot; 중 어느 쪽인지는 플레이 검증 사항</strong>이다. 프로토타입 4단계 게이트(&quot;순혈 빌드와 혼혈 빌드의 클리어율 차이 10%p 이내&quot;)를 마작만 따로 재서 확정한다.</p>
+<h3 id="9-13-5종족-시-런당-적-3종족-선정-방식">9-13. 5종족 시 런당 적 3종족 선정 방식<a class="heading-anchor" href="#9-13-5종족-시-런당-적-3종족-선정-방식" aria-label="Section link">#</a></h3>
+<p>§9-4 결정(12연차 구조 불변)에 따라 런마다 적 3종족을 뽑아야 한다. 완전 무작위 / 해금된 종족 우선 / 플레이 종족과의 상성 — 문서에 근거가 없어 창작하지 않았다. 메타 진행 설계 시점 결정.</p>
+<h3 id="9-14-기존-넷의-홀드-4-연차값-정밀-재측정">9-14. 기존 넷의 홀드-4 연차값 정밀 재측정<a class="heading-anchor" href="#9-14-기존-넷의-홀드-4-연차값-정밀-재측정" aria-label="Section link">#</a></h3>
+<p>§3.5의 기존 넷 수치(13.83 / 13.11 / 21.95 / 22.56)는 몬테카를로 8,000회(잭팟률 4,000회)라 ±2~3% 오차가 있다. <strong>마작의 자리를 정하는 기준선이므로</strong>, 판정기를 C#으로 옮긴 뒤 GDD §12 1단계와 같은 방식(50만 시행)으로 다섯 종족을 홀드 포함해 한 번에 재측정할 것. 순위가 뒤집힐 정도의 오차는 아니지만 계수 미세 조정 전에는 필요하다.</p>
+<h3 id="9-15-쯔모의-ui-템포-처리">9-15. 쯔모의 UI/템포 처리<a class="heading-anchor" href="#9-15-쯔모의-ui-템포-처리" aria-label="Section link">#</a></h3>
+<p>GDD §13이 화투의 &quot;고&quot;에 대해 &quot;별도 스핀이 아니라 선언 후 즉시 자동 판정, 애니메이션 1.5초 이내, 횟수 상한 못 박기&quot;를 요구했다. 쯔모도 같은 제약을 받아야 하나, <strong>버릴 패를 플레이어가 고르는가 자동인가</strong>가 미정이다. 자동(최적 버림)이면 템포는 빠르지만 마작의 핵심 판단이 사라지고, 수동이면 1연차 80초 예산을 넘길 수 있다. §3.7의 수치는 <strong>자동(최적 버림) 전제</strong>로 계산됐다 — 수동으로 하면 플레이어 실수만큼 값이 내려간다.</p>
+<h3 id="9-16-housetable에-판정-계통-컬럼-추가-시점-형태">9-16. <code>HouseTable</code>에 판정 계통 컬럼 추가 시점/형태<a class="heading-anchor" href="#9-16-housetable에-판정-계통-컬럼-추가-시점-형태" aria-label="Section link">#</a></h3>
+<p>현재 <code>HouseTable.csv</code>는 표시 메타(액센트·축 막대·스프라이트 폴더·해금)만 들고 있고 <strong><code>JudgeType</code> · <code>SymbolPoolId</code> · <code>VarianceTier</code>가 없다.</strong> GDD §11이 &quot;종족을 추가한다는 건 이 enum에 값을 하나 더 넣고 판정 함수를 하나 더 쓰는 일이 되어야 한다&quot;고 못 박은 그 축이므로 판정기 구현 시 반드시 들어가야 한다. 다만 <strong>지금 빈 값으로 선점할지, 판정기 붙일 때 함께 넣을지</strong>는 구현 순서 판단이라 여기서 정하지 않는다. <code>VarianceTier</code>는 §8.4-3대로 체스1 / 장기2 / <strong>마작3</strong> / 화투4 / 포커5로 재배열해야 한다(1스핀 CV 기준이며, 연차 CV 기준으로도 마작은 3위를 유지한다).</p>
+<h2 id="10-요약-한-줄-정체성">10. 요약 — 한 줄 정체성<a class="heading-anchor" href="#10-요약-한-줄-정체성" aria-label="Section link">#</a></h2>
+<blockquote>
+<p><strong>마작 · 판정 「화료」 — 라인을 안 본다. 9칸 전체가 3장씩 세 묶음으로 맞아떨어져야 완성이고, 맞아떨어지면 전장이 꽉 찬다.</strong>
+평상시엔 다섯 중 가장 밋밋하고(P90 8.4, 최하위), 터질 땐 세 번째로 크게 터진다(P99 39.2). <strong>1스핀 분산 1.03 — 안전한 체스·장기와 도박판 화투·포커 사이.</strong>
+그리고 <strong>다섯 중 유일하게 손을 고쳐 가는 종족이다</strong> — 판정 단위가 9칸이라 홀드 4칸으로는 절반도 못 잠근다. 그래서 마작만 <strong>홀드 6칸 + 쯔모 1회</strong>를 갖는다. 이 보정을 빼면 연차 전력이 8.79로 혼자 주저앉는다.</p>
+</blockquote>
+<p><strong>해금 순서상 마지막(5번째) — 졸업 종족.</strong></p>
+<hr>
+<h2 id="참고">참고<a class="heading-anchor" href="#참고" aria-label="Section link">#</a></h2>
+<ul>
+<li><a href="../class/TableManager.md">TableManager</a> — <code>.claude\class\TableManager.md</code>, <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\TableManager.cs:17</code></li>
+<li><a href="../class/StringTable.md">StringTable</a> — <code>.claude\class\StringTable.md</code>, <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\StringRecord.cs:13</code></li>
+<li><a href="../class/TitleScene.md">TitleScene</a> — <code>.claude\class\TitleScene.md</code>, <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Title\TitleScene.cs:9</code></li>
+<li><a href="../class/TitleBackgroundScroller.md">TitleBackgroundScroller</a> — <code>.claude\class\TitleBackgroundScroller.md</code>, <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Title\TitleBackgroundScroller.cs:6</code></li>
+<li><a href="../class/GlobalEnum.md">GlobalEnum</a> — <code>.claude\class\GlobalEnum.md</code>, <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\GlobalEnum.cs:1</code></li>
+<li>신규 예정: <code>MahjongJudge</code>(순수 static), <code>HouseRecord</code>, <code>SymbolRecord</code>, <code>JudgeRecord</code></li>
+</ul>
+<h2 id="개정-이력">개정 이력<a class="heading-anchor" href="#개정-이력" aria-label="Section link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>리비전</th>
+<th>날짜</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2026-08-25-0</td>
+<td>2026-08-25</td>
+<td>초판. 결론 &quot;조건부 가능&quot;, 조건 3건 미결. <strong>연차 계산에서 홀드 누락</strong></td>
+</tr>
+<tr>
+<td><strong>2026-08-25-1</strong></td>
+<td><strong>2026-08-25</strong></td>
+<td><strong>§3.5 정정(홀드 반영 → 마작이 혼자 약함), §3.7 재계산(홀드 6칸 + 쯔모 1회 확정, 계수 무변경), §9-1~9-4 결정 반영, §5.3 코어 2개 근거 추가</strong></td>
+</tr>
+</tbody></table>
+<h2 id="검증-상태">검증 상태<a class="heading-anchor" href="#검증-상태" aria-label="Section link">#</a></h2>
+<ul>
+<li><strong>1스핀 판정 확률·전력: 검증됨(정확 계산).</strong> GDD의 네 판정 함수를 재현해 JudgeBalance 표 및 SutdaBet 연차값(13.15)과 일치를 확인한 뒤 같은 척도로 마작을 계산했다. 마작 확률은 몬테카를로가 아니라 24,310개 다중집합 <strong>완전 열거의 정확값</strong>이다.</li>
+<li><strong>홀드 포함 연차값(§3.5, §3.7): 계산됨, 정밀도 제한.</strong> 다섯 종족에 동일한 모델(홀드 ≤H칸 · 스핀 3회 · 1-스텝 그리디)을 적용했다. 기존 넷은 MC 8,000회(잭팟률 4,000회)로 ±2~3% 오차, 마작은 25만 회. <strong>순위 판단에는 충분하나 소수 둘째 자리는 신뢰하지 말 것</strong> → §9-14에서 재측정.</li>
+<li><strong>홀드 정책은 1-스텝 그리디</strong>라 완전 최적(2단계 DP)보다 낮게 나온다. 다섯 종족에 동일 적용했으므로 상대 비교는 유효하다.</li>
+<li><strong>코어·추가 스핀·각인은 어느 종족에도 미반영.</strong></li>
+<li><strong>PurityCurve 부판정: 부분 검증.</strong> 주판정은 GDD와 소수점까지 일치하나 부판정 짝 수 정의가 GDD 본문에 없어 재현이 관대하다(0.63 vs 0.51). 상대 비교만 유효.</li>
+<li><strong>Unity 컴파일/플레이 검증: 없음.</strong> 이 문서는 스펙만 작성했고 코드·테이블·GDD를 일절 수정하지 않았다.</li>
+</ul>
+
+    </article>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1818 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Orca design document converter">
+  <meta name="source" content="slot-weight.md">
+  <title>슬롯 심볼 가중치 — 결과 확률 역산 설계 스펙 쨌 HouseRulez Design</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10141b;
+      --panel: #171d27;
+      --panel-2: #1d2531;
+      --text: #e8edf5;
+      --muted: #9ba8bb;
+      --line: #303b4c;
+      --accent: #7fa7c9;
+      --accent-2: #d6a441;
+      --code: #0c1118;
+      --good: #57a277;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% -10%, rgba(127,167,201,.16), transparent 30rem),
+        radial-gradient(circle at 95% 0%, rgba(214,164,65,.10), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+      line-height: 1.72;
+    }
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 80px; }
+    .document-header {
+      padding: 28px 32px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(127,167,201,.13), rgba(23,29,39,.94) 48%, rgba(214,164,65,.08));
+      box-shadow: 0 18px 50px rgba(0,0,0,.22);
+      margin-bottom: 20px;
+    }
+    .eyebrow { margin: 0 0 6px; color: var(--accent); font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .document-header h1 { margin: 0; font-size: clamp(1.65rem, 4vw, 2.65rem); line-height: 1.2; }
+    .source { margin: 10px 0 0; color: var(--muted); font-size: .86rem; }
+    .toc, article {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(23,29,39,.94);
+      box-shadow: 0 12px 40px rgba(0,0,0,.16);
+    }
+    .toc { padding: 16px 22px; margin-bottom: 20px; }
+    .toc summary { cursor: pointer; color: var(--accent-2); font-weight: 800; }
+    .toc ol { columns: 2 320px; column-gap: 32px; margin: 14px 0 2px; padding-left: 22px; }
+    .toc li { break-inside: avoid; margin: 4px 0; color: var(--muted); }
+    .toc .toc-level-3 { margin-left: 16px; font-size: .92em; }
+    .toc a { color: inherit; text-decoration: none; }
+    .toc a:hover { color: var(--text); }
+    article { padding: clamp(22px, 4vw, 48px); overflow: hidden; }
+    article > h1:first-child { display: none; }
+    h1, h2, h3, h4, h5, h6 { color: #f5f7fb; line-height: 1.35; scroll-margin-top: 20px; }
+    h2 { margin: 2.2em 0 .7em; padding-bottom: .38em; border-bottom: 1px solid var(--line); font-size: 1.58rem; }
+    h3 { margin: 1.8em 0 .55em; color: #c9d9e8; font-size: 1.25rem; }
+    h4 { margin: 1.45em 0 .45em; color: #d8c18d; }
+    .heading-anchor { margin-left: .45em; color: transparent; text-decoration: none; font-size: .72em; }
+    h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor { color: var(--muted); }
+    p { margin: .7em 0; }
+    a { color: #9bc7ed; text-underline-offset: 3px; }
+    strong { color: #fff; }
+    blockquote { margin: 1.15em 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: rgba(127,167,201,.08); color: #cbd5e2; }
+    blockquote > :first-child { margin-top: 0; }
+    blockquote > :last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.5em; }
+    li { margin: .28em 0; }
+    code { padding: .15em .4em; border: 1px solid #2c3747; border-radius: 5px; background: var(--code); color: #d8e8f6; font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; }
+    pre { overflow-x: auto; padding: 17px 19px; border: 1px solid #293344; border-radius: 10px; background: var(--code); line-height: 1.55; }
+    pre code { padding: 0; border: 0; background: transparent; }
+    table { width: 100%; margin: 1.15em 0 1.6em; border-collapse: separate; border-spacing: 0; font-size: .92rem; display: block; overflow-x: auto; }
+    thead { background: #222c39; }
+    th, td { min-width: 105px; padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #f0dcae; font-weight: 800; }
+    tr > :first-child { border-left: 1px solid var(--line); }
+    thead tr:first-child > * { border-top: 1px solid var(--line); }
+    tr:first-child > :first-child { border-top-left-radius: 8px; }
+    tr:first-child > :last-child { border-top-right-radius: 8px; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
+    hr { margin: 2.2em 0; border: 0; border-top: 1px solid var(--line); }
+    img { max-width: 100%; height: auto; }
+    input[type="checkbox"] { accent-color: var(--good); }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 18px, 1180px); padding-top: 10px; }
+      .document-header { padding: 22px 20px; border-radius: 12px; }
+      article { padding: 20px 16px; border-radius: 12px; }
+      .toc { border-radius: 12px; }
+      .toc ol { columns: 1; }
+      table { font-size: .82rem; }
+      th, td { padding: 8px; }
+    }
+    @media print {
+      :root { color-scheme: light; --bg: #fff; --panel: #fff; --text: #15191f; --muted: #555; --line: #bbb; --code: #f3f4f6; }
+      body { background: #fff; }
+      .shell { width: 100%; padding: 0; }
+      .document-header, .toc, article { box-shadow: none; }
+      .document-header { background: #fff; }
+      .toc { display: none; }
+      article { border: 0; padding: 0; }
+      a { color: inherit; }
+      pre, table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="document-header">
+      <p class="eyebrow">HouseRulez 쨌 Design Specification</p>
+      <h1>슬롯 심볼 가중치 — 결과 확률 역산 설계 스펙</h1>
+      <p class="source">Canonical HTML 쨌 Previous source: <code>slot-weight.md</code></p>
+    </header>
+    <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#출처-문서">출처 문서</a></li><li class="toc-level-2"><a href="#결론-요약">결론 — 요약</a></li><li class="toc-level-2"><a href="#1-확률-모델-결과-확률-을-무엇으로-정의하는가">1. 확률 모델 — &quot;결과 확률&quot;을 무엇으로 정의하는가</a></li><li class="toc-level-3"><a href="#1-1-런타임-생성-모델-확정">1.1 런타임 생성 모델 (확정)</a></li><li class="toc-level-3"><a href="#1-2-라인-정의-코드에서-그대로-읽는다">1.2 라인 정의 — 코드에서 그대로 읽는다</a></li><li class="toc-level-3"><a href="#1-3-csv에-적는-결과-확률의-정의-확정">1.3 CSV에 적는 결과 확률의 정의 (확정)</a></li><li class="toc-level-2"><a href="#2-역산-알고리즘">2. 역산 알고리즘</a></li><li class="toc-level-3"><a href="#2-1-핵심-정리-목표-6개는-서로-얽혀-있지-않다">2.1 핵심 정리 — 목표 6개는 서로 얽혀 있지 않다</a></li><li class="toc-level-3"><a href="#2-2-알고리즘-의사코드">2.2 알고리즘 (의사코드)</a></li><li class="toc-level-3"><a href="#2-3-자유도-5-vs-목표-6-빈칸이-문제를-없앤다">2.3 자유도 5 vs 목표 6 — 빈칸이 문제를 없앤다</a></li><li class="toc-level-3"><a href="#2-4-6개-전부-지정한-경우-왜-전역-스케일-이-최적인가">2.4 6개 전부 지정한 경우 — 왜 &quot;전역 스케일&quot;이 최적인가</a></li><li class="toc-level-3"><a href="#2-5-실패-경고-모드-조용히-근사하지-않는다">2.5 실패 / 경고 모드 — 조용히 근사하지 않는다</a></li><li class="toc-level-3"><a href="#2-6-잔차-실측-실제로-얼마나-맞나">2.6 잔차 실측 — 실제로 얼마나 맞나</a></li><li class="toc-level-2"><a href="#3-slotoutcometable-csv-스키마-기획자가-적는-표">3. SlotOutcomeTable.csv 스키마 — 기획자가 적는 표</a></li><li class="toc-level-3"><a href="#3-1-왜-symboltable과-분리하는가">3.1 왜 SymbolTable과 분리하는가</a></li><li class="toc-level-3"><a href="#3-2-스키마">3.2 스키마</a></li><li class="toc-level-3"><a href="#3-3-툴이-되돌려주는-잔차-리포트">3.3 툴이 되돌려주는 잔차 리포트</a></li><li class="toc-level-2"><a href="#4-symboltable-csv-스키마-런타임이-읽는-표">4. SymbolTable.csv 스키마 — 런타임이 읽는 표</a></li><li class="toc-level-3"><a href="#4-1-신설이-맞다-그리고-slotpaytable을-흡수한다">4.1 신설이 맞다 — 그리고 SlotPayTable을 흡수한다</a></li><li class="toc-level-3"><a href="#4-2-스키마">4.2 스키마</a></li><li class="toc-level-3"><a href="#4-3-정규화-규칙-종족-내-평균-100">4.3 정규화 규칙 — 종족 내 평균 100</a></li><li class="toc-level-3"><a href="#4-4-슬롯-6행-확정값-균등">4.4 슬롯 6행 — 확정값 (균등)</a></li><li class="toc-level-2"><a href="#5-재계산-밸런스-기준-충족-여부">5. 재계산 — 밸런스 기준 충족 여부</a></li><li class="toc-level-3"><a href="#5-0-검증-방법-기존-수치를-먼저-재현했다">5.0 검증 방법 — 기존 수치를 먼저 재현했다</a></li><li class="toc-level-3"><a href="#5-1-확정-기본값-균등-기준-충족-배당표-무수정">5.1 확정 기본값(균등) — 기준 충족. 배당표 무수정.</a></li><li class="toc-level-3"><a href="#5-2-비균등을-고르면-무엇이-무너지고-어떻게-되돌리는가">5.2 비균등을 고르면 — 무엇이 무너지고, 어떻게 되돌리는가</a></li><li class="toc-level-3"><a href="#5-3-연차-척도-재검증-1스핀만-맞추면-안-된다">5.3 연차 척도 재검증 — 1스핀만 맞추면 안 된다</a></li><li class="toc-level-2"><a href="#6-코어-편중된-주형-40-검산">6. 코어 편중된 주형(+40%) 검산</a></li><li class="toc-level-3"><a href="#6-1-출현-확률-40-를-어떻게-구현하는가">6.1 &quot;출현 확률 +40%&quot;를 어떻게 구현하는가</a></li><li class="toc-level-3"><a href="#6-2-심볼별-효과-같은-c등급-코어인데-부호가-뒤집힌다">6.2 심볼별 효과 — 같은 C등급 코어인데 부호가 뒤집힌다</a></li><li class="toc-level-3"><a href="#6-3-밸런스를-깨는-조합-지적">6.3 밸런스를 깨는 조합 — 지적</a></li><li class="toc-level-2"><a href="#7-전리품-혼합-시-가중치">7. 전리품 혼합 시 가중치</a></li><li class="toc-level-3"><a href="#7-1-확정-규칙">7.1 확정 규칙</a></li><li class="toc-level-3"><a href="#7-2-왜-이-규칙인가-puritycurve가-그대로-유지된다">7.2 왜 이 규칙인가 — PurityCurve가 그대로 유지된다</a></li><li class="toc-level-3"><a href="#7-3-기각한-대안">7.3 기각한 대안</a></li><li class="toc-level-3"><a href="#7-4-이질-심볼의-배당은-여전히-0이다">7.4 이질 심볼의 배당은 여전히 0이다</a></li><li class="toc-level-2"><a href="#8-홀드와의-정합성">8. 홀드와의 정합성</a></li><li class="toc-level-3"><a href="#8-1-결론-문제-없다">8.1 결론 — 문제 없다</a></li><li class="toc-level-3"><a href="#8-2-다만-홀드는-가중치의-가치를-바꾼다">8.2 다만 홀드는 가중치의 가치를 바꾼다</a></li><li class="toc-level-3"><a href="#8-3-표기-규칙-필수">8.3 표기 규칙 — 필수</a></li><li class="toc-level-3"><a href="#8-4-구현-주의-홀드-중-코어가-바뀌면">8.4 구현 주의 — 홀드 중 코어가 바뀌면</a></li><li class="toc-level-2"><a href="#9-기존-구현과의-접점">9. 기존 구현과의 접점</a></li><li class="toc-level-3"><a href="#9-1-이미-있는-것">9.1 이미 있는 것</a></li><li class="toc-level-3"><a href="#9-2-새로-필요한-것">9.2 새로 필요한 것</a></li><li class="toc-level-3"><a href="#9-3-충돌-가능-지점">9.3 충돌 가능 지점</a></li><li class="toc-level-2"><a href="#10-문서에-없어서-확인이-필요한-부분">10. 문서에 없어서 확인이 필요한 부분</a></li><li class="toc-level-3"><a href="#10-1-역산기의-허용-밴드-3종-제안값-승인-필요">10-1. 역산기의 허용 밴드 3종 — 제안값, 승인 필요</a></li><li class="toc-level-3"><a href="#10-2-슬롯-심볼의-목표-3매치-확률-미기재-균등으로-출고한다">10-2. 슬롯 심볼의 목표 3매치 확률 — 미기재. 균등으로 출고한다</a></li><li class="toc-level-3"><a href="#10-3-코어-편중된-주형의-완화-승인-필요-최우선">10-3. 코어 편중된 주형의 완화 — 승인 필요 (최우선)</a></li><li class="toc-level-3"><a href="#10-4-편중된-주형의-40-해석-확인-필요">10-4. 편중된 주형의 &quot;+40%&quot; 해석 — 확인 필요</a></li><li class="toc-level-3"><a href="#10-5-slotoutcometable-csv의-위치-구현-판단">10-5. SlotOutcomeTable.csv의 위치 — 구현 판단</a></li><li class="toc-level-3"><a href="#10-6-다른-5종족의-baseweight-이-문서-범위-밖">10-6. 다른 5종족의 BaseWeight — 이 문서 범위 밖</a></li><li class="toc-level-3"><a href="#10-7-역산기를-언제-돌리는가-구현-판단">10-7. 역산기를 언제 돌리는가 — 구현 판단</a></li><li class="toc-level-2"><a href="#참고">참고</a></li><li class="toc-level-2"><a href="#개정-이력">개정 이력</a></li><li class="toc-level-3"><a href="#2026-08-27-0-초판">2026-08-27-0 — 초판</a></li><li class="toc-level-2"><a href="#검증-상태">검증 상태</a></li></ol></details>
+    <article>
+<h1 id="슬롯-심볼-가중치-결과-확률-역산-설계-스펙">슬롯 심볼 가중치 — 결과 확률 역산 설계 스펙<a class="heading-anchor" href="#슬롯-심볼-가중치-결과-확률-역산-설계-스펙" aria-label="Section link">#</a></h1>
+<p>작성일 2026-08-27 · <strong>개정 2026-08-27-0</strong> (초판) · 브랜치 <code>work/2026-08-27-slot-house</code></p>
+<h2 id="출처-문서">출처 문서<a class="heading-anchor" href="#출처-문서" aria-label="Section link">#</a></h2>
+<ul>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Design\reel_of_four_houses_GDD.html</code><ul>
+<li><strong>§03 슬롯 시스템</strong>(347~362줄) — <code>SpinEconomy</code>의 <strong>&quot;릴당 가중치 — 균등 시작, 코어로 왜곡&quot;</strong>, <code>CoreTable</code>의 <code>편중된 주형</code>(C등급, 지정 심볼 1종 +40%) / <code>추방령</code>(B등급, 1종 영구 제거)</li>
+<li><strong>§11 데이터 테이블 스키마</strong>(625줄) — <code>Symbol.csv : Id, HouseId, SpriteKey, RankValue, MonthValue, BaseWeight</code> (38행 초안). 이 문서가 채우는 테이블</li>
+</ul>
+</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\.claude\design\slot-house.html</code> — 확정된 슬롯 스펙. 심볼 6종 · 배당표 · 1스핀 6.24/CV 1.17 · 홀드 2칸. <strong>전부 균등 가중치 전제로 계산돼 있다</strong> — 이 문서가 그 전제를 명시적 설계로 승격시킨다</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\.claude\design\subjudge-pair.html</code> — 부판정 짝 확정 정의(전역 · 같은 심볼 · 최대 2짝 · 짝당 4.25). §7 전리품 혼합 규칙이 이 문서와 정합해야 한다</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Resources\Table\HouseTable.csv</code> — 6행. 슬롯 Id 1 · <code>PoolCount</code> 6 · <code>HoldMax</code> 2 (slot-house §10-1/§10-2 승인 결과가 이미 반영돼 있다)</li>
+<li><code>D:\Unity\HouseRules\HouseRulez\Assets\Resources\Table\SlotLineTable.csv</code> — 5 페이라인. 확률 모델의 라인 정의를 여기서 그대로 읽는다</li>
+</ul>
+<hr>
+<h2 id="결론-요약">결론 — 요약<a class="heading-anchor" href="#결론-요약" aria-label="Section link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>항목</th>
+<th>결론</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>역산은 6개의 독립적인 1차원 문제다</strong></td>
+<td>심볼 i의 3매치 결과 확률은 <strong>오직 p_i에만 의존</strong>한다(§2.1 정리). 다변수 최적화가 필요 없고, 단조 함수의 이분 탐색 6번이면 끝난다</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>자유도 5 vs 목표 6은 &quot;빈칸&quot;으로 사라진다</strong></td>
+<td>CSV에서 목표를 <strong>하나만 비워두면 정확해</strong>가 존재한다. 최소제곱이 필요한 건 6개를 전부 못박았을 때뿐이다(§2.3)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>6개 전부 지정 시의 최적해는 &quot;전역 스케일 1개&quot;</strong></td>
+<td>목표 전체에 상수 f를 곱하는 해가 <strong>최대 상대오차를 최소화하는 유일한 해</strong>다(증명 §2.4). 잔차가 전 항목 동일해서 리포트가 한 줄로 끝난다</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>모순 목표는 조용히 근사하지 않는다</strong></td>
+<td>4단계 실패/경고 모드. 특히 <code>|f−1| &gt; 10%</code>면 <strong>역산 자체를 거부</strong>하고 달성 가능한 사다리를 되돌려준다(§2.5)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>확정 기본값은 균등(BaseWeight 100 × 6)</strong></td>
+<td>GDD §03 &quot;균등 시작&quot;이 문서 근거다. <strong>배당표 무수정</strong>으로 평균 6.245 / CV 1.169 / 무소환 4.96% — 기준 그대로 충족(§5.1)</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>비균등을 고르면 평균이 크게 무너지고, 배당표 2레버로 복구된다</strong></td>
+<td>세븐 0.5%면 평균 6.24→5.27. <strong>일률 배율(평균 담당) + 2매치 비(CV 담당)</strong> 두 손잡이로 6.24/1.17에 정확히 되돌릴 수 있다(§5.2)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>코어 <code>편중된 주형</code>은 슬롯에서만 부호가 뒤집힌다</strong></td>
+<td>같은 C등급 코어가 체리 지정 −11.6% ~ 세븐 지정 <strong>+34.0%</strong>(1스핀). 홀드2 연차에서는 **+46%**로 증폭돼 슬롯이 전 종족 1위가 된다. <strong>밸런스를 깬다 — §6.3에 지적</strong></td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>전리품 혼합은 &quot;원 종족 가중치 유지&quot;</strong></td>
+<td>이 규칙에서만 <code>subjudge-pair.md</code>의 PurityCurve가 <strong>슬롯 가중치와 무관하게 그대로 유지</strong>된다(§7.2에 증명 + 실측)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>홀드는 가중치 모델과 충돌하지 않는다</strong></td>
+<td>잠근 칸을 제외한 나머지를 같은 분포에서 독립 추첨하면 끝. 다만 <strong>CSV의 결과 확률은 &quot;홀드 이전&quot; 기준값</strong>이며 플레이어가 실제로 보는 빈도와 다르다 — 표기 규칙 필요(§8)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="1-확률-모델-결과-확률-을-무엇으로-정의하는가">1. 확률 모델 — &quot;결과 확률&quot;을 무엇으로 정의하는가<a class="heading-anchor" href="#1-확률-모델-결과-확률-을-무엇으로-정의하는가" aria-label="Section link">#</a></h2>
+<p>역산의 입력이 될 숫자의 정의부터 못박는다. 이게 흔들리면 아래 전부가 무의미하다.</p>
+<h3 id="1-1-런타임-생성-모델-확정">1.1 런타임 생성 모델 (확정)<a class="heading-anchor" href="#1-1-런타임-생성-모델-확정" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong>9칸을 각각 독립적으로, 심볼 가중치에 비례한 확률로 뽑는다.</strong> 결과를 먼저 뽑지 않는다.</p>
+</blockquote>
+<p><code>p_i = BaseWeight_i / Σ BaseWeight</code>. 9칸이 i.i.d.다. 홀드로 잠근 칸만 유지되고 나머지는 같은 분포에서 다시 뽑힌다(§8).</p>
+<p><strong>결과-우선 모델을 쓰지 않는 이유</strong>(사용자 확정 사항이므로 근거만 기록):</p>
+<ul>
+<li>홀드 2칸(<code>HouseTable.csv</code> <code>HoldMax</code>=2)과 충돌한다 — 잠근 칸은 이미 확정된 심볼인데 결과를 먼저 뽑으면 그 칸을 존중할 수 없다</li>
+<li>전리품으로 풀이 6→8→10→13으로 바뀔 때마다(§7) 결과 확률표를 통째로 재생성해야 한다</li>
+<li>코어 <code>편중된 주형</code>/<code>추방령</code>은 정의 자체가 가중치 조작이다(GDD §03)</li>
+</ul>
+<h3 id="1-2-라인-정의-코드에서-그대로-읽는다">1.2 라인 정의 — 코드에서 그대로 읽는다<a class="heading-anchor" href="#1-2-라인-정의-코드에서-그대로-읽는다" aria-label="Section link">#</a></h3>
+<p><code>Assets\Resources\Table\SlotLineTable.csv</code> 5행. 칸 인덱스를 <code>reel * 3 + row</code>로 두면:</p>
+<table>
+<thead>
+<tr>
+<th>Id</th>
+<th>Key</th>
+<th>칸</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Top</td>
+<td>0, 3, 6</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Middle</td>
+<td>1, 4, 7</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Bottom</td>
+<td>2, 5, 8</td>
+</tr>
+<tr>
+<td>4</td>
+<td>DiagonalDown</td>
+<td>0, 4, 8</td>
+</tr>
+<tr>
+<td>5</td>
+<td>DiagonalUp</td>
+<td>2, 4, 6</td>
+</tr>
+</tbody></table>
+<p>라인 5개는 <strong>서로 칸을 공유한다</strong>(가운데 칸 4는 3개 라인에 속한다). 이 상관 때문에 &quot;스핀당&quot; 확률은 라인 확률의 단순 5배가 아니다 — §2.1에서 정확히 계산한다.</p>
+<h3 id="1-3-csv에-적는-결과-확률의-정의-확정">1.3 CSV에 적는 결과 확률의 정의 (확정)<a class="heading-anchor" href="#1-3-csv에-적는-결과-확률의-정의-확정" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong><code>TargetTripleRate</code> = 홀드를 쓰지 않은 단일 스핀의 최종 보드에서, 5라인 중 적어도 한 줄이 그 심볼의 3매치가 될 확률.</strong></p>
+</blockquote>
+<p>세 가지를 고정한다:</p>
+<table>
+<thead>
+<tr>
+<th>쟁점</th>
+<th>확정</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>라인당인가 스핀당인가</td>
+<td><strong>스핀당</strong></td>
+<td>기획자가 &quot;트리플 세븐 0.5%&quot;라고 쓸 때 떠올리는 건 &quot;스핀 200번에 한 번&quot;이지 &quot;라인 200줄에 한 줄&quot;이 아니다. 라인당은 구현 내부량이다</td>
+</tr>
+<tr>
+<td>홀드 포함인가</td>
+<td><strong>미포함 (홀드 이전 기준)</strong></td>
+<td>홀드 이후 확률은 <strong>플레이어 정책에 의존</strong>한다. 정책이 바뀌면 목표가 흔들려 역산이 불안정해진다. 고정된 기준 측도가 필요하다 (→ 표기 주의 §8.3)</td>
+</tr>
+<tr>
+<td>순혈 기준인가 혼혈 포함인가</td>
+<td><strong>순혈 풀 6종 기준</strong></td>
+<td>전리품이 들어오면 풀이 커져 모든 확률이 함께 내려간다(§7). 기획자가 적는 건 종족 고유의 성격이므로 순혈이 기준이다</td>
+</tr>
+</tbody></table>
+<p><strong>이 정의가 아니면 안 되는 건 아니다 — 라인당 정의로 바꾸면 §2의 알고리즘이 오히려 닫힌 형태(p = t^(1/3))로 더 간단해진다.</strong> 스핀당을 고른 건 기획자 가독성 때문이고, 알고리즘은 두 정의 모두 같은 구조로 돌아간다(§2.1).</p>
+<hr>
+<h2 id="2-역산-알고리즘">2. 역산 알고리즘<a class="heading-anchor" href="#2-역산-알고리즘" aria-label="Section link">#</a></h2>
+<h3 id="2-1-핵심-정리-목표-6개는-서로-얽혀-있지-않다">2.1 핵심 정리 — 목표 6개는 서로 얽혀 있지 않다<a class="heading-anchor" href="#2-1-핵심-정리-목표-6개는-서로-얽혀-있지-않다" aria-label="Section link">#</a></h3>
+<p>브리프는 &quot;세븐 가중치를 내리면 트리플 세븐과 세븐 페어가 같이 내려간다 — 독립적으로 못 움직인다&quot;고 걱정했다. 맞다. 그런데 <strong>3매치 6개끼리는 서로 얽혀 있지 않다.</strong></p>
+<blockquote>
+<p><strong>정리.</strong> 심볼 i의 스핀당 3매치 확률은 <code>p_i</code> 하나만의 함수다. 다른 5종의 확률이 어떻게 배분되든 값이 변하지 않는다.</p>
+<p><strong>증명.</strong> 사건 &quot;5라인 중 적어도 한 줄이 i의 3매치&quot;는 9칸 각각의 지시함수 <code>1[cell = i]</code>에만 의존한다. 이 9개 지시함수는 i.i.d. Bernoulli(<code>p_i</code>)다. 다른 심볼끼리 어떻게 나뉘는지는 이 사건이 볼 수 없다. ∎</p>
+</blockquote>
+<p>따라서</p>
+<pre><code>g(p) = Σ (k=0..9)  h_k · p^k · (1−p)^(9−k)
+</code></pre>
+<p>에서 <code>h_k</code>는 &quot;9칸 중 k칸이 그 심볼일 때, 5라인 중 적어도 한 줄이 채워지는 배치 수&quot;다. 전수 열거(2^9 = 512)로 정확히 나온다:</p>
+<table>
+<thead>
+<tr>
+<th>k</th>
+<th>0</th>
+<th>1</th>
+<th>2</th>
+<th>3</th>
+<th>4</th>
+<th>5</th>
+<th>6</th>
+<th>7</th>
+<th>8</th>
+<th>9</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>h_k</strong></td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td><strong>5</strong></td>
+<td><strong>30</strong></td>
+<td><strong>68</strong></td>
+<td><strong>71</strong></td>
+<td><strong>36</strong></td>
+<td><strong>9</strong></td>
+<td><strong>1</strong></td>
+</tr>
+<tr>
+<td>C(9,k)</td>
+<td>1</td>
+<td>9</td>
+<td>36</td>
+<td>84</td>
+<td>126</td>
+<td>126</td>
+<td>84</td>
+<td>36</td>
+<td>9</td>
+<td>1</td>
+</tr>
+</tbody></table>
+<p>(k ≤ 2면 3매치가 불가능해 0, k ≥ 7이면 5라인 중 하나는 반드시 채워져 C(9,k)와 같아진다 — 두 극단이 맞으므로 표가 옳다.)</p>
+<p><strong><code>g</code>는 [0,1]에서 단조 증가한다.</strong> 따라서 역함수가 존재하고 이분 탐색으로 임의 정밀도까지 구할 수 있다.</p>
+<p><code>g</code> 표본값 (정확값):</p>
+<table>
+<thead>
+<tr>
+<th>p</th>
+<th>5.00%</th>
+<th>10.00%</th>
+<th>12.70%</th>
+<th>15.00%</th>
+<th><strong>16.667%(균등)</strong></th>
+<th>20.00%</th>
+<th>23.33%</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>g(p)</strong></td>
+<td>0.062%</td>
+<td>0.493%</td>
+<td>1.001%</td>
+<td>1.634%</td>
+<td><strong>2.225%</strong></td>
+<td>3.777%</td>
+<td>5.872%</td>
+</tr>
+<tr>
+<td>라인당 p³</td>
+<td>0.013%</td>
+<td>0.100%</td>
+<td>0.205%</td>
+<td>0.338%</td>
+<td>0.463%</td>
+<td>0.800%</td>
+<td>1.270%</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>균등(1/6)에서 스핀당 세븐 3매치 <strong>2.225%</strong>. <code>slot-house.md</code> §4.2가 실측으로 적은 **2.23%**와 일치한다 — 이 <code>g</code>가 그 시뮬레이터와 같은 것을 세고 있다는 확인이다.</p>
+</blockquote>
+<h3 id="2-2-알고리즘-의사코드">2.2 알고리즘 (의사코드)<a class="heading-anchor" href="#2-2-알고리즘-의사코드" aria-label="Section link">#</a></h3>
+<p>프로젝트 코드 규칙(<code>CODE.MD</code>)에 맞춰 적는다. <strong>에디터 전용 툴이며 런타임에 돌지 않는다.</strong></p>
+<pre><code class="language-csharp">// 슬롯 심볼 가중치 역산기 — 에디터 전용. MonoBehaviour 상속 금지(순수 static).
+// 입력: SlotOutcomeTable.csv 의 목표 3매치 확률(빈칸 허용)
+// 출력: SymbolTable.csv 의 BaseWeight + 잔차 리포트
+public static class SlotWeightSolver
+{
+    public const int SYMBOL_COUNT = 6;
+    public const float SCALE_BAND = 0.10f;      // 전역 스케일 허용 밴드 ±10%
+    public const float BISECT_EPSILON = 1e-9f;
+    public const int BISECT_MAX_STEP = 200;
+
+    // g(p) — 스핀당 3매치 확률. h_k 는 SlotLineTable 에서 전수 열거로 사전 계산.
+    private static double SpinTripleRate(double _probability) { /* Σ h_k p^k (1-p)^(9-k) */ }
+
+    // g 의 역함수. 단조 증가라 이분 탐색이 항상 수렴한다.
+    private static double InvertSpinTripleRate(double _targetRate)
+    {
+        double low = 0.0;
+        double high = 1.0;
+
+        for (int step = 0; step &lt; BISECT_MAX_STEP; ++step)
+        {
+            double mid = (low + high) * 0.5;
+
+            if (SpinTripleRate(mid) &lt; _targetRate)
+                low = mid;
+            else
+                high = mid;
+
+            if (high - low &lt; BISECT_EPSILON)
+                break;
+        }
+
+        return (low + high) * 0.5;
+    }
+
+    public static SolveResult Solve(double[] _targetRate, bool[] _isPinned, double[] _fallbackWeight)
+    {
+        double[] probability = new double[SYMBOL_COUNT];
+        double pinnedSum = 0.0;
+        int freeCount = 0;
+
+        for (int index = 0; index &lt; SYMBOL_COUNT; ++index)
+        {
+            if (_isPinned[index] == false)
+            {
+                freeCount += 1;
+                continue;
+            }
+
+            // 범위 밖 목표는 여기서 잘라낸다 (E3)
+            if (_targetRate[index] &lt;= 0.0 || _targetRate[index] &gt;= 1.0)
+                return SolveResult.Error(eSolveError.TargetOutOfRange, index);
+
+            probability[index] = InvertSpinTripleRate(_targetRate[index]);
+            pinnedSum += probability[index];
+        }
+
+        // --- 경로 A : 빈칸이 하나라도 있으면 정확해가 존재한다 ---
+        if (freeCount &gt; 0)
+        {
+            if (pinnedSum &gt;= 1.0)
+                return SolveResult.Error(eSolveError.InfeasibleSum, pinnedSum);   // E1
+
+            double rest = 1.0 - pinnedSum;
+            double fallbackSum = 0.0;
+
+            for (int index = 0; index &lt; SYMBOL_COUNT; ++index)
+            {
+                if (_isPinned[index] == false)
+                    fallbackSum += _fallbackWeight[index];
+            }
+
+            for (int index = 0; index &lt; SYMBOL_COUNT; ++index)
+            {
+                if (_isPinned[index] == false)
+                    probability[index] = rest * _fallbackWeight[index] / fallbackSum;
+            }
+
+            return SolveResult.Exact(probability);
+        }
+
+        // --- 경로 B : 6개 전부 지정. 전역 스케일 f 를 이분 탐색한다 ---
+        // Total(f) = Σ InvertSpinTripleRate(f · target_i) 는 f 에 대해 단조 증가한다.
+        double scaleLow = BISECT_EPSILON;
+        double scaleHigh = 1.0;
+
+        while (Total(scaleHigh, _targetRate) &lt; 1.0)
+        {
+            scaleHigh *= 2.0;
+
+            if (scaleHigh &gt; 1e6)
+                return SolveResult.Error(eSolveError.ScaleDiverged, scaleHigh);
+        }
+
+        for (int step = 0; step &lt; BISECT_MAX_STEP; ++step)
+        {
+            double mid = (scaleLow + scaleHigh) * 0.5;
+
+            if (Total(mid, _targetRate) &lt; 1.0)
+                scaleLow = mid;
+            else
+                scaleHigh = mid;
+        }
+
+        double scale = (scaleLow + scaleHigh) * 0.5;
+
+        for (int index = 0; index &lt; SYMBOL_COUNT; ++index)
+        {
+            probability[index] = InvertSpinTripleRate(scale * _targetRate[index]);
+        }
+
+        Normalize(probability);
+
+        // 밴드를 넘으면 조용히 근사하지 않는다 — 거부하고 달성 가능한 사다리를 되돌려준다 (E2)
+        if (Mathf.Abs((float)(scale - 1.0)) &gt; SCALE_BAND)
+            return SolveResult.Rejected(probability, scale, _targetRate);
+
+        return SolveResult.Scaled(probability, scale);
+    }
+}
+</code></pre>
+<p><strong>수렴 조건</strong>: 두 이분 탐색 모두 단조 함수 위에서 돌므로 <strong>항상 수렴한다</strong>(구간이 매 단계 반으로 줄고, 200단계면 배정도 한계까지 간다). 최적화 라이브러리도, 초기값 추정도, 발산 처리도 필요 없다. <code>SolveResult.ScaleDiverged</code>는 목표가 물리적으로 불가능할 때만 걸린다.</p>
+<p><strong>계산 비용</strong>: 이분 탐색 200단계 × g 평가(10항 다항식) × 6심볼 = 1만 회 미만의 부동소수 연산. 밀리초 단위다.</p>
+<h3 id="2-3-자유도-5-vs-목표-6-빈칸이-문제를-없앤다">2.3 자유도 5 vs 목표 6 — 빈칸이 문제를 없앤다<a class="heading-anchor" href="#2-3-자유도-5-vs-목표-6-빈칸이-문제를-없앤다" aria-label="Section link">#</a></h3>
+<p>브리프의 지적(&quot;자유도 5뿐인데 지정하고 싶은 결과 확률은 12개&quot;)은 정확하다. 다만 3매치 6개로 좁히면 <strong>자유도 5 vs 목표 6</strong>이고, 이 1의 격차는 <strong>CSV에서 목표를 하나만 비워두면 사라진다.</strong></p>
+<table>
+<thead>
+<tr>
+<th>지정한 목표 수</th>
+<th>상태</th>
+<th>잔차</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0~5개</td>
+<td><strong>정확해</strong> (남은 확률을 빈칸들이 <code>fallbackWeight</code> 비율로 나눠 갖는다)</td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>6개 전부</td>
+<td>일반적으로 해 없음 → 전역 스케일 근사</td>
+<td>전 항목 동일한 상대오차 <code>f−1</code></td>
+</tr>
+</tbody></table>
+<p><strong>실무적으로 기획자가 정말로 못박고 싶은 건 대개 1~2종(세븐, 많아야 2BAR)이다.</strong> 나머지를 비워두면 잔차가 0이고 리포트에 쓸 것도 없다. 이게 기본 사용법이 되도록 스키마에서 빈칸을 1급 시민으로 둔다(§3).</p>
+<p><strong>2매치는 지정 대상이 아니다.</strong> 3매치를 정하면 <code>p_i</code>가 확정되고, 2매치는 <code>3 p_i²(1−p_i)</code>로 <strong>따라 나온다</strong>. 브리프가 예상한 그대로다. 기획자가 2매치까지 못박으려 하면 두 목표가 같은 <code>p_i</code>를 서로 다른 값으로 요구하게 되어 <strong>반드시</strong> 모순이 난다 — 그래서 스키마에 2매치 목표 열 자체를 두지 않고, 대신 <strong>역산 결과로 나온 2매치 확률을 리포트에 보여준다</strong>(§3.2).</p>
+<h3 id="2-4-6개-전부-지정한-경우-왜-전역-스케일-이-최적인가">2.4 6개 전부 지정한 경우 — 왜 &quot;전역 스케일&quot;이 최적인가<a class="heading-anchor" href="#2-4-6개-전부-지정한-경우-왜-전역-스케일-이-최적인가" aria-label="Section link">#</a></h3>
+<p>브리프는 최소제곱 근사를 제안했다. 실제로 풀어보면 <strong>최소제곱보다 더 강한 성질을 가진 해가 존재하고, 그게 훨씬 단순하다.</strong></p>
+<blockquote>
+<p><strong>주장.</strong> 목표 벡터 <code>t</code>에 대해 <code>Σ g⁻¹(f·t_i) = 1</code>을 만족하는 f는 유일하고, 그 해 <code>p_i = g⁻¹(f·t_i)</code>는 <strong>최대 상대오차를 최소화하는 해</strong>(minimax)다.</p>
+<p><strong>증명.</strong> <code>g⁻¹</code>가 단조 증가이므로 <code>Total(f) = Σ g⁻¹(f·t_i)</code>도 f에 대해 단조 증가 → 유일성. 이 해에서 모든 항목의 상대오차가 정확히 <code>f−1</code>로 같다. f &gt; 1(전 항목 초과)이라 하자. 최대 오차를 이보다 줄이려면 <strong>모든</strong> <code>t&#39;_i</code>를 낮춰야 하고, 그러려면 <strong>모든</strong> <code>p_i</code>를 낮춰야 하는데 그러면 <code>Σp_i &lt; 1</code>이 되어 확률이 아니게 된다. 모순. f &lt; 1도 부호만 뒤집어 동일. ∎</p>
+</blockquote>
+<p><strong>이 해의 실무적 장점 세 가지:</strong></p>
+<ol>
+<li><strong>잔차가 전 항목 동일하다</strong> — 리포트가 &quot;전 항목 +19.6%&quot; 한 줄로 끝난다. 심볼마다 다른 오차를 늘어놓을 필요가 없다.</li>
+<li>**기획자가 설계한 사다리의 <em>비율</em>이 정확히 보존된다** — &quot;트리플 세븐이 트리플 체리보다 8배 드물다&quot;는 의도가 그대로 남고, 어긋나는 건 절대 수준뿐이다. 슬롯 기획에서 대개 비율이 본질이다.</li>
+<li><strong>고칠 방법을 f가 직접 알려준다</strong> — &quot;이 사다리 <em>모양</em>에서 달성 가능한 최소 수준은 목표의 f배다. 세븐을 더 낮추려면 하위 심볼 목표를 올려 모양을 바꿔라.&quot;</li>
+</ol>
+<p><strong>채택하지 않은 대안</strong>: 로그공간 최소제곱(<code>min Σ(ln g(p_i) − ln t_i)²  s.t. Σp = 1</code>). 실측하면 잔차가 희귀 심볼에 유리하게 쏠린다(§2.6 S1에서 세븐 +11.4% vs 체리 +24.8%, 전역 스케일은 전부 +19.6%). 잭팟 정확도를 우선하고 싶다면 이쪽이 낫지만, <strong>6변수 수치 최적화가 들어오고 잔차 리포트가 6줄이 되며 사다리 비율이 깨진다.</strong> 단순함 우선 원칙(<code>CLAUDE.md</code>)에 따라 미채택하되, 레버로 기록해 둔다.</p>
+<h3 id="2-5-실패-경고-모드-조용히-근사하지-않는다">2.5 실패 / 경고 모드 — 조용히 근사하지 않는다<a class="heading-anchor" href="#2-5-실패-경고-모드-조용히-근사하지-않는다" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>코드</th>
+<th>조건</th>
+<th>동작</th>
+<th>기획자에게 보이는 것</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>E1 <code>InfeasibleSum</code></strong></td>
+<td>빈칸이 있는데 지정 목표만으로 <code>Σp ≥ 1</code></td>
+<td><strong>역산 중단.</strong> 파일을 쓰지 않는다</td>
+<td>&quot;지정 목표 확률 합이 {합}. 자유 심볼에 남길 확률이 없다. 지정 목표를 낮춰라&quot;</td>
+</tr>
+<tr>
+<td><strong>E2 <code>ScaleRejected</code></strong></td>
+<td>6개 전부 지정 + <code>|f−1| &gt; 10%</code></td>
+<td><strong>역산 중단.</strong> 파일을 쓰지 않는다</td>
+<td>&quot;전 항목이 {f−1}% 어긋난다. 이 사다리 모양에서 달성 가능한 값은 {f·t_i 6개}다 — 이 값을 그대로 쓰거나 모양을 바꿔라&quot;</td>
+</tr>
+<tr>
+<td><strong>E3 <code>TargetOutOfRange</code></strong></td>
+<td>목표 ≤ 0% 또는 ≥ 100%</td>
+<td>중단</td>
+<td>해당 행 지목</td>
+</tr>
+<tr>
+<td><strong>E4 <code>ScaleDiverged</code></strong></td>
+<td><code>Total(f)</code>가 f를 아무리 키워도 1에 못 미침</td>
+<td>중단</td>
+<td>물리적으로 불가능한 목표 조합</td>
+</tr>
+<tr>
+<td><strong>W1 <code>BalanceDrift</code></strong></td>
+<td>역산 성공. 그러나 1스핀 평균이 6.1~6.3 밖 또는 CV가 1.17±0.05 밖</td>
+<td><strong>경고. 파일은 쓴다</strong></td>
+<td>&quot;평균 {값} / CV {값}. 배당표 일률 배율 ×{k}를 적용하면 평균이 복구된다. CV는 2매치 비를 {r}로 바꿔라&quot;(§5.2)</td>
+</tr>
+<tr>
+<td><strong>W2 <code>AnnualDrift</code></strong></td>
+<td>홀드2 연차 전력이 13~16 밖</td>
+<td>경고</td>
+<td>연차 척도 이탈. 1스핀만 맞춰선 안 되는 이유는 §5.3</td>
+</tr>
+<tr>
+<td><strong>I1 <code>Scaled</code></strong></td>
+<td>6개 전부 지정 + <code>|f−1| ≤ 10%</code></td>
+<td>성공</td>
+<td>&quot;전 항목 {f−1}%&quot; 한 줄</td>
+</tr>
+<tr>
+<td><strong>I0 <code>Exact</code></strong></td>
+<td>빈칸 ≥ 1 + 실현 가능</td>
+<td>성공</td>
+<td>잔차 없음</td>
+</tr>
+</tbody></table>
+<p><strong>±10% 밴드는 제안값이다</strong> — 문서 근거가 없다(→ §10-1). 다만 &quot;밴드가 있어야 한다&quot;는 것 자체는 브리프의 요구(&quot;조용히 근사해버리면 기획자가 모른다&quot;)에 대한 직접 답이다.</p>
+<p><strong>W1/W2가 경고이지 오류가 아닌 이유</strong>: 역산은 성공했고 가중치는 유효하다. 밸런스를 되돌리는 건 배당표 쪽 일이라(§5.2) 역산기가 임의로 배당표를 고칠 수는 없다. <strong>필요한 보정량을 계산해서 알려주는 데까지가 역산기의 책임이다.</strong></p>
+<h3 id="2-6-잔차-실측-실제로-얼마나-맞나">2.6 잔차 실측 — 실제로 얼마나 맞나<a class="heading-anchor" href="#2-6-잔차-실측-실제로-얼마나-맞나" aria-label="Section link">#</a></h3>
+<p>전부 정확값 계산(몬테카를로 아님). 아래 목표 수치는 <strong>알고리즘 검증용 예시이며 기획 확정값이 아니다.</strong></p>
+<p><strong>S0 — 항등 검증</strong> (균등 가중치에서 나온 확률 2.2247%를 6개 전부 목표로 넣는다)</p>
+<table>
+<thead>
+<tr>
+<th>심볼</th>
+<th>목표</th>
+<th>실제</th>
+<th>오차</th>
+<th>산출 확률</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>6종 전부</td>
+<td>2.2247%</td>
+<td>2.2247%</td>
+<td><strong>+0.00%</strong></td>
+<td>16.667%</td>
+</tr>
+</tbody></table>
+<p><code>mode = EXACT</code>, f = 1.0000000. <strong>역산기가 자기 자신의 항등원을 통과한다</strong> — 이게 안 맞으면 나머지 전부 무의미하다.</p>
+<p><strong>S1 — 정통 슬롯형 사다리</strong> (6개 전부 지정: 4.0 / 3.2 / 2.4 / 1.6 / 1.0 / 0.5%)</p>
+<table>
+<thead>
+<tr>
+<th>심볼</th>
+<th>목표</th>
+<th>실제</th>
+<th>오차</th>
+<th>산출 확률</th>
+<th>BaseWeight</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체리</td>
+<td>4.000%</td>
+<td>4.785%</td>
+<td><strong>+19.64%</strong></td>
+<td>21.717%</td>
+<td>130.3</td>
+</tr>
+<tr>
+<td>레몬</td>
+<td>3.200%</td>
+<td>3.828%</td>
+<td><strong>+19.64%</strong></td>
+<td>20.094%</td>
+<td>120.6</td>
+</tr>
+<tr>
+<td>벨</td>
+<td>2.400%</td>
+<td>2.871%</td>
+<td><strong>+19.64%</strong></td>
+<td>18.193%</td>
+<td>109.2</td>
+</tr>
+<tr>
+<td>BAR</td>
+<td>1.600%</td>
+<td>1.914%</td>
+<td><strong>+19.64%</strong></td>
+<td>15.831%</td>
+<td>95.0</td>
+</tr>
+<tr>
+<td>2BAR</td>
+<td>1.000%</td>
+<td>1.196%</td>
+<td><strong>+19.64%</strong></td>
+<td>13.491%</td>
+<td>80.9</td>
+</tr>
+<tr>
+<td>세븐</td>
+<td>0.500%</td>
+<td>0.598%</td>
+<td><strong>+19.64%</strong></td>
+<td>10.673%</td>
+<td>64.0</td>
+</tr>
+</tbody></table>
+<p><code>mode = SCALED</code>, f = 1.1964 → <strong>밴드 ±10% 초과 → E2 거부.</strong> 기획자에게 되돌려주는 달성 가능 사다리는 <code>4.785 / 3.828 / 2.871 / 1.914 / 1.196 / 0.598%</code>다. 이걸 그대로 넣으면 잔차 0이 된다(§5.2에서 이 사다리를 S1&#39;로 부른다).</p>
+<blockquote>
+<p><strong>이 시나리오가 밴드를 넘는 이유가 곧 &quot;자유도 5 vs 목표 6&quot;의 정체다.</strong> 사다리 모양은 문제가 없고, 확률 합이 1이 되기엔 <strong>수준이 6% 낮았을 뿐</strong>이다(Σg⁻¹(t) = 0.9403). 확률 6개는 합이 1이라는 구속을 반드시 받으므로, 6개를 전부 못박으면 이 1차원 여유가 남지 않는다.</p>
+</blockquote>
+<p><strong>S2 — 세븐만 지정, 나머지 빈칸</strong> (브리프가 든 예시 그대로: 트리플 세븐 0.5%)</p>
+<table>
+<thead>
+<tr>
+<th>심볼</th>
+<th>목표</th>
+<th>실제</th>
+<th>오차</th>
+<th>산출 확률</th>
+<th>2매치 기대(스핀당 라인 수)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체리~2BAR (5종)</td>
+<td>(빈칸)</td>
+<td>2.779%</td>
+<td>—</td>
+<td>17.990%</td>
+<td>0.398회</td>
+</tr>
+<tr>
+<td><strong>세븐</strong></td>
+<td><strong>0.500%</strong></td>
+<td><strong>0.500%</strong></td>
+<td><strong>+0.00%</strong></td>
+<td><strong>10.048%</strong></td>
+<td>0.136회</td>
+</tr>
+</tbody></table>
+<p><code>mode = EXACT</code>. <strong>잔차 0.</strong> 빈칸을 쓰면 정확히 맞는다는 §2.3의 실증이다.</p>
+<p><strong>S3 — 세븐만 1.0%</strong>: 잔차 0. 세븐 확률 12.696%, 나머지 17.461%.</p>
+<p><strong>S4 — 모순 목표</strong> (6개 전부 5.0%): f = 0.4449 → 실제 2.225%, <strong>전 항목 −55.51%</strong> → E2 거부. (균등 상태에서 최대 2.2247%인데 6종 전부 5%를 요구하니 당연히 불가능하다. 역산기가 이를 <strong>한 줄로</strong> 설명한다.)</p>
+<p><strong>S5 — 명백한 불가능</strong> (4종을 각각 30%로 지정 + 2종 빈칸): 지정 확률 합 1.7147 ≥ 1 → <strong>E1 거부.</strong></p>
+<blockquote>
+<p>참고로 <strong>세븐 하나만 30%로 지정하는 건 불가능이 아니다</strong>(확률 42.9%). 역산기는 &quot;이상해 보이는 값&quot;이 아니라 <strong>수학적으로 불가능한 값</strong>만 거부한다 — 허위 경보를 내지 않는다.</p>
+</blockquote>
+<hr>
+<h2 id="3-slotoutcometable-csv-스키마-기획자가-적는-표">3. <code>SlotOutcomeTable.csv</code> 스키마 — 기획자가 적는 표<a class="heading-anchor" href="#3-slotoutcometable-csv-스키마-기획자가-적는-표" aria-label="Section link">#</a></h2>
+<h3 id="3-1-왜-symboltable과-분리하는가">3.1 왜 SymbolTable과 분리하는가<a class="heading-anchor" href="#3-1-왜-symboltable과-분리하는가" aria-label="Section link">#</a></h3>
+<p><strong>입력(목표)과 산출물(가중치)을 한 파일에 섞으면 어느 쪽이 정본인지 모호해진다.</strong> 누군가 <code>BaseWeight</code>를 손으로 고치면 목표와 어긋난 채 조용히 굴러간다 — <code>CODE.MD</code>가 경고한 &quot;조용히 기본값으로 귀결&quot;과 같은 계열의 함정이다. 분리하면 관계가 단방향(<code>SlotOutcomeTable</code> → 역산기 → <code>SymbolTable</code>)으로 고정된다.</p>
+<p><strong>위치</strong>: <code>Assets\Design\Table\SlotOutcomeTable.csv</code> (신설 폴더).</p>
+<ul>
+<li><code>Assets\Resources\Table\</code>에 두지 않는 이유: 런타임이 읽지 않는 기획 입력물이고, Resources는 안에 있는 걸 전부 빌드에 싣는다. 등록되지 않은 채 Resources에 놓인 테이블은 &quot;왜 이건 <code>TableManager</code>에 없지&quot;라는 혼란을 남긴다</li>
+<li><code>Assets\Design\</code>을 고른 이유: 이미 GDD가 사는 **기획 산출물 폴더**다. 툴은 <code>File.ReadAllText</code>로 읽는다(에디터 전용이라 <code>TableManager</code> 경로를 탈 이유가 없다)</li>
+</ul>
+<h3 id="3-2-스키마">3.2 스키마<a class="heading-anchor" href="#3-2-스키마" aria-label="Section link">#</a></h3>
+<p>기존 테이블 컨벤션(<code>Id</code> 선두 · 참조는 문자열 키 · <code>Split(&#39;,&#39;)</code> 파서라 따옴표/쉼표 금지)을 따른다.</p>
+<pre><code>Id,SymbolKey,TargetTripleRate,Note
+1,slot_01_cherry,,
+2,slot_02_lemon,,
+3,slot_03_bell,,
+4,slot_04_bar,,
+5,slot_05_bar2,,
+6,slot_06_seven,,
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Id</code></td>
+<td>int</td>
+<td>선두 고정(프로젝트 전 테이블 공통)</td>
+</tr>
+<tr>
+<td><code>SymbolKey</code></td>
+<td>string</td>
+<td><code>SymbolTable.SpriteKey</code>와 <strong>문자열로</strong> 대조한다. 인덱스가 아니라 키로 잡는 건 GDD §11의 &quot;참조는 문자열 키&quot; 원칙이자, 스프라이트 로드 순서가 바뀌어도 안 깨지기 위함이다(<code>slot-house.md</code> §11.3-3이 지적한 함정)</td>
+</tr>
+<tr>
+<td><code>TargetTripleRate</code></td>
+<td>float, <strong>빈칸 허용</strong></td>
+<td>§1.3 정의의 확률. <strong>0.005 = 0.5%</strong>(비율 표기). 빈칸 = 자유 변수</td>
+</tr>
+<tr>
+<td><code>Note</code></td>
+<td>string</td>
+<td>기획 메모. 툴이 읽지 않는다</td>
+</tr>
+</tbody></table>
+<p><strong><code>Note</code>를 마지막 열에 두는 이유</strong>: <code>TableManager.LoadCsvTable()</code>이 <code>Split(&#39;,&#39;)</code>뿐이라 쉼표가 든 문자열을 못 다룬다. 자유 서술이 들어갈 열은 맨 끝에 둬야 사고가 나도 뒤 컬럼을 먹지 않는다. (이 파일은 <code>TableManager</code>를 안 타지만 관례는 맞춰 둔다.)</p>
+<p><strong>빈칸 표기</strong>: <code>TargetTripleRate</code> 자리를 그대로 비운다(<code>,,</code>). <code>0</code>은 &quot;3매치가 절대 안 나옴&quot;을 뜻하는 유효값이므로 빈칸 대용으로 쓰면 안 된다.</p>
+<p><strong><code>fallbackWeight</code>(빈칸끼리 남은 확률을 나누는 비율)를 컬럼으로 두지 않았다.</strong> 기본은 균등이고, 비균등이 필요하면 그 심볼도 <code>TargetTripleRate</code>를 적으면 된다 — 손잡이가 두 개면 어느 쪽이 이겼는지 헷갈린다.</p>
+<h3 id="3-3-툴이-되돌려주는-잔차-리포트">3.3 툴이 되돌려주는 잔차 리포트<a class="heading-anchor" href="#3-3-툴이-되돌려주는-잔차-리포트" aria-label="Section link">#</a></h3>
+<p>파일이 아니라 <strong>에디터 콘솔 출력</strong>으로 둔다(중간 산출물을 파일로 남기면 그것도 정본 후보가 되어 §3.1의 문제가 재발한다).</p>
+<pre><code>[SlotWeightSolver] mode = SCALED   전역 스케일 f = 1.1964  (밴드 ±10% 초과 → 거부)
+  심볼            목표      실제      오차     확률    BaseWeight   2매치(스핀당 라인)
+  slot_01_cherry  4.000%   4.785%  +19.64%  21.717%      130.3        0.554
+  ...
+  slot_06_seven   0.500%   0.598%  +19.64%  10.673%       64.0        0.153
+  → 달성 가능한 사다리: 4.785 / 3.828 / 2.871 / 1.914 / 1.196 / 0.598 (%)
+  [W1] 1스핀 평균 4.567 (기준 6.1~6.3) · CV 1.072 (기준 1.17)
+       배당표 일률 배율 ×1.542, 2매치 비 0.152 → 0.129 를 적용하면 6.24 / 1.17 로 복귀
+</code></pre>
+<hr>
+<h2 id="4-symboltable-csv-스키마-런타임이-읽는-표">4. <code>SymbolTable.csv</code> 스키마 — 런타임이 읽는 표<a class="heading-anchor" href="#4-symboltable-csv-스키마-런타임이-읽는-표" aria-label="Section link">#</a></h2>
+<h3 id="4-1-신설이-맞다-그리고-slotpaytable을-흡수한다">4.1 신설이 맞다 — 그리고 <code>SlotPayTable</code>을 흡수한다<a class="heading-anchor" href="#4-1-신설이-맞다-그리고-slotpaytable을-흡수한다" aria-label="Section link">#</a></h3>
+<p><strong>판단: <code>Assets\Resources\Table\SymbolTable.csv</code>를 신설하고, <code>slot-house.md</code> §11.2가 제안했던 <code>SlotPayTable.csv</code>는 만들지 않는다.</strong></p>
+<p>근거 4건:</p>
+<ol>
+<li><strong>GDD §11(625줄)이 이미 <code>Symbol.csv</code>를 예약해 뒀다</strong> — <code>Id, HouseId, SpriteKey, RankValue, MonthValue, BaseWeight</code>. <code>BaseWeight</code>가 살 곳은 문서상 여기 하나뿐이다. 신설은 발명이 아니라 예약된 자리를 채우는 일이다.</li>
+<li><strong>배당값은 심볼 레코드 1행의 속성이다.</strong> <code>CODE.MD</code> — <em>&quot;레코드 1개당 속성으로 자연스럽게 붙는 값은 새 <code>Dictionary</code>를 만들지 말고 해당 테이블에 컬럼을 추가해 레코드 자체가 들고 있게 한다.&quot;</em> <code>PayTriple</code>/<code>PayDouble</code>은 정확히 그 형태다.</li>
+<li><strong>심볼 1개당 두 개의 테이블을 두면 조인 키가 하나 늘고 어긋날 자리가 생긴다.</strong> <code>SlotPayTable.SymbolKey</code>와 <code>SymbolTable.SpriteKey</code>가 한 글자만 달라도 조용히 기본값이 된다 — 파서가 없는 컬럼에 에러를 안 내는 구조(<code>CODE.MD</code> 데이터 레이어 (1)번 함정)에서는 테이블 수를 줄이는 게 그대로 방어가 된다.</li>
+<li><strong><code>Judge.csv</code>에 넣는 대안은 기각.</strong> GDD §11이 <code>Judge.csv</code>를 <code>PatternType</code> 분기용으로 정의했다. 여기에 슬롯 전용 배당 12행(6심볼 × 2패턴)을 섞으면 판정 분기 테이블과 배당 조회 테이블이 한 파일에서 뒤엉킨다. <code>slot-house.md</code> §11.2가 남긴 &quot;<code>Judge.csv</code>가 만들어지면 흡수해도 된다&quot;는 여지는 <strong>이 판단으로 닫는다.</strong></li>
+</ol>
+<p><strong>&quot;슬롯 외 종족은 배당 컬럼이 0인데 괜찮은가&quot;</strong> — 괜찮다. <strong>기존 관례와 일치한다</strong>: <code>HouseTable.csv</code>의 <code>isUseBet</code>은 화투(Id 4) 한 행만 1이고 나머지 5행은 0이다. 종족 하나만 쓰는 컬럼을 본 테이블에 두는 건 이미 이 프로젝트의 방식이다.</p>
+<h3 id="4-2-스키마">4.2 스키마<a class="heading-anchor" href="#4-2-스키마" aria-label="Section link">#</a></h3>
+<pre><code>Id,HouseKey,SpriteKey,SymbolIndex,NameKey,RankValue,MonthValue,BaseWeight,PayTriple,PayDouble
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>의미</th>
+<th>GDD 대비</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Id</code></td>
+<td>int</td>
+<td>전 종족 통합 일련번호</td>
+<td>그대로</td>
+</tr>
+<tr>
+<td><code>HouseKey</code></td>
+<td>string</td>
+<td><code>HouseTable.Key</code>(<code>slot</code>/<code>chess</code>/…) 참조</td>
+<td><strong><code>HouseId</code> → <code>HouseKey</code>로 변경.</strong> GDD §11 자신이 &quot;참조는 문자열 키로 잡았습니다&quot;라고 쓰는데 컬럼명만 <code>Id</code>로 남아 있다. 기존 코드도 종족을 문자열 키로 참조한다(<code>PlayerData.selectedHouseKey</code> — <code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Player\PlayerData.cs:17</code>). 게다가 슬롯이 Id 1로 들어오며 기존 5행이 전부 재번호된 이력이 있어(<code>slot-house.md</code> §8.3) 정수 참조는 위험하다</td>
+</tr>
+<tr>
+<td><code>SpriteKey</code></td>
+<td>string</td>
+<td><code>slot_01_cherry</code> 등. <code>HouseSpriteLoader</code>가 로드한 파일명과 대조</td>
+<td>그대로</td>
+</tr>
+<tr>
+<td><code>SymbolIndex</code></td>
+<td>int</td>
+<td>종족 내 인덱스(0~5). <code>UIHouseSlotSymbol.symbolType</code>이 이 값</td>
+<td><strong>추가.</strong> <code>symbolType</code>이 스프라이트 풀 인덱스라 명시적 대조가 필요하다(§9.3)</td>
+</tr>
+<tr>
+<td><code>NameKey</code></td>
+<td>string</td>
+<td><code>StringTable</code> 키(<code>SymbolSlotCherry</code> 등)</td>
+<td><strong>추가.</strong> <code>slot-house.md</code> §12.2가 예약한 키. CSV에 표시명을 직접 넣지 않는다(파서에 따옴표 처리가 없다)</td>
+</tr>
+<tr>
+<td><code>RankValue</code></td>
+<td>int</td>
+<td>서열. 슬롯은 등급(1~6)</td>
+<td>그대로</td>
+</tr>
+<tr>
+<td><code>MonthValue</code></td>
+<td>int</td>
+<td>화투 전용. 슬롯은 0</td>
+<td>그대로</td>
+</tr>
+<tr>
+<td><strong><code>BaseWeight</code></strong></td>
+<td><strong>float</strong></td>
+<td><strong>추첨 가중치. 종족 내 평균이 100이 되도록 정규화한다</strong>(§4.3)</td>
+<td>그대로</td>
+</tr>
+<tr>
+<td><code>PayTriple</code></td>
+<td>float</td>
+<td>3매치 배당. 슬롯 외 0</td>
+<td><strong>추가</strong> (<code>SlotPayTable</code> 흡수)</td>
+</tr>
+<tr>
+<td><code>PayDouble</code></td>
+<td>float</td>
+<td>2매치 배당. 슬롯 외 0</td>
+<td><strong>추가</strong> (<code>SlotPayTable</code> 흡수)</td>
+</tr>
+</tbody></table>
+<p><strong><code>BaseWeight</code>는 int가 아니라 float다.</strong> 파서가 float를 지원한다(<code>TableManager.cs</code>의 필드 타입 분기에 <code>typeof(float)</code> 경로가 있다). 정수로 반올림하면 희귀 심볼에서 목표가 최대 <strong>1.4%</strong> 어긋난다:</p>
+<table>
+<thead>
+<tr>
+<th>정밀도</th>
+<th>S2(세븐 0.5%) 반올림 오차</th>
+<th>S1&#39;(사다리) 반올림 오차</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>정수</td>
+<td>−1.41% (세븐) / +0.16% (나머지)</td>
+<td>−0.66% ~ +1.04%</td>
+</tr>
+<tr>
+<td><strong>소수 1자리</strong></td>
+<td><strong>+0.16% / −0.02%</strong></td>
+<td><strong>−0.19% ~ +0.12%</strong></td>
+</tr>
+</tbody></table>
+<p><strong>소수 1자리면 잔차가 역산 자체의 정밀도(±0.2%) 밑으로 내려간다.</strong> 그 이상은 의미가 없다.</p>
+<h3 id="4-3-정규화-규칙-종족-내-평균-100">4.3 정규화 규칙 — <strong>종족 내 평균 100</strong><a class="heading-anchor" href="#4-3-정규화-규칙-종족-내-평균-100" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong><code>BaseWeight</code>는 그 종족 안에서 평균이 100이 되도록 적는다.</strong> 즉 <code>BaseWeight_i = p_i × PoolCount × 100</code>.</p>
+</blockquote>
+<p><strong>이건 표기 취향이 아니라 §7의 전리품 혼합이 걸려 있는 규칙이다.</strong> 종족마다 가중치 총합이 제각각이면, 전리품 심볼을 원 가중치 그대로 풀에 합칠 때 그 심볼이 본토 심볼보다 체계적으로 흔하거나 드물어진다. 평균을 100으로 맞춰두면 **&quot;심볼 1종 = 평균적으로 같은 몫&quot;**이 종족 간에 성립해서, 풀을 그냥 이어 붙이기만 하면 된다(§7.2에서 이 성질이 PurityCurve를 지켜내는 것을 보인다).</p>
+<p>균등이면 전부 정확히 100이 되고, 이는 GDD §11의 <code>BaseWeight</code> 초안이 암묵적으로 상정한 형태이기도 하다.</p>
+<h3 id="4-4-슬롯-6행-확정값-균등">4.4 슬롯 6행 — <strong>확정값 (균등)</strong><a class="heading-anchor" href="#4-4-슬롯-6행-확정값-균등" aria-label="Section link">#</a></h3>
+<pre><code>Id,HouseKey,SpriteKey,SymbolIndex,NameKey,RankValue,MonthValue,BaseWeight,PayTriple,PayDouble
+1,slot,slot_01_cherry,0,SymbolSlotCherry,1,0,100.0,3,0.5
+2,slot,slot_02_lemon,1,SymbolSlotLemon,2,0,100.0,5,0.8
+3,slot,slot_03_bell,2,SymbolSlotBell,3,0,100.0,8,1.2
+4,slot,slot_04_bar,3,SymbolSlotBar,4,0,100.0,13,2
+5,slot,slot_05_bar2,4,SymbolSlotBar2,5,0,100.0,20,3
+6,slot,slot_06_seven,5,SymbolSlotSeven,6,0,100.0,33,5
+</code></pre>
+<p><strong>왜 균등인가 — 창작이 아니라 문서 근거다.</strong></p>
+<p><code>GDD §03 SpinEconomy</code>(350줄)가 **&quot;릴당 가중치 — 균등 시작, 코어로 왜곡&quot;**이라고 명시한다. 즉 GDD는 초기 가중치를 미기재로 남긴 게 아니라 <strong>균등이라고 확정해 놓았고</strong>, 비균등은 코어(런타임 레이어)의 몫으로 배정했다. 그래서:</p>
+<ul>
+<li><code>SlotOutcomeTable.csv</code>의 <code>TargetTripleRate</code>는 <strong>6행 전부 빈칸으로 출고</strong>한다 → 역산기가 균등을 돌려준다(<code>mode = EXACT</code>, 잔차 0)</li>
+<li>이 상태에서 <code>slot-house.md</code>의 모든 수치(1스핀 6.24/CV 1.17, 연차 14.23, 혼혈 −12.8%)가 <strong>재계산 없이 그대로 유효</strong>하다</li>
+<li>역산기는 &quot;지금 쓰라고 만드는 도구&quot;가 아니라 <strong>기획자가 균등을 벗어나고 싶어질 때를 위한 도구</strong>다</li>
+</ul>
+<blockquote>
+<p>이 6행에 균등이 아닌 값을 넣는 건 <strong>기획 결정</strong>이다. §5.2가 그 결정의 비용(배당표를 얼마나 건드려야 하는지)을 수치로 제시하지만, <strong>어떤 사다리를 원하는지는 이 문서가 정하지 않는다</strong>(→ §10-2).</p>
+</blockquote>
+<hr>
+<h2 id="5-재계산-밸런스-기준-충족-여부">5. 재계산 — 밸런스 기준 충족 여부<a class="heading-anchor" href="#5-재계산-밸런스-기준-충족-여부" aria-label="Section link">#</a></h2>
+<p>전부 몬테카를로 50만 시행. 라인/배당은 <code>slot-house.md</code> §3 그대로.</p>
+<h3 id="5-0-검증-방법-기존-수치를-먼저-재현했다">5.0 검증 방법 — 기존 수치를 먼저 재현했다<a class="heading-anchor" href="#5-0-검증-방법-기존-수치를-먼저-재현했다" aria-label="Section link">#</a></h3>
+<p><code>slot-house.md</code>·<code>subjudge-pair.md</code>와 같은 절차. 새 시뮬레이터가 기존 기재값을 재현하는지부터 확인했다:</p>
+<table>
+<thead>
+<tr>
+<th>대조 지점</th>
+<th>기존 기재값</th>
+<th>재현값</th>
+<th>일치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>슬롯 1스핀 (균등)</td>
+<td>6.245 / 7.297 / 1.169 / 4.96%</td>
+<td><strong>6.245 / 7.299 / 1.169 / 4.99%</strong></td>
+<td>○</td>
+</tr>
+<tr>
+<td>중앙값 / 99%분위 / 세븐 3매치</td>
+<td>4.40 / 38.8 / 2.23%</td>
+<td><strong>4.40 / 39.0 / 2.22%</strong></td>
+<td>○</td>
+</tr>
+<tr>
+<td>홀드 0/1/2/3/4 연차 평균</td>
+<td>6.25 / 8.94 / 14.23 / 20.40 / 22.91</td>
+<td><strong>6.27 / 8.98 / 14.27 / 20.43 / 22.92</strong></td>
+<td>○</td>
+</tr>
+<tr>
+<td>홀드2 연차 CV / 전멸률 / 세븐</td>
+<td>0.94 / 0.86% / 12.81%</td>
+<td><strong>0.94 / 0.86% / 12.79%</strong></td>
+<td>○</td>
+</tr>
+<tr>
+<td>혼혈 풀 8 (부판정 포함) 총 전력</td>
+<td>5.45 (87.2%) · 짝 0.659</td>
+<td><strong>5.41 (86.7%) · 짝 0.658</strong></td>
+<td>○</td>
+</tr>
+</tbody></table>
+<p><strong>해석적 교차검증</strong>: 평균은 정확히 계산할 수 있다(라인 5개의 주변분포가 동일하므로 <code>평균 = 5 · Σ[p_i³·T_i + 3p_i²(1−p_i)·D_i]</code>). 균등에서 <strong>6.2384</strong>, 시뮬레이션 6.245 — 표준오차 안이다.</p>
+<h3 id="5-1-확정-기본값-균등-기준-충족-배당표-무수정">5.1 확정 기본값(균등) — <strong>기준 충족. 배당표 무수정.</strong><a class="heading-anchor" href="#5-1-확정-기본값-균등-기준-충족-배당표-무수정" aria-label="Section link">#</a></h3>
+<p>50만 시행 × 5시드:</p>
+<table>
+<thead>
+<tr>
+<th>seed</th>
+<th>평균</th>
+<th>SD</th>
+<th>CV</th>
+<th>무소환률</th>
+<th>세븐 3매치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>20260827</td>
+<td><strong>6.245</strong></td>
+<td>7.299</td>
+<td><strong>1.169</strong></td>
+<td><strong>4.99%</strong></td>
+<td>2.22%</td>
+</tr>
+<tr>
+<td>1</td>
+<td>6.235</td>
+<td>7.282</td>
+<td>1.168</td>
+<td>4.93%</td>
+<td>2.22%</td>
+</tr>
+<tr>
+<td>42</td>
+<td>6.242</td>
+<td>7.287</td>
+<td>1.167</td>
+<td>4.91%</td>
+<td>2.22%</td>
+</tr>
+<tr>
+<td>7777</td>
+<td>6.239</td>
+<td>7.317</td>
+<td>1.173</td>
+<td>4.95%</td>
+<td>2.24%</td>
+</tr>
+<tr>
+<td>123456</td>
+<td>6.248</td>
+<td>7.289</td>
+<td>1.167</td>
+<td>4.96%</td>
+<td>2.22%</td>
+</tr>
+<tr>
+<td><strong>정확값(해석)</strong></td>
+<td><strong>6.2384</strong></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td><strong>2.2247%</strong></td>
+</tr>
+</tbody></table>
+<table>
+<thead>
+<tr>
+<th>성공 기준</th>
+<th>목표</th>
+<th>실측</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>평균 전력</td>
+<td>6.1 ~ 6.3</td>
+<td><strong>6.235 ~ 6.248</strong></td>
+<td><strong>통과</strong></td>
+</tr>
+<tr>
+<td>변동계수</td>
+<td>1.17 유지</td>
+<td><strong>1.167 ~ 1.173</strong></td>
+<td><strong>통과</strong></td>
+</tr>
+<tr>
+<td>사다리 위치</td>
+<td>마작 1.03 &lt; 슬롯 &lt; 화투 1.53</td>
+<td>마작과 +0.14, 화투와 −0.36</td>
+<td><strong>통과</strong></td>
+</tr>
+</tbody></table>
+<p><strong>배당표 전후 대조: 변경 없음.</strong> 3매치 <code>3 / 5 / 8 / 13 / 20 / 33</code>, 2매치 <code>0.5 / 0.8 / 1.2 / 2 / 3 / 5</code> 전부 <code>slot-house.md</code> §3 그대로다. 균등 가중치는 그 표가 계산된 전제 자체이므로 건드릴 이유가 없다.</p>
+<h3 id="5-2-비균등을-고르면-무엇이-무너지고-어떻게-되돌리는가">5.2 비균등을 고르면 — 무엇이 무너지고, 어떻게 되돌리는가<a class="heading-anchor" href="#5-2-비균등을-고르면-무엇이-무너지고-어떻게-되돌리는가" aria-label="Section link">#</a></h3>
+<p><strong>가중치를 건드리면 평균이 크게 움직인다.</strong> 배당은 등급에 비례하는데 가중치를 하위 심볼 쪽으로 기울이면 기대 배당이 통째로 내려가기 때문이다:</p>
+<table>
+<thead>
+<tr>
+<th>가중치</th>
+<th>세븐 확률</th>
+<th>평균</th>
+<th>SD</th>
+<th>CV</th>
+<th>무소환</th>
+<th>세븐 3매치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>균등 (확정)</strong></td>
+<td>16.67%</td>
+<td><strong>6.245</strong></td>
+<td>7.299</td>
+<td><strong>1.169</strong></td>
+<td>4.99%</td>
+<td>2.22%</td>
+</tr>
+<tr>
+<td>S3 세븐 1.0%</td>
+<td>12.70%</td>
+<td>5.541</td>
+<td>6.126</td>
+<td>1.106</td>
+<td>4.85%</td>
+<td>1.01%</td>
+</tr>
+<tr>
+<td>S2 세븐 0.5%</td>
+<td>10.05%</td>
+<td><strong>5.269</strong></td>
+<td>5.645</td>
+<td><strong>1.071</strong></td>
+<td>4.60%</td>
+<td>0.50%</td>
+</tr>
+<tr>
+<td>S1&#39; 사다리</td>
+<td>10.67%</td>
+<td><strong>4.567</strong></td>
+<td>4.898</td>
+<td><strong>1.072</strong></td>
+<td>4.40%</td>
+<td>0.61%</td>
+</tr>
+<tr>
+<td>S6 세븐 4.0%(역방향)</td>
+<td>20.40%</td>
+<td>7.280</td>
+<td>8.886</td>
+<td>1.221</td>
+<td>4.90%</td>
+<td>4.00%</td>
+</tr>
+</tbody></table>
+<p>세븐을 브리프 예시대로 0.5%까지 조이면 <strong>평균이 6.24 → 5.27로 −16%</strong>, CV는 1.169 → 1.071로 떨어져 <strong>마작(1.03)과 0.04 차이</strong>가 된다. <code>slot-house.md</code> §4.4가 CV 1.17을 고른 이유(&quot;마작 자리와 겹치지 않기&quot;)가 그대로 깨진다.</p>
+<p><strong>되돌리는 손잡이는 정확히 두 개이고, 서로 간섭하지 않는다:</strong></p>
+<table>
+<thead>
+<tr>
+<th>손잡이</th>
+<th>무엇을 움직이나</th>
+<th>왜 독립인가</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>배당표 일률 배율 k</strong></td>
+<td><strong>평균만</strong></td>
+<td>전력이 배당의 1차식이라 평균은 k배가 되고, <strong>CV는 배율에 불변</strong>(SD도 같이 k배)</td>
+</tr>
+<tr>
+<td><strong>2매치 비 r</strong> (= 2매치 ÷ 3매치)</td>
+<td><strong>CV만</strong> (평균도 움직이지만 k로 되돌리면 됨)</td>
+<td>2매치는 스핀당 2.08회 터지는 바닥이고 3매치는 0.14회의 꼭대기다. r을 낮추면 무게가 꼭대기로 옮겨가 분산이 커진다</td>
+</tr>
+</tbody></table>
+<p>두 손잡이로 S2·S1&#39;을 기준에 정확히 되돌린 결과(50만 시행):</p>
+<table>
+<thead>
+<tr>
+<th>시나리오</th>
+<th>2매치 비</th>
+<th>일률 배율 k</th>
+<th><strong>3매치 배당(후)</strong></th>
+<th><strong>2매치 배당(후)</strong></th>
+<th>평균</th>
+<th>CV</th>
+<th>무소환</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>균등(확정) — 전</strong></td>
+<td>0.152</td>
+<td>1.000</td>
+<td>3 / 5 / 8 / 13 / 20 / 33</td>
+<td>0.5 / 0.8 / 1.2 / 2 / 3 / 5</td>
+<td>6.245</td>
+<td>1.169</td>
+<td>4.99%</td>
+</tr>
+<tr>
+<td>S2 세븐 0.5%</td>
+<td><strong>0.1284</strong></td>
+<td><strong>×1.332</strong></td>
+<td>4.00 / 6.66 / 10.66 / 17.32 / 26.64 / <strong>43.96</strong></td>
+<td>0.51 / 0.86 / 1.37 / 2.22 / 3.42 / 5.64</td>
+<td><strong>6.239</strong></td>
+<td><strong>1.168</strong></td>
+<td>4.60%</td>
+</tr>
+<tr>
+<td>S1&#39; 사다리</td>
+<td><strong>0.1291</strong></td>
+<td><strong>×1.542</strong></td>
+<td>4.63 / 7.71 / 12.33 / 20.04 / 30.83 / <strong>50.88</strong></td>
+<td>0.60 / 1.00 / 1.59 / 2.59 / 3.98 / 6.57</td>
+<td><strong>6.245</strong></td>
+<td><strong>1.167</strong></td>
+<td>4.40%</td>
+</tr>
+</tbody></table>
+<p><strong>두 시나리오 모두 2매치 비가 0.128~0.129로 수렴한다.</strong> 우연이 아니다 — CV는 &quot;바닥(2매치)과 꼭대기(3매치)의 무게 배분&quot;이 정하고, 그 배분은 가중치보다 배당표 모양에 훨씬 강하게 지배된다. 실무적으로는 **&quot;어떤 가중치를 고르든 2매치 비를 0.13 근처로 두고 전체 배율로 평균을 맞추면 CV 1.17이 나온다&quot;**로 요약된다.</p>
+<blockquote>
+<p><strong>주의 — 잭팟 배수가 커진다.</strong> S2 보정 후 세븐 3매치는 <strong>43.96</strong>으로 평균(6.24)의 <strong>7.0배</strong>다(균등은 33 = 5.3배). 세븐이 드물어진 만큼 값이 올라가는 건 CV를 지키려면 필연이지만, <code>slot-house.md</code> §4.4가 &quot;목표 대역 이탈&quot;로 기각한 top-40안(38.7)보다 이미 높다. <strong>비균등을 고르면 슬롯이 사다리에서 화투 쪽으로 밀린다</strong> — 가중치 결정은 배당표 결정과 분리될 수 없다.</p>
+</blockquote>
+<h3 id="5-3-연차-척도-재검증-1스핀만-맞추면-안-된다">5.3 연차 척도 재검증 — 1스핀만 맞추면 안 된다<a class="heading-anchor" href="#5-3-연차-척도-재검증-1스핀만-맞추면-안-된다" aria-label="Section link">#</a></h3>
+<p><code>slot-house.md</code> §5.1의 교훈(&quot;1스핀 척도만 보면 결론이 뒤집힌다&quot;)이 가중치에서도 똑같이 재현된다. 홀드 상한 2 · 스핀 3 · 매 단계 기대 총전력 최대 조합 선택(30만 시행):</p>
+<table>
+<thead>
+<tr>
+<th>구성</th>
+<th>연차 평균</th>
+<th>연차 CV</th>
+<th>전멸률</th>
+<th>연차당 세븐 3매치</th>
+<th>중앙값</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>균등 + 기본 배당표 (확정)</strong></td>
+<td><strong>14.2</strong></td>
+<td><strong>0.939</strong></td>
+<td>0.87%</td>
+<td><strong>12.8%</strong></td>
+<td>10.0</td>
+</tr>
+<tr>
+<td>S2 세븐 0.5% + <strong>보정 안 함</strong></td>
+<td>10.78</td>
+<td>0.873</td>
+<td>0.56%</td>
+<td>2.63%</td>
+<td>7.2</td>
+</tr>
+<tr>
+<td>S2 세븐 0.5% + §5.2 보정 배당표</td>
+<td><strong>13.07</strong></td>
+<td>0.950</td>
+<td>0.54%</td>
+<td>2.47%</td>
+<td>8.2</td>
+</tr>
+<tr>
+<td>S1&#39; 사다리 + §5.2 보정 배당표</td>
+<td><strong>13.02</strong></td>
+<td>1.019</td>
+<td>0.84%</td>
+<td>3.80%</td>
+<td>8.6</td>
+</tr>
+<tr>
+<td>(대조) 체스 홀드4</td>
+<td>13.83</td>
+<td>0.50</td>
+<td>0.00%</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<p><strong>핵심</strong>: S2·S1&#39;은 <strong>1스핀에서 6.24 / 1.17로 정확히 맞췄는데도 연차가 13.0으로 균등(14.2)보다 8% 낮다.</strong> 원인은 §1.3에서 홀드를 정의에서 뺀 것과 같은 지점이다 — <strong>세븐이 드물어지면 &quot;세븐 페어를 잡고 세 번째를 노리는&quot; 홀드 전략의 기대값이 떨어진다.</strong> 슬롯은 홀드 결정이 심볼을 보고 이루어지는 유일한 종족이라(<code>slot-house.md</code> §1.3) 가중치가 홀드 가치에 직접 반영된다.</p>
+<p>13.0은 체스(13.83) 바로 아래로 여전히 대역 안이지만, <strong>1스핀 기준만 통과시키는 역산기는 이 이탈을 못 본다.</strong> → §2.5의 <code>W2 AnnualDrift</code> 경고가 필요한 이유이며, 밴드는 균등 14.2를 중심으로 <strong>13~16</strong>을 제안한다(제안값 → §10-1).</p>
+<hr>
+<h2 id="6-코어-편중된-주형-40-검산">6. 코어 <code>편중된 주형</code>(+40%) 검산<a class="heading-anchor" href="#6-코어-편중된-주형-40-검산" aria-label="Section link">#</a></h2>
+<h3 id="6-1-출현-확률-40-를-어떻게-구현하는가">6.1 &quot;출현 확률 +40%&quot;를 어떻게 구현하는가<a class="heading-anchor" href="#6-1-출현-확률-40-를-어떻게-구현하는가" aria-label="Section link">#</a></h3>
+<p>GDD §03(360줄): <em>&quot;지정한 심볼 1종의 출현 확률 +40%, 나머지 균등 감소&quot;</em>. 두 가지로 읽힌다:</p>
+<table>
+<thead>
+<tr>
+<th>해석</th>
+<th>균등 기준 결과</th>
+<th>판정</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>(가) 확률 기준 — 정규화 후 확률이 정확히 1.4배</strong></td>
+<td>세븐 16.667% → <strong>23.333%</strong>, 나머지 각 15.333%</td>
+<td><strong>채택</strong></td>
+</tr>
+<tr>
+<td>(나) 가중치 기준 — <code>BaseWeight × 1.4</code></td>
+<td>세븐 100 → 140 ⇒ 확률 21.875%(=+31%), 나머지 15.625%</td>
+<td>기각</td>
+</tr>
+</tbody></table>
+<p><strong>(가)를 채택하는 이유</strong>: GDD가 쓴 단어가 &quot;출현 <strong>확률</strong>&quot;이다. (나)는 재정규화 때문에 실제 증가폭이 +31%로 새어나가고, <strong>풀 크기에 따라 그 새는 양이 달라진다</strong>(6종에서 +31%, 13종 포커에서 +36%). 같은 코어가 종족마다 다르게 작동하면 코어 등급을 매길 수 없다.</p>
+<p>구현 (두 식 모두 비균등 기반에서도 성립한다):</p>
+<pre><code class="language-csharp">// (가) 확률 공간 — 지정 심볼을 1.4배로, 나머지는 같은 비율 s 로 눌러 합을 1로 맞춘다.
+//     &quot;나머지 균등 감소&quot; = 나머지 전부가 같은 배율 s 를 받는다는 뜻으로 읽는다.
+float targetProbability = probability[targetIndex] * 1.4f;
+float shrink = (1f - targetProbability) / (1f - probability[targetIndex]);
+
+// 가중치 공간에서 같은 결과를 내는 등가 배율 (BaseWeight 를 직접 곱하고 싶을 때)
+float weightMultiplier = 1.4f * (1f - probability[targetIndex])
+                              / (1f - 1.4f * probability[targetIndex]);
+// 균등 6종에서 weightMultiplier = 1.5217
+</code></pre>
+<p><code>targetProbability ≥ 1</code>이면(지정 심볼 확률이 71.4%를 넘으면) 정의되지 않는다 — 코어 중첩 시 걸릴 수 있으므로 가드가 필요하다.</p>
+<h3 id="6-2-심볼별-효과-같은-c등급-코어인데-부호가-뒤집힌다">6.2 심볼별 효과 — 같은 C등급 코어인데 부호가 뒤집힌다<a class="heading-anchor" href="#6-2-심볼별-효과-같은-c등급-코어인데-부호가-뒤집힌다" aria-label="Section link">#</a></h3>
+<p>균등 기준, 배당표 그대로, 50만 시행:</p>
+<table>
+<thead>
+<tr>
+<th>지정 심볼</th>
+<th>평균</th>
+<th>CV</th>
+<th>무소환</th>
+<th>세븐 3매치</th>
+<th><strong>평균 변화</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>(코어 없음)</td>
+<td>6.245</td>
+<td>1.169</td>
+<td>4.99%</td>
+<td>2.22%</td>
+<td>—</td>
+</tr>
+<tr>
+<td>체리</td>
+<td>5.519</td>
+<td>1.187</td>
+<td>4.64%</td>
+<td>1.74%</td>
+<td><strong>−11.6%</strong></td>
+</tr>
+<tr>
+<td>레몬</td>
+<td>5.707</td>
+<td>1.151</td>
+<td>4.65%</td>
+<td>1.74%</td>
+<td>−8.6%</td>
+</tr>
+<tr>
+<td>벨</td>
+<td>5.979</td>
+<td>1.116</td>
+<td>4.66%</td>
+<td>1.74%</td>
+<td>−4.3%</td>
+</tr>
+<tr>
+<td>BAR</td>
+<td>6.470</td>
+<td>1.091</td>
+<td>4.66%</td>
+<td>1.74%</td>
+<td>+3.6%</td>
+</tr>
+<tr>
+<td>2BAR</td>
+<td>7.111</td>
+<td>1.118</td>
+<td>4.69%</td>
+<td>1.74%</td>
+<td>+13.9%</td>
+</tr>
+<tr>
+<td><strong>세븐</strong></td>
+<td><strong>8.367</strong></td>
+<td><strong>1.241</strong></td>
+<td>4.70%</td>
+<td><strong>5.91%</strong></td>
+<td><strong>+34.0%</strong></td>
+</tr>
+</tbody></table>
+<p><strong>슬롯은 이 코어의 부호가 뒤집히는 유일한 종족이다.</strong> 나머지 5종족은 심볼이 등가라(<code>slot-house.md</code> §1.2) 어느 심볼을 지정하든 결과가 <strong>완전히 동일</strong>하다 — 대칭성 때문에 선택지가 존재하지 않는다. 슬롯에서만 &quot;무엇을 지정하느냐&quot;가 −11.6% ~ +34.0%를 가른다.</p>
+<p>실질적으로 <strong>플레이어는 언제나 세븐(또는 2BAR)을 지정한다.</strong> 따라서 이 코어의 유효 가치는 **항상 +34%**이며, 체리 지정은 존재하지 않는 선택지다. 표의 왼쪽 절반은 밸런스가 아니라 함정이다.</p>
+<h3 id="6-3-밸런스를-깨는-조합-지적">6.3 <strong>밸런스를 깨는 조합 — 지적</strong><a class="heading-anchor" href="#6-3-밸런스를-깨는-조합-지적" aria-label="Section link">#</a></h3>
+<h4 id="가-홀드2와-곱해져-연차-46-가-된다-가장-심각">(가) 홀드2와 곱해져 연차 +46%가 된다 ← <strong>가장 심각</strong><a class="heading-anchor" href="#가-홀드2와-곱해져-연차-46-가-된다-가장-심각" aria-label="Section link">#</a></h4>
+<p>30만 시행, 홀드 상한 2·스핀 3:</p>
+<table>
+<thead>
+<tr>
+<th>구성</th>
+<th>연차 평균</th>
+<th>연차 CV</th>
+<th>전멸률</th>
+<th>연차당 세븐 3매치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>균등 (코어 없음)</td>
+<td><strong>14.2</strong></td>
+<td>0.939</td>
+<td>0.87%</td>
+<td>12.8%</td>
+</tr>
+<tr>
+<td>균등 + <strong>세븐 +40%</strong></td>
+<td><strong>20.90</strong></td>
+<td>0.899</td>
+<td>0.75%</td>
+<td><strong>28.3%</strong></td>
+</tr>
+<tr>
+<td>균등 + 체리 +40%</td>
+<td>12.77</td>
+<td>0.969</td>
+<td>1.01%</td>
+<td>10.6%</td>
+</tr>
+<tr>
+<td>S2 세븐0.5% 보정 + 세븐 +40%</td>
+<td>14.98</td>
+<td>0.999</td>
+<td>0.66%</td>
+<td>7.6%</td>
+</tr>
+</tbody></table>
+<p><strong>1스핀에서 +34%였던 것이 연차에서 +46%로 증폭된다.</strong> 코어와 홀드가 곱해지기 때문이다 — 세븐이 흔해지면 보드에 세븐 페어가 더 자주 생기고, 홀드로 그걸 붙들어 세 번째를 노리는 시행 횟수 자체가 늘어난다.</p>
+<p>결과는 <code>slot-house.md</code> §5.4 표에 대보면 명확하다:</p>
+<table>
+<thead>
+<tr>
+<th>종족</th>
+<th>연차 평균</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>장기 / 체스</td>
+<td>13.11 / 13.83</td>
+</tr>
+<tr>
+<td><strong>슬롯 (확정, 홀드2)</strong></td>
+<td><strong>14.2</strong></td>
+</tr>
+<tr>
+<td>마작</td>
+<td>18.36</td>
+</tr>
+<tr>
+<td><strong>슬롯 + 세븐 +40% (C등급 코어 1개)</strong></td>
+<td><strong>20.90</strong></td>
+</tr>
+<tr>
+<td>포커 / 화투</td>
+<td>21.95 / 22.56</td>
+</tr>
+<tr>
+<td>(참고) 슬롯 홀드4 — §5.5에서 기각된 안</td>
+<td>22.91</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>C등급 코어 하나가 슬롯을 체스 대역(14.2)에서 포커 대역(20.9)으로 옮긴다.</strong> <code>slot-house.md</code> §5가 홀드를 4→2로 깎아 어렵게 만든 &quot;체스와 같은 기대값, 다른 위험&quot; 구도를, 가장 낮은 등급의 코어 한 장이 되돌린다.</p>
+</blockquote>
+<h4 id="나-중첩하면-폭주한다">(나) 중첩하면 폭주한다<a class="heading-anchor" href="#나-중첩하면-폭주한다" aria-label="Section link">#</a></h4>
+<p><code>Core.csv</code>에 <code>StackLimit</code> 컬럼이 있다(GDD §11). 확률 1.4배를 n번 겹치면(1스핀, 50만 시행):</p>
+<table>
+<thead>
+<tr>
+<th>중첩</th>
+<th>세븐 확률</th>
+<th>평균</th>
+<th>CV</th>
+<th>무소환</th>
+<th>세븐 3매치</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>×1</td>
+<td>23.3%</td>
+<td>8.367</td>
+<td>1.241</td>
+<td>4.70%</td>
+<td>5.91%</td>
+</tr>
+<tr>
+<td>×2</td>
+<td>32.7%</td>
+<td><strong>13.54</strong></td>
+<td>1.198</td>
+<td>3.58%</td>
+<td>15.01%</td>
+</tr>
+<tr>
+<td>×3</td>
+<td>45.7%</td>
+<td><strong>25.81</strong></td>
+<td><strong>0.994</strong></td>
+<td>1.72%</td>
+<td><strong>35.1%</strong></td>
+</tr>
+</tbody></table>
+<p><strong>3중첩이면 1스핀 평균이 25.8 — 기준 대역(6.1~6.3)의 4.1배</strong>이고, 세븐 3매치가 스핀의 35%에서 뜨면서 CV가 오히려 0.99로 떨어진다(잭팟이 일상이 되어 분산이 죽는다). <strong>슬롯의 정체성 자체가 무너진다.</strong></p>
+<h4 id="다-참고-추방령-b등급-과의-등급-역전은-없다">(다) 참고 — <code>추방령</code>(B등급)과의 등급 역전은 없다<a class="heading-anchor" href="#다-참고-추방령-b등급-과의-등급-역전은-없다" aria-label="Section link">#</a></h4>
+<p>같은 가중치 레이어의 B등급 코어를 검산했다(1종 제거, 나머지 균등 5종):</p>
+<table>
+<thead>
+<tr>
+<th>제거 심볼</th>
+<th>평균</th>
+<th>CV</th>
+<th>무소환</th>
+<th>변화</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>체리</td>
+<td><strong>8.930</strong></td>
+<td>1.019</td>
+<td>2.34%</td>
+<td><strong>+43.0%</strong></td>
+</tr>
+<tr>
+<td>레몬 / 벨 / BAR / 2BAR</td>
+<td>8.71 / 8.40 / 7.81 / 7.05</td>
+<td>1.05 / 1.09 / 1.15 / 1.19</td>
+<td>2.34%</td>
+<td>+39% / +34% / +25% / +12.9%</td>
+</tr>
+<tr>
+<td>세븐</td>
+<td>5.566</td>
+<td>1.006</td>
+<td>2.34%</td>
+<td>−10.9%</td>
+</tr>
+</tbody></table>
+<p>최선 사용(체리 제거) +43.0% &gt; <code>편중된 주형</code> 최선(세븐 지정) +34.0%. <strong>B &gt; C 등급 순서는 지켜진다.</strong> 다만 두 코어의 격차가 9%p뿐이라, C등급 하나가 B등급의 79% 값어치를 한다.</p>
+<blockquote>
+<p><strong><code>추방령</code>은 풀을 6→5로 줄여 무소환률을 4.99% → 2.34%로 반토막낸다.</strong> 슬롯의 정체성 지표(체스 0.5%와 포커 8.9%의 중간)가 코어 한 장에 흔들린다는 뜻이지만, 이건 이 스펙이 아니라 <code>Core.csv</code> 밸런싱의 몫이다.</p>
+</blockquote>
+<h4 id="완화안-기획-결정-필요-임의로-정하지-않았다-10-3">완화안 (기획 결정 필요 — 임의로 정하지 않았다 → §10-3)<a class="heading-anchor" href="#완화안-기획-결정-필요-임의로-정하지-않았다-10-3" aria-label="Section link">#</a></h4>
+<p>수치로 뒷받침되는 선택지만 나열한다:</p>
+<ul>
+<li><strong>(A) 효과량 하향</strong> — +40% → +20%로 낮추면 1스핀 +16%, 연차 약 +23% 수준. 다른 종족(효과가 대칭이라 심볼 선택이 없는)에서는 체감이 절반이 된다</li>
+<li><strong>(B) 슬롯에서 세븐/2BAR 지정 금지</strong> — <code>Core.csv</code>의 <code>TargetKey</code> 제약. &quot;가장 비싼 심볼은 주형으로 못 찍는다&quot;는 서사가 붙는다</li>
+<li><strong>(C) <code>StackLimit</code> = 1</strong> — (나)만 막고 (가)는 그대로 남는다</li>
+<li><strong>(D) 그대로 둔다</strong> — 슬롯이 &quot;코어를 만나면 가장 크게 튀는 종족&quot;이라는 정체성으로 읽는다. 대신 §5.3의 연차 밴드가 무의미해진다</li>
+</ul>
+<hr>
+<h2 id="7-전리품-혼합-시-가중치">7. 전리품 혼합 시 가중치<a class="heading-anchor" href="#7-전리품-혼합-시-가중치" aria-label="Section link">#</a></h2>
+<h3 id="7-1-확정-규칙">7.1 확정 규칙<a class="heading-anchor" href="#7-1-확정-규칙" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong>전리품 심볼은 원 종족의 <code>SymbolTable.BaseWeight</code>를 그대로 들고 들어온다. 풀 전체를 이어 붙여 한 번 정규화한다.</strong></p>
+</blockquote>
+<pre><code>p_i = BaseWeight_i / Σ(순혈 6종 + 전리품 심볼들의 BaseWeight)
+</code></pre>
+<p>§4.3의 &quot;종족 내 평균 100&quot; 정규화가 전제다. 이게 있어야 전리품 심볼이 본토 심볼과 <strong>같은 평균 몫</strong>으로 들어온다.</p>
+<h3 id="7-2-왜-이-규칙인가-puritycurve가-그대로-유지된다">7.2 왜 이 규칙인가 — PurityCurve가 그대로 유지된다<a class="heading-anchor" href="#7-2-왜-이-규칙인가-puritycurve가-그대로-유지된다" aria-label="Section link">#</a></h3>
+<p><code>subjudge-pair.md</code> §5는 혼혈 곡선(순혈 대비 −12% / −15% / −19%)을 <strong>균등 풀 전제로</strong> 확정했다. 슬롯 가중치를 비균등으로 바꿔도 그 표가 살아남아야 한다 — 안 그러면 가중치를 만질 때마다 6종족 혼혈 밸런스를 전부 다시 잡아야 한다.</p>
+<blockquote>
+<p><strong>정리.</strong> 위 규칙에서 슬롯의 주판정 전력은 <code>순혈 전력 × q³</code>이다. 여기서 <code>q = 6 / (6 + 전리품 종수)</code>이며, <strong>순혈 가중치 배분과 무관하다.</strong></p>
+<p><strong>증명.</strong> 라인은 3칸 전부가 순혈일 때만 주판정에 참여한다(<code>subjudge-pair.md</code> §1.1). 한 칸이 순혈일 확률은 <code>q</code>이고 3칸이 독립이므로 <code>q³</code>. 그 조건 하에서 6종의 조건부 분포는 순혈 때와 정확히 같으므로, 조건부 기대 배당도 순혈 값 그대로다. 따라서 <code>주판정 = 순혈전력 × q³</code>. ∎</p>
+</blockquote>
+<p>실측으로 확인(30만 시행, 짝당 4.25 · 최대 2짝):</p>
+<table>
+<thead>
+<tr>
+<th>슬롯 가중치</th>
+<th>순혈</th>
+<th>풀 8(1회 약탈)</th>
+<th>순혈 대비</th>
+<th>풀 10</th>
+<th>풀 13</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>균등(확정)</strong></td>
+<td>6.237</td>
+<td>5.409 · 짝 0.658</td>
+<td><strong>86.7%</strong></td>
+<td>5.210 (83.5%)</td>
+<td>4.965 (79.6%)</td>
+</tr>
+<tr>
+<td>S2 세븐 0.5% + 보정</td>
+<td>6.239</td>
+<td>5.412 · 짝 0.658</td>
+<td><strong>86.7%</strong></td>
+<td>5.215 (83.6%)</td>
+<td>4.962 (79.5%)</td>
+</tr>
+<tr>
+<td>S1&#39; 사다리 + 보정</td>
+<td>6.246</td>
+<td>5.424 · 짝 0.658</td>
+<td><strong>86.8%</strong></td>
+<td>5.207 (83.4%)</td>
+<td>4.959 (79.4%)</td>
+</tr>
+</tbody></table>
+<p><strong>세 가중치 전부 소수 첫째 자리까지 같은 곡선을 그린다.</strong> <code>subjudge-pair.md</code> §7의 슬롯 행(5.45 / 87.2%, 짝 0.659)과도 일치한다 — <strong>가중치 설계와 혼혈 밸런싱이 완전히 분리된다.</strong></p>
+<p>이론값과의 대조도 맞는다: <code>q³ = (6/8)³ = 0.4219</code> → 주판정 <code>6.24 × 0.4219 = 2.633</code>, 실측 2.612~2.627.</p>
+<h3 id="7-3-기각한-대안">7.3 기각한 대안<a class="heading-anchor" href="#7-3-기각한-대안" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>대안</th>
+<th>풀 13에서 순혈 대비</th>
+<th>기각 사유</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>원 종족 가중치 유지 (채택)</strong></td>
+<td><strong>79.4 ~ 79.6%</strong> (가중치 무관)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>전리품에 <strong>슬롯 최저 가중치</strong> 부여</td>
+<td><strong>65.3 ~ 66.7%</strong> (가중치에 따라 요동)</td>
+<td>혼혈 곡선이 슬롯 가중치에 딸려 움직인다. 가중치를 만질 때마다 6종족 PurityCurve를 재계산해야 한다. 게다가 3회 약탈이 −34%까지 벌어져 <code>subjudge-pair.md</code> §4.2가 지킨 설계 의도(첫 약탈 −12%, 봉우리 없음)를 이탈한다</td>
+</tr>
+<tr>
+<td>혼합 후 <strong>전부 균등</strong></td>
+<td>79.6% (곡선은 같음)</td>
+<td>곡선은 유지되지만 <strong>슬롯 자신의 가중치 설계가 약탈 순간 증발한다</strong> — 세븐을 0.5%로 조여 놓았는데 전리품 하나 받으면 균등으로 돌아간다. 코어 <code>편중된 주형</code>도 혼혈 상태에서 무의미해진다</td>
+</tr>
+</tbody></table>
+<h3 id="7-4-이질-심볼의-배당은-여전히-0이다">7.4 이질 심볼의 배당은 여전히 0이다<a class="heading-anchor" href="#7-4-이질-심볼의-배당은-여전히-0이다" aria-label="Section link">#</a></h3>
+<p><code>slot-house.md</code> §7이 이미 시뮬레이션으로 확정한 사항이다(전리품에 중위 등급을 부여하는 가설은 −32.3%로 반증됨). <strong>이질 심볼은 <code>PayTriple</code>/<code>PayDouble</code>을 갖지 않는다</strong> — <code>SymbolTable</code>에서 슬롯 외 종족 행의 배당 컬럼이 0인 것과 같은 사실의 다른 표현이다. 이질 심볼의 기여는 <strong>부판정 짝(4.25)뿐</strong>이며, 그건 <code>subjudge-pair.md</code>가 소유한다.</p>
+<p><strong>가중치 관점의 정합성 확인</strong>: 부판정 짝 개수는 이질 심볼의 <strong>비율</strong>(f/N)만 따르고 배당을 안 본다. 위 표에서 세 가중치 전부 짝 0.658로 동일한 이유다. 슬롯 가중치가 짝 판정에 영향을 주지 않는다 = <strong><code>subjudge-pair.md</code> §1.2의 &quot;전역 규칙은 종족을 안 본다&quot;가 가중치 축에서도 성립한다.</strong></p>
+<hr>
+<h2 id="8-홀드와의-정합성">8. 홀드와의 정합성<a class="heading-anchor" href="#8-홀드와의-정합성" aria-label="Section link">#</a></h2>
+<h3 id="8-1-결론-문제-없다">8.1 결론 — 문제 없다<a class="heading-anchor" href="#8-1-결론-문제-없다" aria-label="Section link">#</a></h3>
+<blockquote>
+<p><strong>홀드는 잠근 칸을 그대로 두고, 나머지 칸만 같은 가중치 분포에서 독립적으로 다시 뽑는다.</strong> 가중치 모델은 아무 수정 없이 그대로 돈다.</p>
+</blockquote>
+<p>가중치 추첨은 **칸 단위 i.i.d.**라서, 어느 칸이 잠겼는지가 나머지 칸의 분포에 영향을 주지 않는다. 결과-우선 모델이었다면 &quot;잠긴 칸이 이미 A인데 뽑은 결과가 B를 요구한다&quot;는 모순을 처리해야 했지만(§1.1), 가중치 모델엔 그 지점 자체가 없다.</p>
+<p>검증: 홀드 모델(상한 0~4, 스핀 3, 매 단계 기대 총전력 최대 조합)을 균등 가중치로 돌려 <code>slot-house.md</code> §5.3을 재현했다 — 6.27 / 8.98 / <strong>14.27</strong> / 20.43 / 22.92 (기재값 6.25 / 8.94 / 14.23 / 20.40 / 22.91). 재현되므로 아래 결론은 같은 척도 위에 있다.</p>
+<h3 id="8-2-다만-홀드는-가중치의-가치를-바꾼다">8.2 다만 홀드는 가중치의 <em>가치</em>를 바꾼다<a class="heading-anchor" href="#8-2-다만-홀드는-가중치의-가치를-바꾼다" aria-label="Section link">#</a></h3>
+<p>§5.3에서 본 그대로다. 1스핀 밸런스가 같아도 연차가 8% 갈린다. 정리하면:</p>
+<ul>
+<li><strong>가중치 → 홀드 전략 → 연차 전력</strong>의 경로가 존재한다. 슬롯은 홀드 결정이 심볼을 보고 이뤄지는 유일한 종족이라(<code>slot-house.md</code> §1.3) 이 경로가 다른 5종족엔 없다</li>
+<li>따라서 <strong>역산기는 1스핀만 리포트해선 안 된다</strong> — §2.5 <code>W2 AnnualDrift</code></li>
+<li>세븐을 조이면 &quot;세븐 페어 홀드&quot;의 기대값이 떨어져 연차가 내려가고, 세븐을 풀면(코어 <code>편중된 주형</code>) 반대로 증폭된다(§6.3-가)</li>
+</ul>
+<h3 id="8-3-표기-규칙-필수">8.3 표기 규칙 — 필수<a class="heading-anchor" href="#8-3-표기-규칙-필수" aria-label="Section link">#</a></h3>
+<p><code>TargetTripleRate</code>는 <strong>홀드 이전</strong> 기준값이다(§1.3). 플레이어가 실제로 겪는 빈도는 홀드 때문에 훨씬 높다:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>균등</th>
+<th>S2 세븐 0.5%</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CSV 기준값 (홀드 없는 1스핀)</td>
+<td>2.22%</td>
+<td>0.50%</td>
+</tr>
+<tr>
+<td><strong>연차당 실제 세븐 3매치</strong> (홀드2·스핀3)</td>
+<td><strong>12.8%</strong></td>
+<td><strong>2.47%</strong></td>
+</tr>
+<tr>
+<td>배수</td>
+<td>×5.8</td>
+<td>×4.9</td>
+</tr>
+</tbody></table>
+<p><strong>두 숫자를 혼동하면 기획이 어긋난다.</strong> <code>SlotOutcomeTable.csv</code>의 <code>Note</code> 열과 잔차 리포트에 <strong>연차 환산값을 항상 병기</strong>할 것 — 기획자가 &quot;0.5%면 200스핀에 한 번&quot;으로 읽고 잭팟이 너무 드물다고 판단할 수 있는데, 실제로는 12연차 런 하나에 약 0.30회다.</p>
+<h3 id="8-4-구현-주의-홀드-중-코어가-바뀌면">8.4 구현 주의 — 홀드 중 코어가 바뀌면<a class="heading-anchor" href="#8-4-구현-주의-홀드-중-코어가-바뀌면" aria-label="Section link">#</a></h3>
+<p><code>편중된 주형</code>은 확률을 바꾼다. 홀드-재스핀 도중에 코어가 붙거나 떨어지는 경우가 있다면 <strong>재스핀 시점의 분포</strong>를 써야 한다(잠근 칸은 이미 뽑힌 심볼이라 소급되지 않는다). GDD에 그런 타이밍의 코어는 없지만, 가중치를 스핀 시작 시점에 한 번 계산해 캐시하는 구현이라면 재스핀마다 무효화해야 한다.</p>
+<hr>
+<h2 id="9-기존-구현과의-접점">9. 기존 구현과의 접점<a class="heading-anchor" href="#9-기존-구현과의-접점" aria-label="Section link">#</a></h2>
+<h3 id="9-1-이미-있는-것">9.1 이미 있는 것<a class="heading-anchor" href="#9-1-이미-있는-것" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>대상</th>
+<th>경로</th>
+<th>재사용 지점</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>균등 추첨 지점 ①(최종 결과)</strong></td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotMachine.cs:184</code></td>
+<td><code>randomResult[reelIndex][rowIndex] = Random.Range(0, poolCount);</code> — <strong>판정에 쓰이는 보드를 정하는 유일한 지점.</strong> 가중 추첨이 반드시 들어가야 할 곳</td>
+</tr>
+<tr>
+<td><strong>균등 추첨 지점 ②(연출 필러)</strong></td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotReel.cs:95</code></td>
+<td><code>OnRequestSymbol = () =&gt; Random.Range(0, poolCount);</code> — 회전 중 흘러가는 심볼. <strong>여기도 같은 분포를 써야 한다</strong>(안 그러면 세븐이 회전 중엔 흔한데 멈추면 드문 것이 화면으로 드러난다)</td>
+</tr>
+<tr>
+<td>심볼 인덱스</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotSymbol.cs:62</code> (<code>symbolType</code>)</td>
+<td><code>SymbolTable.SymbolIndex</code>와 같은 정수. 가중치 배열의 첨자</td>
+</tr>
+<tr>
+<td>페이라인</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\SlotLineRecord.cs:6</code> / <code>SlotLineTable</code>은 <code>:31</code> / <code>Assets\Resources\Table\SlotLineTable.csv</code></td>
+<td><code>h_k</code> 사전 계산의 입력(§2.1). <strong>라인을 바꾸면 h_k도 다시 뽑아야 한다</strong> — 하드코딩하지 말고 테이블에서 유도할 것</td>
+</tr>
+<tr>
+<td>종족 레코드</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:6</code> / <code>HouseTable</code>은 <code>:32</code> / <code>.claude\class\HouseRecord.md</code></td>
+<td><code>Key</code>(=<code>SymbolTable.HouseKey</code> 조인 키) · <code>PoolCount</code> 6 · <code>HoldMax</code> 2</td>
+</tr>
+<tr>
+<td>스프라이트 로더</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:39</code> (<code>HouseSpriteLoader</code>)</td>
+<td>로드 순서 = <code>symbolType</code>. <code>SymbolTable.SpriteKey</code>와 대조 검증할 대상</td>
+</tr>
+<tr>
+<td>테이블 등록</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\TableManager.cs:39</code> / <code>:49</code> / <code>:59</code> / <code>.claude\class\TableManager.md</code></td>
+<td><code>SymbolTable</code> 3줄 추가 위치(선언 · 생성 · 딕셔너리 등록). 파일 상단 주석에 추가 절차가 이미 템플릿으로 적혀 있다</td>
+</tr>
+<tr>
+<td>CSV 파서</td>
+<td><code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\TableManager.cs:83</code> (<code>LoadCsvTable&lt;T&gt;</code>)</td>
+<td><strong>float 컬럼 지원 확인됨</strong>(필드 타입 분기에 <code>typeof(float)</code> 경로 존재) → <code>BaseWeight</code> 소수 1자리 가능(§4.2)</td>
+</tr>
+</tbody></table>
+<h3 id="9-2-새로-필요한-것">9.2 새로 필요한 것<a class="heading-anchor" href="#9-2-새로-필요한-것" aria-label="Section link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>대상</th>
+<th>경로(예정)</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>심볼 테이블</td>
+<td><code>Assets\Resources\Table\SymbolTable.csv</code></td>
+<td>§4.2 스키마. 슬롯 6행은 §4.4 확정값. <strong>나머지 5종족 행은 이 문서 범위 밖</strong>(각 종족 심볼 목록이 아직 확정 안 된 종족이 있다)</td>
+</tr>
+<tr>
+<td>Record</td>
+<td><code>Assets\Scripts\Table\SymbolRecord.cs</code></td>
+<td><code>SlotLineRecord.cs</code> 관례대로 <code>Record</code> + <code>Table&lt;T&gt;</code> 서브클래스를 한 파일에. 종족별 조회 <code>GetListByHouseKey(string _houseKey)</code> 제공</td>
+</tr>
+<tr>
+<td>테이블 등록</td>
+<td><code>TableManager.cs</code></td>
+<td>위 3줄</td>
+</tr>
+<tr>
+<td>기획 입력</td>
+<td><code>Assets\Design\Table\SlotOutcomeTable.csv</code></td>
+<td>§3.2 스키마. <strong>6행 전부 <code>TargetTripleRate</code> 빈칸으로 출고</strong>(= 균등)</td>
+</tr>
+<tr>
+<td>역산 툴</td>
+<td><code>Assets\Editor\Design\SlotWeightSolver.cs</code></td>
+<td>§2.2. <strong>순수 static · <code>MonoBehaviour</code> 상속 금지 · <code>Assets\Editor\</code> 아래</strong>(런타임 빌드에 안 실린다). 메뉴 항목으로 실행</td>
+</tr>
+<tr>
+<td>가중 추첨 유틸</td>
+<td><code>Assets\Scripts\InGame\Slot\</code> (판정기 착수 시 위치 확정)</td>
+<td>누적합 + 이분 탐색. 6~13개짜리라 선형 스캔으로도 충분하다</td>
+</tr>
+<tr>
+<td><del><code>SlotPayTable.csv</code></del></td>
+<td>—</td>
+<td><strong>만들지 않는다.</strong> <code>SymbolTable</code>이 흡수(§4.1) — <code>slot-house.md</code> §11.2의 제안을 이 문서가 대체한다</td>
+</tr>
+</tbody></table>
+<h3 id="9-3-충돌-가능-지점">9.3 충돌 가능 지점<a class="heading-anchor" href="#9-3-충돌-가능-지점" aria-label="Section link">#</a></h3>
+<ol>
+<li><p><strong>추첨 지점이 둘인데 서로 모른다.</strong> <code>UIHouseSlotMachine.cs:184</code>(결과)와 <code>UIHouseSlotReel.cs:95</code>(연출)이 각자 <code>Random.Range</code>를 부른다. 가중 추첨을 한쪽에만 넣으면 <strong>회전 중 심볼 빈도와 정지 후 빈도가 달라진다</strong> — 플레이어가 눈으로 알아챌 수 있는 종류의 불일치다. <strong>분포를 한 곳에서 계산해 양쪽에 주입할 것.</strong></p>
+</li>
+<li><p><strong><code>BaseWeight</code>와 <code>symbolType</code> 순서가 어긋나면 조용히 배당이 뒤섞인다.</strong> <code>slot-house.md</code> §11.3-3이 배당표에 대해 경고한 것과 <strong>같은 함정이 가중치에도 그대로 있다.</strong> <code>HouseSpriteLoader</code>가 <code>Resources.LoadAll</code> 순서를 그대로 인덱스로 쓰므로, <code>slot_01_</code>~<code>slot_06_</code> 접두사가 빠지면 알파벳 순(<code>bar</code> → <code>bar2</code> → <code>bell</code> → <code>cherry</code> → <code>lemon</code> → <code>seven</code>)이 되어 <strong>세븐의 가중치가 레몬에 붙는다. 에러는 안 난다.</strong> → <code>SymbolTable</code>에 <code>SpriteKey</code>와 <code>SymbolIndex</code>를 <strong>둘 다</strong> 둔 이유이며, 로드 시 대조 검증을 넣을 것.</p>
+</li>
+<li><p><strong><code>GameConfigRecord.Value</code>가 <code>int</code>다</strong> (<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\GameConfigRecord.cs:8</code>). 이 문서는 <code>GameConfigTable</code>에 값을 추가하지 않지만, <code>subjudge-pair.md</code> §2가 요구한 <code>SubJudgePairPower = 4.25</code>는 <strong>현재 스키마로는 못 들어간다</strong>(4로 잘린다). 부판정 구현 시 <code>Value</code>를 float로 바꾸거나 별도 컬럼이 필요하다 — <strong>가중치가 아니라 짝 판정 쪽 이슈지만, 두 스펙이 같은 판정기에서 만나므로 여기 기록한다.</strong></p>
+</li>
+<li><p><strong><code>SymbolTable</code>이 종족 공용 테이블이 되면서 슬롯 전용 컬럼이 생긴다.</strong> <code>CODE.MD</code> 데이터 레이어 (5)번 함정(&quot;여러 개념이 하나의 저장소를 공유&quot;)에 해당할 수 있다. 다만 갱신 경로가 하나(에디터 툴 → CSV)뿐이라 서로 침범할 경로가 없고, <code>HouseTable.isUseBet</code>이 이미 같은 형태로 굴러가고 있다. <strong>조회 API를 처음부터 <code>GetListByHouseKey()</code>로 두어</strong> 나중에 저장소만 분리할 수 있게 한다.</p>
+</li>
+<li><p><strong><code>h_k</code>를 상수로 박으면 <code>SlotLineTable</code>과 어긋난다.</strong> 라인 5개가 CSV에 있는 건 &quot;라인을 늘리거나 빼는 건 밸런싱이라 코드 수정 없이 조정할 수 있어야 한다&quot;(<code>SlotLineRecord.cs</code> 헤더 주석)는 이유였다. 라인이 바뀌면 <code>h_k</code>도 바뀌므로, <strong>툴 실행 시 <code>SlotLineTable</code>을 읽어 2^9 전수 열거로 매번 계산할 것</strong>(512회 루프, 비용 무시 가능).</p>
+</li>
+</ol>
+<hr>
+<h2 id="10-문서에-없어서-확인이-필요한-부분">10. 문서에 없어서 확인이 필요한 부분<a class="heading-anchor" href="#10-문서에-없어서-확인이-필요한-부분" aria-label="Section link">#</a></h2>
+<h3 id="10-1-역산기의-허용-밴드-3종-제안값-승인-필요">10-1. 역산기의 허용 밴드 3종 — <strong>제안값, 승인 필요</strong><a class="heading-anchor" href="#10-1-역산기의-허용-밴드-3종-제안값-승인-필요" aria-label="Section link">#</a></h3>
+<p>전부 문서 근거가 없다. 값 자체보다 &quot;밴드를 둔다&quot;는 구조가 브리프 요구(&quot;조용히 근사하지 말 것&quot;)에 대한 답이므로, 숫자는 조정 가능하다.</p>
+<table>
+<thead>
+<tr>
+<th>밴드</th>
+<th>제안값</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>전역 스케일 <code>|f−1|</code> (E2)</td>
+<td><strong>±10%</strong></td>
+<td>S1(+19.6%)은 거부하고 싶고 반올림 수준(±1%)은 통과시켜야 한다는 양끝만 확실하다. 그 사이 어디인지는 근거 없음</td>
+</tr>
+<tr>
+<td>1스핀 평균/CV (W1)</td>
+<td>6.1~6.3 / 1.17±0.05</td>
+<td>평균 대역은 GDD §05 표에서 왔다. <strong>CV 밴드 폭 ±0.05는 제안값</strong> — 마작 1.03과 0.09 이상 벌어지도록 잡았다</td>
+</tr>
+<tr>
+<td>연차 전력 (W2)</td>
+<td>13~16</td>
+<td>균등 14.2 ±약 13%. <strong>순수 제안값.</strong> 아래는 장기 13.11, 위는 마작 18.36 사이</td>
+</tr>
+</tbody></table>
+<h3 id="10-2-슬롯-심볼의-목표-3매치-확률-미기재-균등으로-출고한다">10-2. 슬롯 심볼의 목표 3매치 확률 — <strong>미기재. 균등으로 출고한다</strong><a class="heading-anchor" href="#10-2-슬롯-심볼의-목표-3매치-확률-미기재-균등으로-출고한다" aria-label="Section link">#</a></h3>
+<p>GDD §03이 &quot;균등 시작&quot;이라고 못박았으므로 §4.4의 6행(전부 100)은 <strong>문서 근거가 있는 확정값이지 임의값이 아니다.</strong> 다만 브리프가 예로 든 &quot;트리플 세븐 0.5%&quot; 같은 비균등 사다리를 실제로 채택할지는 <strong>기획 결정</strong>이며, 이 문서는 그 값을 만들지 않았다.</p>
+<p>채택 시 필요한 후속은 §5.2에 전부 계산해 뒀다(배당표 일률 배율 + 2매치 비). <strong>비균등을 고르면 배당표 수정이 필연이라는 점</strong>만 결정 전에 알고 있어야 한다 — 특히 세븐 3매치가 33 → 44~51로 올라가면서 슬롯이 분산 사다리에서 화투 쪽으로 밀린다(§5.2 주의).</p>
+<h3 id="10-3-코어-편중된-주형의-완화-승인-필요-최우선">10-3. 코어 <code>편중된 주형</code>의 완화 — <strong>승인 필요 (최우선)</strong><a class="heading-anchor" href="#10-3-코어-편중된-주형의-완화-승인-필요-최우선" aria-label="Section link">#</a></h3>
+<p>§6.3 그대로. <strong>C등급 코어 한 장이 연차 14.2 → 20.9(+46%)를 만들고, 3중첩이면 1스핀 25.8로 기준의 4.1배가 된다.</strong> 완화안 (A)~(D)를 §6.3에 값과 함께 적었으나, <strong>효과량·<code>StackLimit</code>·<code>TargetKey</code> 제약은 전부 <code>Core.csv</code>의 기획 수치라 이 문서에서 정하지 않았다.</strong></p>
+<h3 id="10-4-편중된-주형의-40-해석-확인-필요">10-4. <code>편중된 주형</code>의 &quot;+40%&quot; 해석 — <strong>확인 필요</strong><a class="heading-anchor" href="#10-4-편중된-주형의-40-해석-확인-필요" aria-label="Section link">#</a></h3>
+<p>§6.1. GDD 문언이 &quot;출현 확률 +40%&quot;라 확률 기준(가)으로 읽었다. 가중치 기준(나)이 의도였다면 실효 증가폭이 +31%가 되고 <strong>풀 크기마다 달라진다</strong>(6종 +31%, 13종 +36%). 코어 등급을 매기려면 종족 무관해야 하므로 (가)를 골랐으나, <strong>이건 문언 해석이라 확인이 필요하다.</strong></p>
+<p><code>추방령</code>도 같은 계열의 미기재가 있다 — &quot;풀에서 영구 제거&quot;가 <strong>런 전체 영구인지 해당 연차인지</strong>, 전리품으로 받은 이질 심볼도 지정 가능한지가 §03에 없다.</p>
+<h3 id="10-5-slotoutcometable-csv의-위치-구현-판단">10-5. <code>SlotOutcomeTable.csv</code>의 위치 — 구현 판단<a class="heading-anchor" href="#10-5-slotoutcometable-csv의-위치-구현-판단" aria-label="Section link">#</a></h3>
+<p>§3.1에서 <code>Assets\Design\Table\</code>을 골랐다. **폴더 신설이라 관례가 없다.** <code>Assets\Editor\Design\</code>(툴 옆)도 같은 정도로 타당하다. 확실한 건 <code>Assets\Resources\Table\</code>은 아니라는 것(런타임이 안 읽는데 빌드에 실린다).</p>
+<h3 id="10-6-다른-5종족의-baseweight-이-문서-범위-밖">10-6. 다른 5종족의 <code>BaseWeight</code> — 이 문서 범위 밖<a class="heading-anchor" href="#10-6-다른-5종족의-baseweight-이-문서-범위-밖" aria-label="Section link">#</a></h3>
+<p><code>SymbolTable.csv</code>는 6종족 공용이지만 슬롯 6행만 채웠다. GDD §03의 &quot;균등 시작&quot;은 전 종족 공통 서술이므로 나머지도 100으로 채우면 되지만, <strong>화투 12종의 <code>MonthValue</code>나 마작 9종의 구성처럼 아직 확정 안 된 항목이 섞여 있어</strong> 종족별 스펙에서 채우는 게 맞다.</p>
+<h3 id="10-7-역산기를-언제-돌리는가-구현-판단">10-7. 역산기를 언제 돌리는가 — 구현 판단<a class="heading-anchor" href="#10-7-역산기를-언제-돌리는가-구현-판단" aria-label="Section link">#</a></h3>
+<p>에디터 메뉴 수동 실행을 전제로 썼다. 자동화(<code>SlotOutcomeTable.csv</code> 저장 시 <code>AssetPostprocessor</code>로 자동 재생성)도 가능하지만, <strong>자동이면 <code>SymbolTable.csv</code>가 사람 모르게 바뀌어 커밋 diff에 튀어나온다.</strong> 수동을 기본으로 두되, <code>SymbolTable</code>의 <code>BaseWeight</code>가 목표와 어긋났는지 검사하는 <strong>검증 전용 메뉴</strong>는 별도로 두는 게 안전하다.</p>
+<hr>
+<h2 id="참고">참고<a class="heading-anchor" href="#참고" aria-label="Section link">#</a></h2>
+<ul>
+<li>연관 스펙: <a href="slot-house.html">slot-house</a> (<code>.claude\design\slot-house.html</code>) — 심볼 6종·배당표·홀드 2칸·1스핀 밸런스의 출처. <strong>이 문서가 §11.2의 <code>SlotPayTable.csv</code> 제안을 대체한다</strong> / <a href="subjudge-pair.html">subjudge-pair</a> (<code>.claude\design\subjudge-pair.html</code>) — 부판정 짝. §7의 혼합 규칙이 이 문서의 PurityCurve를 지켜야 한다 / <a href="mahjong-house.html">mahjong-house</a> (<code>.claude\design\mahjong-house.html</code>) — 밸런스 척도의 원 출처</li>
+<li>연관 클래스: <a href="../class/UIHouseSlotMachine.md">UIHouseSlotMachine</a> (<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotMachine.cs:8</code>, <code>.claude\class\UIHouseSlotMachine.md</code>) / <a href="../class/UIHouseSlotReel.md">UIHouseSlotReel</a> (<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotReel.cs:6</code>) / <a href="../class/UIHouseSlotSymbol.md">UIHouseSlotSymbol</a> (<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\InGame\Slot\UIHouseSlotSymbol.cs:15</code>) / <a href="../class/HouseRecord.md">HouseRecord</a> (<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\HouseRecord.cs:6</code>, <code>.claude\class\HouseRecord.md</code>) / <a href="../class/TableManager.md">TableManager</a> (<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Glory\Table\TableManager.cs:7</code>, <code>.claude\class\TableManager.md</code>) / <a href="../class/GameConfigTable.md">GameConfigTable</a> (<code>D:\Unity\HouseRules\HouseRulez\Assets\Scripts\Table\GameConfigRecord.cs:11</code>, <code>.claude\class\GameConfigTable.md</code>)</li>
+<li>연관 테이블: <code>SlotLineTable.csv</code>(그대로 재사용, <code>h_k</code> 유도 입력) / <code>HouseTable.csv</code>(수정 없음) / <code>SymbolTable.csv</code>(신설) / <code>SlotOutcomeTable.csv</code>(신설, 기획 입력)</li>
+</ul>
+<hr>
+<h2 id="개정-이력">개정 이력<a class="heading-anchor" href="#개정-이력" aria-label="Section link">#</a></h2>
+<h3 id="2026-08-27-0-초판">2026-08-27-0 — 초판<a class="heading-anchor" href="#2026-08-27-0-초판" aria-label="Section link">#</a></h3>
+<ul>
+<li><strong>결과 확률의 정의를 확정</strong>: 홀드 이전 · 스핀당 · 순혈 풀 기준의 3매치 성립 확률 (§1.3)</li>
+<li><strong>역산이 6개의 독립적 1차원 문제임을 증명</strong>(§2.1). 다변수 최적화 불필요 — 단조 함수의 이분 탐색 6회. <code>h_k = [0,0,0,5,30,68,71,36,9,1]</code> 전수 열거로 확정</li>
+<li><strong>자유도 5 vs 목표 6은 &quot;빈칸&quot;으로 소멸</strong>함을 보임(§2.3). 5개 이하 지정이면 잔차 0</li>
+<li><strong>6개 전부 지정 시 전역 스케일 해가 minimax 최적임을 증명</strong>(§2.4). 최소제곱보다 단순하고 사다리 비율을 보존한다. 로그공간 LSQ는 레버로만 기록</li>
+<li>실패/경고 8종 정의(§2.5). 밴드 초과 시 <strong>거부 + 달성 가능한 사다리 반환</strong></li>
+<li>잔차 실측 5시나리오(§2.6): 항등 0.00% / 사다리 +19.64%(거부) / 세븐만 지정 0.00% / 모순 −55.51%(거부) / 불가능 E1</li>
+<li><code>SlotOutcomeTable.csv</code> 스키마 확정. <strong>입력과 산출물을 분리</strong>(§3.1)</li>
+<li><strong><code>SymbolTable.csv</code> 신설 확정 + <code>SlotPayTable.csv</code> 흡수</strong>(§4.1). GDD §11이 예약한 자리를 쓰고, 슬롯 전용 컬럼은 <code>HouseTable.isUseBet</code> 선례를 따른다</li>
+<li><strong><code>BaseWeight</code>는 float, 종족 내 평균 100 정규화</strong>(§4.2/§4.3). 정수 반올림은 희귀 심볼에서 최대 1.4% 오차</li>
+<li><strong>확정 가중치 = 균등(100 × 6)</strong>. GDD §03 &quot;균등 시작&quot;이 문서 근거. <strong>배당표 무수정으로 6.245 / CV 1.169 / 무소환 4.96% 기준 충족</strong>(§5.1)</li>
+<li>비균등 시의 복구 절차를 2레버로 분리(§5.2): <strong>일률 배율 = 평균, 2매치 비 = CV</strong>. 두 시나리오 모두 2매치 비 0.128~0.129로 수렴</li>
+<li><strong>1스핀을 맞춰도 연차가 8% 어긋남을 발견</strong>(§5.3). 가중치 → 홀드 전략 → 연차의 경로가 슬롯에만 존재 → <code>W2</code> 경고 신설</li>
+<li><strong>코어 <code>편중된 주형</code>이 밸런스를 깬다고 지적</strong>(§6.3): 1스핀 +34% / <strong>연차 +46%(14.2 → 20.9, 포커 대역)</strong> / 3중첩 시 1스핀 25.8. 완화안 4종 제시, 수치는 기획 결정으로 남김</li>
+<li><strong>전리품 혼합 규칙 확정</strong>(§7): 원 종족 가중치 유지. <code>주판정 = 순혈 × q³</code>가 가중치 배분과 무관함을 증명하고 실측으로 확인 → <code>subjudge-pair.md</code>의 PurityCurve가 그대로 유지된다</li>
+<li>홀드 정합성 확인(§8). 가중치 모델은 수정 없이 성립. <strong>CSV 값과 플레이어 체감 빈도가 ×4.9~5.8 차이</strong>나므로 병기 규칙 필요</li>
+</ul>
+<hr>
+<h2 id="검증-상태">검증 상태<a class="heading-anchor" href="#검증-상태" aria-label="Section link">#</a></h2>
+<ul>
+<li><strong>시뮬레이션</strong>: 슬롯 1스핀(<code>slot-house.md</code> §4.2) · 홀드 0~4 연차(§5.3) · 혼혈 풀 8/10/13(<code>subjudge-pair.md</code> §7) <strong>세 지점 전부에서 기존 기재값을 재현한 뒤</strong> 계산했다. 평균은 해석적 정확값(6.2384)과도 교차검증했다. 주요 수치는 50만 시행 × 5시드.</li>
+<li><strong>미검증</strong>: 코드·테이블·씬·이미지·GDD를 <strong>하나도 수정하지 않았다.</strong> 이 문서는 스펙만이다. Unity 실행 검증 없음.</li>
+<li><strong>선행 승인 필요</strong>: §10-3(코어 완화, 최우선) · §10-1(밴드 3종) · §10-4(+40% 해석). §10-2는 균등으로 출고 가능하므로 구현을 막지 않는다.</li>
+<li>검증 스크립트는 세션 스크래치패드(<code>slotcore.py</code> / <code>solve2.py</code> / <code>hold.py</code> / <code>mix.py</code>)에 있으며 영구 보관 대상이 아니다. 재검증이 필요하면 §2.1의 <code>h_k</code>와 이 문서의 수치표를 기준으로 다시 만들 것.</li>
+</ul>
+
+    </article>
+  </div>
+</body>
+</html>

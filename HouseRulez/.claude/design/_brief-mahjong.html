@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Orca design document converter">
+  <meta name="source" content="_brief-mahjong.md">
+  <title>[위임 브리프] 마작 5번째 종족 검토 — design-planner에게 넘길 것 쨌 HouseRulez Design</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10141b;
+      --panel: #171d27;
+      --panel-2: #1d2531;
+      --text: #e8edf5;
+      --muted: #9ba8bb;
+      --line: #303b4c;
+      --accent: #7fa7c9;
+      --accent-2: #d6a441;
+      --code: #0c1118;
+      --good: #57a277;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% -10%, rgba(127,167,201,.16), transparent 30rem),
+        radial-gradient(circle at 95% 0%, rgba(214,164,65,.10), transparent 28rem),
+        var(--bg);
+      color: var(--text);
+      font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+      line-height: 1.72;
+    }
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0 80px; }
+    .document-header {
+      padding: 28px 32px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(127,167,201,.13), rgba(23,29,39,.94) 48%, rgba(214,164,65,.08));
+      box-shadow: 0 18px 50px rgba(0,0,0,.22);
+      margin-bottom: 20px;
+    }
+    .eyebrow { margin: 0 0 6px; color: var(--accent); font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .document-header h1 { margin: 0; font-size: clamp(1.65rem, 4vw, 2.65rem); line-height: 1.2; }
+    .source { margin: 10px 0 0; color: var(--muted); font-size: .86rem; }
+    .toc, article {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(23,29,39,.94);
+      box-shadow: 0 12px 40px rgba(0,0,0,.16);
+    }
+    .toc { padding: 16px 22px; margin-bottom: 20px; }
+    .toc summary { cursor: pointer; color: var(--accent-2); font-weight: 800; }
+    .toc ol { columns: 2 320px; column-gap: 32px; margin: 14px 0 2px; padding-left: 22px; }
+    .toc li { break-inside: avoid; margin: 4px 0; color: var(--muted); }
+    .toc .toc-level-3 { margin-left: 16px; font-size: .92em; }
+    .toc a { color: inherit; text-decoration: none; }
+    .toc a:hover { color: var(--text); }
+    article { padding: clamp(22px, 4vw, 48px); overflow: hidden; }
+    article > h1:first-child { display: none; }
+    h1, h2, h3, h4, h5, h6 { color: #f5f7fb; line-height: 1.35; scroll-margin-top: 20px; }
+    h2 { margin: 2.2em 0 .7em; padding-bottom: .38em; border-bottom: 1px solid var(--line); font-size: 1.58rem; }
+    h3 { margin: 1.8em 0 .55em; color: #c9d9e8; font-size: 1.25rem; }
+    h4 { margin: 1.45em 0 .45em; color: #d8c18d; }
+    .heading-anchor { margin-left: .45em; color: transparent; text-decoration: none; font-size: .72em; }
+    h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor { color: var(--muted); }
+    p { margin: .7em 0; }
+    a { color: #9bc7ed; text-underline-offset: 3px; }
+    strong { color: #fff; }
+    blockquote { margin: 1.15em 0; padding: 12px 18px; border-left: 4px solid var(--accent); background: rgba(127,167,201,.08); color: #cbd5e2; }
+    blockquote > :first-child { margin-top: 0; }
+    blockquote > :last-child { margin-bottom: 0; }
+    ul, ol { padding-left: 1.5em; }
+    li { margin: .28em 0; }
+    code { padding: .15em .4em; border: 1px solid #2c3747; border-radius: 5px; background: var(--code); color: #d8e8f6; font-family: "Cascadia Code", Consolas, monospace; font-size: .9em; }
+    pre { overflow-x: auto; padding: 17px 19px; border: 1px solid #293344; border-radius: 10px; background: var(--code); line-height: 1.55; }
+    pre code { padding: 0; border: 0; background: transparent; }
+    table { width: 100%; margin: 1.15em 0 1.6em; border-collapse: separate; border-spacing: 0; font-size: .92rem; display: block; overflow-x: auto; }
+    thead { background: #222c39; }
+    th, td { min-width: 105px; padding: 10px 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #f0dcae; font-weight: 800; }
+    tr > :first-child { border-left: 1px solid var(--line); }
+    thead tr:first-child > * { border-top: 1px solid var(--line); }
+    tr:first-child > :first-child { border-top-left-radius: 8px; }
+    tr:first-child > :last-child { border-top-right-radius: 8px; }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
+    hr { margin: 2.2em 0; border: 0; border-top: 1px solid var(--line); }
+    img { max-width: 100%; height: auto; }
+    input[type="checkbox"] { accent-color: var(--good); }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 18px, 1180px); padding-top: 10px; }
+      .document-header { padding: 22px 20px; border-radius: 12px; }
+      article { padding: 20px 16px; border-radius: 12px; }
+      .toc { border-radius: 12px; }
+      .toc ol { columns: 1; }
+      table { font-size: .82rem; }
+      th, td { padding: 8px; }
+    }
+    @media print {
+      :root { color-scheme: light; --bg: #fff; --panel: #fff; --text: #15191f; --muted: #555; --line: #bbb; --code: #f3f4f6; }
+      body { background: #fff; }
+      .shell { width: 100%; padding: 0; }
+      .document-header, .toc, article { box-shadow: none; }
+      .document-header { background: #fff; }
+      .toc { display: none; }
+      article { border: 0; padding: 0; }
+      a { color: inherit; }
+      pre, table { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="document-header">
+      <p class="eyebrow">HouseRulez 쨌 Design Specification</p>
+      <h1>[위임 브리프] 마작 5번째 종족 검토 — design-planner에게 넘길 것</h1>
+      <p class="source">Canonical HTML 쨌 Previous source: <code>_brief-mahjong.md</code></p>
+    </header>
+    <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#요청">요청</a></li><li class="toc-level-2"><a href="#반드시-먼저-읽을-것">반드시 먼저 읽을 것</a></li><li class="toc-level-2"><a href="#검토해야-할-핵심-쟁점">검토해야 할 핵심 쟁점</a></li><li class="toc-level-2"><a href="#산출물">산출물</a></li></ol></details>
+    <article>
+<h1 id="위임-브리프-마작-5번째-종족-검토-design-planner에게-넘길-것">[위임 브리프] 마작 5번째 종족 검토 — design-planner에게 넘길 것<a class="heading-anchor" href="#위임-브리프-마작-5번째-종족-검토-design-planner에게-넘길-것" aria-label="Section link">#</a></h1>
+<blockquote>
+<p>이 파일은 <strong>작업 지시서</strong>다. 새 세션에서 <code>design-planner</code> 에이전트에게 아래 내용을 그대로 프롬프트로 넘기면 된다.
+위임이 끝나고 <code>mahjong-house.md</code>가 나오면 이 파일은 지운다.</p>
+<p>(2026-08-25 작성. 위임하려던 세션에서 커스텀 에이전트가 목록에 안 잡혀 넘기지 못했다.)</p>
+</blockquote>
+<hr>
+<p>HouseRulez 프로젝트(절대경로: <code>D:\Unity\HouseRules\HouseRulez</code>)의 기획 검토 건이다.</p>
+<h2 id="요청">요청<a class="heading-anchor" href="#요청" aria-label="Section link">#</a></h2>
+<p>사용자가 <strong>마작을 5번째 종족으로 추가하고 싶어 한다.</strong> 이것이 이 게임의 설계 축을 깨지 않고 가능한지 검토하고, 가능하다면 구현 가능한 스펙으로 정리해달라.</p>
+<h2 id="반드시-먼저-읽을-것">반드시 먼저 읽을 것<a class="heading-anchor" href="#반드시-먼저-읽을-것" aria-label="Section link">#</a></h2>
+<ol>
+<li><code>Assets\Design\reel_of_four_houses_GDD.html</code> — 게임 전체 GDD(972줄). 특히:<ul>
+<li>네 종족의 판정 구조(체스=정렬 / 장기=포 넘기 / 포커=족보 / 화투=섯다)와 각 종족의 심볼 풀 크기, 평균전력·분산·상한·학습비용 축</li>
+<li>&quot;네 종족의 원본 규칙이 이미 서로 다른 확률 구조를 갖고 있다 — 판정의 종류가 다르지 스킨이 다른 게 아니다&quot;라는 핵심 설계 원리</li>
+<li>해금 순서 규칙(풀 크기 순 = 체스6 → 장기7 → 화투12 → 포커13, &quot;심볼 수가 곧 난이도 지표&quot;)</li>
+<li>아트 파트의 종족 액센트 색과 &quot;검정은 적군 전용, 환경 최암부 #363B4A&quot; 절대 규칙</li>
+<li>11장 데이터 테이블 스키마(House.csv, Symbol.csv 등)</li>
+</ul>
+</li>
+<li><code>Assets\Design\title_screen_design.html</code> — 타이틀 화면 설계(현재 구현 상태와 미정 항목)</li>
+</ol>
+<h2 id="검토해야-할-핵심-쟁점">검토해야 할 핵심 쟁점<a class="heading-anchor" href="#검토해야-할-핵심-쟁점" aria-label="Section link">#</a></h2>
+<ul>
+<li><strong>판정 종류의 중복</strong>: 마작의 슌쯔(연속 3장)는 포커의 스트레이트와, 커쯔(같은 3장)는 포커의 트리플/체스의 정렬과 겹친다. 기존 넷은 전부 라인(가로3·세로3·대각2) 또는 열 단위로 읽는다. 마작이 별개 종족이 되려면 어떤 판정 축을 가져와야 하는가. 한 가지 후보: <strong>라인을 아예 안 보고 9칸 전체를 3장씩 세 묶음으로 분할(전역 조합 최적화)</strong> — 9칸의 3분할은 280가지라 완전탐색 가능. 이 축이 타당한지, 더 나은 축이 있는지 판단해달라.</li>
+<li><strong>심볼 풀 크기</strong>: 마작 전체는 34종(수패 27 + 자패 7)이라 포커 13보다 훨씬 크다. GDD가 포커 13종조차 초심자 이탈 위험으로 지적했다. 수패 한 종류만 써서 1~9의 9종으로 줄이는 안이 타당한가.</li>
+<li><strong>해금 순서 규칙 충돌</strong>: 풀 9종이면 장기(7)와 화투(12) 사이인데, 학습 비용은 마작이 가장 높을 가능성이 크다. &quot;풀 크기 순&quot;이라는 기존 규칙을 유지할지 바꿀지.</li>
+<li><strong>밸런스 축</strong>: 기존 넷의 평균 전력 61<del>63, 변동계수 0.64</del>1.73 범위 안에서 마작을 어디에 놓을지. 기존 넷과 차별되는 정체성 한 줄.</li>
+<li><strong>문화권 중복</strong>: 현재 장기 배경이 &quot;한국·중국 고대&quot;로 잡혀 있어 마작(중국)과 겹친다. 배경 테마 분리안이 필요하다.</li>
+<li><strong>액센트 색</strong>: 체스 <code>#7FA7C9</code> / 장기 <code>#57A277</code> / 포커 <code>#D6A441</code> / 화투 <code>#D1554C</code>가 이미 쓰였다. 남는 색 제안(청록·보라 계열 등). 반드시 환경 최암부 한계 <code>#363B4A</code>(휘도 L59.2)보다 밝을 것.</li>
+</ul>
+<h2 id="산출물">산출물<a class="heading-anchor" href="#산출물" aria-label="Section link">#</a></h2>
+<p><code>.claude\design\mahjong-house.html</code> 에 구현 가능한 스펙으로 정리할 것. 포함할 것:</p>
+<ul>
+<li>결론(가능 / 불가 / 조건부 가능)과 그 근거</li>
+<li>판정 규칙의 정확한 정의와 점수 구조(기존 종족의 점수 스케일과 직접 비교 가능하게)</li>
+<li>심볼 풀 정의(무엇을 몇 종 쓰는지, CSV 스키마 관점)</li>
+<li>기존 테이블/코드와의 접점</li>
+<li>엣지 케이스와 미해결 결정 항목</li>
+<li>배경/색 테마 제안</li>
+</ul>
+<p><strong>코드와 테이블은 직접 수정하지 말고 스펙 문서만 작성해라.</strong> 판단이 서지 않는 지점은 임의로 결정하지 말고 선택지와 트레이드오프를 적어 남겨라.</p>
+
+    </article>
+  </div>
+</body>
+</html>

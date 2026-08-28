@@ -36,7 +36,7 @@ public int isUseBet;
 CSV 파서가 `Convert.ChangeType(value, field.FieldType)`을 쓰는데 `"1"` → `bool` 변환은 실패한다.
 기존 `isUnlocked`도 같은 이유로 `int`다 — 그 선례를 따랐다.
 
-## 2026-08-27-1 — 슬롯 종족 추가 (`.claude/design/slot-house.md` 확정 스펙 반영)
+## 2026-08-27-1 — 슬롯 종족 추가 (`.claude/design/slot-house.html` 확정 스펙 반영)
 
 ### 개요
 6번째 종족 슬롯을 `HouseTable.csv`에 추가하고, 홀드 상한 컬럼 `HoldMax`를 신설했다.
@@ -83,7 +83,7 @@ public int HoldMax;
 `Assets/Scripts` 전체에서 `HouseRecord`/`HouseTable`을 참조하는 곳은 전부 `GetRecordByKey(문자열)` 경유였고, `.Id`를 직접 비교/참조하는 코드는 없었다(grep 확인). Id 재번호로 인한 영향 없음.
 
 ### `AxisCeiling`(마작, 미채움) — 계산만
-스펙 §8.2 공식(`45 × (99%분위/평균 비 ÷ 3.25)`, 체스 기준 환산)을 마작에 적용하려면 마작의 1스핀 99%분위 값이 필요하다. `.claude/design/mahjong-house.md`에서 해당 수치를 찾지 못해 계산하지 못했다 — **채우지 않았고 채울 근거도 없다** (원 지시대로 승인 대상 아님, 손대지 않음).
+스펙 §8.2 공식(`45 × (99%분위/평균 비 ÷ 3.25)`, 체스 기준 환산)을 마작에 적용하려면 마작의 1스핀 99%분위 값이 필요하다. `.claude/design/mahjong-house.html`에서 해당 수치를 찾지 못해 계산하지 못했다 — **채우지 않았고 채울 근거도 없다** (원 지시대로 승인 대상 아님, 손대지 않음).
 
 ### StringTable
 `Assets/Resources/Table/StringTable.csv`에 Id 26 `HouseSlot`(슬롯/Slot/老虎机/スロット) 추가. 스펙 §12.2(배당표 UI용 27~36)는 문서 자체가 "배당표 UI가 실제로 만들어질 때 추가"라고 명시해 이번엔 제외.
