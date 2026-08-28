@@ -103,13 +103,39 @@ public class UIManager : MonoSingleton<UIManager>
 		if (_isPopup == true)
 		{
 			if (m_PopupCanvas == null)
-				m_PopupCanvas = transform.Find(POPUP_CANVAS_NAME);
+				m_PopupCanvas = FindOrCreateCanvasRoot(POPUP_CANVAS_NAME);
 			return (m_PopupCanvas != null) ? m_PopupCanvas : transform;
 		}
 
 		if (m_UICanvas == null)
-			m_UICanvas = transform.Find(UI_CANVAS_NAME);
+			m_UICanvas = FindOrCreateCanvasRoot(UI_CANVAS_NAME);
 		return (m_UICanvas != null) ? m_UICanvas : transform;
+	}
+
+	private Transform FindOrCreateCanvasRoot(string _name)
+	{
+		Transform existing = transform.Find(_name);
+		if (existing != null)
+			return existing;
+
+		Canvas[] canvases = FindObjectsByType<Canvas>(FindObjectsSortMode.None);
+		Canvas sceneCanvas = System.Array.Find(canvases, canvas => canvas.name == "Canvas");
+		if (sceneCanvas == null)
+			sceneCanvas = System.Array.Find(canvases, canvas => canvas.gameObject != gameObject);
+		if (sceneCanvas == null)
+		{
+			Logger.Error($"[UIManager] FindOrCreateCanvasRoot Failed! Canvas not found - {_name}");
+			return null;
+		}
+
+		GameObject rootObject = new GameObject(_name, typeof(RectTransform));
+		RectTransform rectTransform = rootObject.GetComponent<RectTransform>();
+		rectTransform.SetParent(sceneCanvas.transform, false);
+		rectTransform.anchorMin = Vector2.zero;
+		rectTransform.anchorMax = Vector2.one;
+		rectTransform.offsetMin = Vector2.zero;
+		rectTransform.offsetMax = Vector2.zero;
+		return rectTransform;
 	}
 
 	public void RegisterPopup(UIPopup _popup)

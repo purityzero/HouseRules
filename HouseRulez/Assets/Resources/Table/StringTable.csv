@@ -25,3 +25,11 @@ Id,Key,Kr,En,Cn,Jp
 24,ActionBattleSpeed,배속 ×{0},Speed ×{0},倍速 ×{0},倍速 ×{0}
 25,ReelSpin,SPIN,SPIN,SPIN,SPIN
 26,HouseSlot,슬롯,Slot,老虎机,スロット
+27,SettingsTitle,설정,Settings,设置,設定
+28,SettingsLanguage,언어,Language,语言,言語
+29,SettingsBgm,BGM 음량,BGM Volume,BGM 音量,BGM 音量
+30,SettingsSfx,효과음 음량,SFX Volume,音效音量,効果音音量
+31,SettingsFps,프레임 제한,Frame Rate,帧率限制,フレームレート
+32,SettingsFpsAdaptive,자동,Adaptive,自动,自動
+33,SettingsFps30,30 FPS,30 FPS,30 FPS,30 FPS
+34,SettingsFps60,60 FPS,60 FPS,60 FPS,60 FPS

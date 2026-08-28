@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 // 종족 선택 화면. 타이틀 위에 얹는 패널이라 고르는 즉시 뒤 배경이 바뀌어 미리보기가 된다.
 // 화면은 위에서부터 [말 종류] -> [능력치 막대] -> [종족 선택지 5개] 순으로 쌓인다.
-public class UIHouseSelect : MonoBehaviour
+public class UIHouseSelect : UIPopup
 {
     // 능력치 막대 한 줄. 라벨과 채워지는 이미지를 묶어둔다.
     [System.Serializable]
@@ -17,7 +17,6 @@ public class UIHouseSelect : MonoBehaviour
         public TextMeshProUGUI ValueText;
     }
 
-    [SerializeField] private GameObject m_Root;
     [SerializeField] private TextMeshProUGUI m_TitleText;
 
     [SerializeField] private Transform m_UnitRoot;        // 말 종류가 깔리는 곳
@@ -25,14 +24,6 @@ public class UIHouseSelect : MonoBehaviour
 
     [SerializeField] private StatBar[] m_StatBars;        // 평균 전력 / 분산 / 상한 / 학습 비용
     [SerializeField] private Transform m_HouseButtonRoot; // 선택지 5개가 가로로 놓이는 곳
-
-    [SerializeField] private RawImage m_PreviewBackground; // 타이틀 배경(고르면 즉시 바뀐다)
-
-    // 패널이 열린 동안 감출 타이틀 UI(로고·메뉴). 배경은 미리보기라 남겨둔다.
-    [SerializeField] private GameObject[] m_HideOnOpen;
-
-    // 타이틀에 서 있는 말 줄. 종족을 바꾸면 여기도 같이 갈린다.
-    [SerializeField] private TitleUnitRow m_TitleUnitRow;
 
     // 0.45초 + OutCubic은 초반이 급해서 순간에 차버린다 — 차오르는 게 보이려면 이 정도는 필요하다
     [SerializeField] private float m_BarDuration = 0.9f;
@@ -47,13 +38,16 @@ public class UIHouseSelect : MonoBehaviour
     private HouseRecord m_SelectedHouse;
     private Sequence m_BarSequence;
 
-    public void Open()
+    public override void Show()
     {
-        if (m_Root == null)
-            return;
+        base.Show();
 
-        m_Root.SetActive(true);
-        SetTitleUIVisible(false);
+        RectTransform rectTransform = transform as RectTransform;
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.anchoredPosition = Vector2.zero;
+        rectTransform.sizeDelta = new Vector2(1920f, 1080f);
 
         if (m_ListHouse.Count <= 0)
             Build();
@@ -64,43 +58,10 @@ public class UIHouseSelect : MonoBehaviour
             Select(selected.Key);
     }
 
-    // 타이틀 진입 시 저장된 종족을 화면에 반영한다. 패널을 열지 않고 배경과 말 줄만 갈아끼운다 —
-    // 선택지 버튼과 능력치 막대는 패널을 열 때 Select()가 어차피 다시 채우므로 여기서 만들지 않는다.
-    public void ApplyTitleTheme(HouseRecord _record)
-    {
-        if (_record == null)
-        {
-            Logger.Error($"[UIHouseSelect] ApplyTitleTheme Failed! record == null");
-            return;
-        }
-
-        ApplyBackground(_record);
-
-        if (m_TitleUnitRow != null)
-            m_TitleUnitRow.Apply(_record);
-    }
-
-    public void Close()
+    public override void Close()
     {
         KillBarSequence();
-        SetTitleUIVisible(true);
-
-        if (m_Root != null)
-            m_Root.SetActive(false);
-    }
-
-    private void SetTitleUIVisible(bool _isVisible)
-    {
-        if (m_HideOnOpen == null)
-            return;
-
-        for (int i = 0; i < m_HideOnOpen.Length; ++i)
-        {
-            if (m_HideOnOpen[i] == null)
-                continue;
-
-            m_HideOnOpen[i].SetActive(_isVisible);
-        }
+        base.Close();
     }
 
     public void OnClickCloseButton()
@@ -137,9 +98,22 @@ public class UIHouseSelect : MonoBehaviour
         m_ListHouseButton.Clear();
         m_HouseButtonRoot.GetComponentsInChildren<UIHouseSelectButton>(true, m_ListHouseButton);
 
-        if (m_ListHouseButton.Count < m_ListHouse.Count)
+        if (m_ListHouseButton.Count > 0)
         {
-            Logger.Error($"[UIHouseSelect] 선택지 버튼이 모자란다 — 버튼 {m_ListHouseButton.Count} / 종족 {m_ListHouse.Count}");
+            UIHouseSelectButton template = m_ListHouseButton[0];
+            while (m_ListHouseButton.Count < m_ListHouse.Count)
+            {
+                UIHouseSelectButton button = Instantiate(template, m_HouseButtonRoot);
+                m_ListHouseButton.Add(button);
+            }
+        }
+
+        const float buttonSpacing = 214f;
+        float startX = -(m_ListHouseButton.Count - 1) * buttonSpacing * 0.5f;
+        for (int i = 0; i < m_ListHouseButton.Count; ++i)
+        {
+            RectTransform buttonRect = m_ListHouseButton[i].transform as RectTransform;
+            buttonRect.anchoredPosition = new Vector2(startX + i * buttonSpacing, buttonRect.anchoredPosition.y);
         }
 
         for (int i = 0; i < m_ListHouseButton.Count; ++i)
@@ -217,11 +191,10 @@ public class UIHouseSelect : MonoBehaviour
         }
 
         ApplyUnits(record);
-        ApplyBackground(record);
         PlayBarAnimation(record);
 
-        if (m_TitleUnitRow != null)
-            m_TitleUnitRow.Apply(record);
+        TitleScene titleScene = FindFirstObjectByType<TitleScene>();
+        titleScene?.ApplyHouseTheme(record);
     }
 
     // 위쪽 — 그 종족의 말 종류를 깔아준다
@@ -258,21 +231,6 @@ public class UIHouseSelect : MonoBehaviour
             slot.gameObject.SetActive(true);
             m_ListUnitSlot.Add(slot);
         }
-    }
-
-    private void ApplyBackground(HouseRecord _record)
-    {
-        if (m_PreviewBackground == null)
-            return;
-
-        if (string.IsNullOrEmpty(_record.BackgroundPath) == true)
-            return;
-
-        Texture texture = ResUtil.Load<Texture>(_record.BackgroundPath);
-        if (texture == null)
-            return;
-
-        m_PreviewBackground.texture = texture;
     }
 
     // 능력치 막대 — 0에서 목표치까지 차오른다. 줄마다 조금씩 늦게 시작해 순서가 읽히게 한다.
