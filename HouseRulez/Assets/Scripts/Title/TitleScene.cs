@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 // BaseScene의 OnEnable()이 씬 내 다른 스크립트의 OnEnable()보다 먼저 실행되도록 강제 —
 // Unity는 "모든 Awake가 끝난 뒤에 Start가 불린다"는 보장은 하지만 OnEnable 순서에는 이 보장이 없다.
@@ -15,7 +16,8 @@ public class TitleScene : BaseScene
     [SerializeField] private TextMeshProUGUI m_UpgradeButtonText;
     [SerializeField] private TextMeshProUGUI m_SettingButtonText;
 
-    [SerializeField] private UIHouseSelect m_HouseSelect;
+    [SerializeField] private RawImage m_TitleBackground;
+    [SerializeField] private TitleUnitRow m_TitleUnitRow;
 
     protected override void OnSetup()
     {
@@ -37,12 +39,6 @@ public class TitleScene : BaseScene
     // 종족을 바꿔둔 채 게임을 다시 켜면 타이틀만 이전 종족으로 남는다.
     private void ApplyHouseTheme()
     {
-        if (m_HouseSelect == null)
-        {
-            Logger.Error($"[TitleScene] ApplyHouseTheme Failed! UIHouseSelect not linked");
-            return;
-        }
-
         HouseRecord record = PlayerManager.instance.GetSelectedHouseRecord();
         if (record == null)
         {
@@ -50,7 +46,22 @@ public class TitleScene : BaseScene
             return;
         }
 
-        m_HouseSelect.ApplyTitleTheme(record);
+        ApplyHouseTheme(record);
+    }
+
+    public void ApplyHouseTheme(HouseRecord _record)
+    {
+        if (_record == null)
+            return;
+
+        if (m_TitleBackground != null && string.IsNullOrEmpty(_record.BackgroundPath) == false)
+        {
+            Texture texture = ResUtil.Load<Texture>(_record.BackgroundPath);
+            if (texture != null)
+                m_TitleBackground.texture = texture;
+        }
+
+        m_TitleUnitRow?.Apply(_record);
     }
 
     private void ApplyLocalizedText()
@@ -81,10 +92,7 @@ public class TitleScene : BaseScene
         SoundTable soundTable = TableManager.instance.GetTable<SoundTable>();
         SoundRecord record = soundTable?.GetRecordByKey("TitleTheme");
         if (record == null)
-        {
-            Logger.Error($"[TitleScene] PlayBgm Failed! SoundRecord not found - TitleTheme");
             return;
-        }
 
         AudioClip clip = ResUtil.Load<AudioClip>(record.ClipPath);
         if (clip == null)
@@ -105,13 +113,7 @@ public class TitleScene : BaseScene
 
     public void OnClickHouseSelectButton()
     {
-        if (m_HouseSelect == null)
-        {
-            Logger.Error($"[TitleScene] OnClickHouseSelectButton Failed! UIHouseSelect not linked");
-            return;
-        }
-
-        m_HouseSelect.Open();
+        UIManager.instance.Get<UIHouseSelect>();
     }
 
     public void OnClickUpgradeButton()
@@ -121,6 +123,6 @@ public class TitleScene : BaseScene
 
     public void OnClickSettingButton()
     {
-        // TODO: 설정 화면
+        UIManager.instance.Get<UISetting>();
     }
 }
