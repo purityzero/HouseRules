@@ -1,6 +1,7 @@
 public enum eCurrencyType
 {
     None = 0,
+    Royal,
     Max
 }
 

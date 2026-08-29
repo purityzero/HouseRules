@@ -35,3 +35,15 @@ Id,Key,Kr,En,Cn,Jp
 34,SettingsFps60,60 FPS,60 FPS,60 FPS,60 FPS
 35,HouseUpgradeTitle,종족 업그레이드,House Upgrades,种族升级,種族アップグレード
 36,HouseUpgradeEmpty,업그레이드 노드 기획 중,Upgrade nodes are in development,升级节点规划中,アップグレードノード企画中
+37,HouseUpgradeHomeHpName,본거지 보강,Stronghold Reinforcement,本部加固,本拠地補強
+38,HouseUpgradeHomeHpDesc,런 시작 본거지 HP가 늘어난다,Increases starting stronghold HP,开局本部生命值提升,ラン開始時の本拠地HPが増える
+39,HouseUpgradeSpinCoinName,스핀 코인,Spin Coins,旋转币,スピンコイン
+40,HouseUpgradeSpinCoinDesc,연차마다 주어지는 스핀 코인이 늘어난다,Increases spin coins granted each year,每年获得的旋转币增加,年ごとに与えられるスピンコインが増える
+41,HouseUpgradeSwapName,스왑 횟수,Swap Count,交换次数,スワップ回数
+42,HouseUpgradeSwapDesc,연차마다 주어지는 스왑 횟수가 늘어난다,Increases swaps granted each year,每年获得的交换次数增加,年ごとに与えられるスワップ回数が増える
+43,HouseUpgradeStartGoldName,초기 자금,Starting Funds,初始资金,初期資金
+44,HouseUpgradeStartGoldDesc,런 시작 골드가 늘어난다,Increases starting gold,开局金币增加,ラン開始時のゴールドが増える
+45,HouseUpgradeRoyal,옥새,Royal Seal,玉玺,玉璽
+46,HouseUpgradePurchase,강화,Upgrade,强化,強化
+47,HouseUpgradeMaxLevel,최대,MAX,已满级,最大
+48,HouseUpgradeLevelFormat,Lv {0}/{1},Lv {0}/{1},Lv {0}/{1},Lv {0}/{1}

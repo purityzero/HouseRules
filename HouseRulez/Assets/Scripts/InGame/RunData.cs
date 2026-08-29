@@ -37,15 +37,24 @@ public class RunData
             return;
         }
 
-        m_HomeHpMax = configTable.GetValue(GameConfigTable.KEY_HOME_HP_MAX, 8);
+        // 영구 메타는 런이 시작될 때 한 번만 스냅샷으로 반영한다. 런 도중 타이틀에서 산 것이
+        // 진행 중인 런에 소급되지 않도록, 여기 말고 다른 곳에서 다시 더하지 않는다.
+        HouseRecord selectedHouse = PlayerManager.instance.GetSelectedHouseRecord();
+        string houseKey = (selectedHouse != null) ? selectedHouse.Key : string.Empty;
+
+        m_HomeHpMax = configTable.GetValue(GameConfigTable.KEY_HOME_HP_MAX, 8)
+            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_HOME_HP_MAX);
         m_YearMax = configTable.GetValue(GameConfigTable.KEY_RUN_YEAR_MAX, 12);
-        m_SpinCoinMax = configTable.GetValue(GameConfigTable.KEY_SPIN_COIN_PER_YEAR, 3);
-        m_SwapCountMax = configTable.GetValue(GameConfigTable.KEY_SWAP_COUNT_PER_YEAR, 2);
+        m_SpinCoinMax = configTable.GetValue(GameConfigTable.KEY_SPIN_COIN_PER_YEAR, 3)
+            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_SPIN_COIN_PER_YEAR);
+        m_SwapCountMax = configTable.GetValue(GameConfigTable.KEY_SWAP_COUNT_PER_YEAR, 2)
+            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_SWAP_COUNT_PER_YEAR);
         m_BattleSpeedFast = configTable.GetValue(GameConfigTable.KEY_BATTLE_SPEED_FAST, 2);
 
         m_HomeHp = m_HomeHpMax;
         m_Year = 1;
-        m_Gold = configTable.GetValue(GameConfigTable.KEY_RUN_START_GOLD, 0);
+        m_Gold = configTable.GetValue(GameConfigTable.KEY_RUN_START_GOLD, 0)
+            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_RUN_START_GOLD);
         m_SpinCoin = m_SpinCoinMax;
         m_SwapCount = m_SwapCountMax;
         m_BetLevel = 0;
@@ -60,6 +69,25 @@ public class RunData
 
         m_SpinCoin -= 1;
         return true;
+    }
+
+    // 런 종료 시 줄 옥새. 패배해도 도달 연차만큼은 지급하고, 완주하면 보너스가 붙는다.
+    // TODO: 런 종료 단계가 아직 없어 호출부가 없다. 종료 처리가 생기면 여기 결과를 PlayerManager.AddRoyal()로 넘긴다.
+    public int GetRoyalReward()
+    {
+        GameConfigTable configTable = TableManager.instance.GetTable<GameConfigTable>();
+        if (configTable == null)
+        {
+            Logger.Error("[RunData] GetRoyalReward Failed! GameConfigTable not found");
+            return 0;
+        }
+
+        int reward = m_Year * configTable.GetValue(GameConfigTable.KEY_ROYAL_PER_YEAR, 1);
+
+        if (m_Year >= m_YearMax)
+            reward += configTable.GetValue(GameConfigTable.KEY_ROYAL_CLEAR_BONUS, 6);
+
+        return reward;
     }
 
     // 배속은 ×1과 설정된 빠른 배속 두 단계만 오간다.

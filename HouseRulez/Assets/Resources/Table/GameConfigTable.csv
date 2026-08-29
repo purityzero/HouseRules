@@ -5,3 +5,5 @@ Id,Key,Value
 4,SpinCoinPerYear,3
 5,SwapCountPerYear,2
 6,BattleSpeedFast,2
+7,RoyalPerYear,1
+8,RoyalClearBonus,6

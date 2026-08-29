@@ -11,6 +11,20 @@ public class HouseUpgradeNodeProgressData
 
     public string nodeKey => m_NodeKey;
     public int level => m_Level;
+
+    // JsonUtility가 쓰는 기본 생성자를 남겨둔다 — 없으면 역직렬화가 이 타입을 만들지 못한다.
+    public HouseUpgradeNodeProgressData() { }
+
+    public HouseUpgradeNodeProgressData(string _nodeKey, int _level)
+    {
+        m_NodeKey = _nodeKey;
+        m_Level = _level;
+    }
+
+    public void SetLevel(int _level)
+    {
+        m_Level = _level;
+    }
 }
 
 [Serializable]
@@ -20,6 +34,31 @@ public class HouseUpgradeProgressData
     [SerializeField] private List<HouseUpgradeNodeProgressData> m_ListNodeProgress = new List<HouseUpgradeNodeProgressData>();
 
     public string houseKey => m_HouseKey;
+
+    public HouseUpgradeProgressData() { }
+
+    public HouseUpgradeProgressData(string _houseKey)
+    {
+        m_HouseKey = _houseKey;
+    }
+
+    public void SetLevel(string _nodeKey, int _level)
+    {
+        if (string.IsNullOrEmpty(_nodeKey) == true)
+            return;
+
+        if (m_ListNodeProgress == null)
+            m_ListNodeProgress = new List<HouseUpgradeNodeProgressData>();
+
+        HouseUpgradeNodeProgressData nodeProgress = m_ListNodeProgress.Find(progress => progress != null && progress.nodeKey == _nodeKey);
+        if (nodeProgress == null)
+        {
+            m_ListNodeProgress.Add(new HouseUpgradeNodeProgressData(_nodeKey, _level));
+            return;
+        }
+
+        nodeProgress.SetLevel(_level);
+    }
 
     public int GetLevel(string _nodeKey)
     {
@@ -49,9 +88,13 @@ public class PlayerData : SaveData
 
     [SerializeField] private List<HouseUpgradeProgressData> m_ListHouseUpgradeProgress = new List<HouseUpgradeProgressData>();
 
+    // 영구 재화(옥새). 런 안에서만 도는 골드와 달리 런 밖으로 나가므로 여기 저장한다.
+    [SerializeField] private int m_Royal;
+
     public string selectedHouseKey => m_SelectedHouseKey;
     public List<string> listUnlockedHouseKey => m_ListUnlockedHouseKey;
     public string lastPlayedAt => m_LastPlayedAt;
+    public int royal => m_Royal;
 
     public override void Init()
     {
@@ -59,6 +102,48 @@ public class PlayerData : SaveData
         m_ListUnlockedHouseKey.Clear();
         m_LastPlayedAt = string.Empty;
         m_ListHouseUpgradeProgress = new List<HouseUpgradeProgressData>();
+        m_Royal = 0;
+    }
+
+    public void AddRoyal(int _amount)
+    {
+        if (_amount <= 0)
+            return;
+
+        m_Royal += _amount;
+        SetChanged();
+    }
+
+    // 비용 차감과 레벨 상승을 한 호출에서 끝낸다 — 둘을 밖에서 따로 부르면
+    // 사이에 실패가 끼었을 때 재화만 사라지거나 레벨만 오르는 상태가 저장된다.
+    public bool TryPurchaseHouseUpgrade(string _houseKey, string _nodeKey, int _level, int _cost)
+    {
+        if (string.IsNullOrEmpty(_houseKey) == true)
+            return false;
+
+        if (string.IsNullOrEmpty(_nodeKey) == true)
+            return false;
+
+        if (_cost < 0)
+            return false;
+
+        if (m_Royal < _cost)
+            return false;
+
+        if (m_ListHouseUpgradeProgress == null)
+            m_ListHouseUpgradeProgress = new List<HouseUpgradeProgressData>();
+
+        HouseUpgradeProgressData houseProgress = m_ListHouseUpgradeProgress.Find(progress => progress != null && progress.houseKey == _houseKey);
+        if (houseProgress == null)
+        {
+            houseProgress = new HouseUpgradeProgressData(_houseKey);
+            m_ListHouseUpgradeProgress.Add(houseProgress);
+        }
+
+        m_Royal -= _cost;
+        houseProgress.SetLevel(_nodeKey, _level);
+        SetChanged();
+        return true;
     }
 
     public void SetSelectedHouseKey(string _houseKey)

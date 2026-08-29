@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 // 저장 데이터의 유일한 창구. 밖에서는 PlayerData/OptionData를 직접 고치지 않고 전부 이 매니저를 거친다.
@@ -149,6 +150,79 @@ public class PlayerManager : MonoSingleton<PlayerManager>
             return 0;
 
         return m_PlayerData.GetHouseUpgradeLevel(_houseKey, _nodeKey);
+    }
+
+    // ---------------- 영구 메타 업그레이드 ----------------
+
+    public int royal => m_PlayerData.royal;
+
+    public void AddRoyal(int _amount)
+    {
+        m_PlayerData.AddRoyal(_amount);
+    }
+
+    // 다음 레벨 레코드. null이면 이미 최대 레벨이거나 그 종족에 없는 노드다.
+    public HouseUpgradeRecord GetNextUpgradeRecord(string _houseKey, string _nodeKey)
+    {
+        HouseUpgradeTable upgradeTable = TableManager.instance.GetTable<HouseUpgradeTable>();
+        if (upgradeTable == null)
+        {
+            Logger.Error($"[PlayerManager] GetNextUpgradeRecord Failed! HouseUpgradeTable not found");
+            return null;
+        }
+
+        int currentLevel = m_PlayerData.GetHouseUpgradeLevel(_houseKey, _nodeKey);
+        return upgradeTable.GetRecord(_houseKey, _nodeKey, currentLevel + 1);
+    }
+
+    public bool TryPurchaseHouseUpgrade(string _houseKey, string _nodeKey)
+    {
+        HouseUpgradeRecord nextRecord = GetNextUpgradeRecord(_houseKey, _nodeKey);
+        if (nextRecord == null)
+            return false;
+
+        return m_PlayerData.TryPurchaseHouseUpgrade(_houseKey, _nodeKey, nextRecord.Level, nextRecord.CostValue);
+    }
+
+    // 런 시작값에 더할 메타 보너스. TargetKey가 GameConfigTable 키와 같은 이름이라
+    // RunData는 자기가 읽는 키를 그대로 넘겨 보너스를 받는다.
+    public int GetRunConfigBonus(string _houseKey, string _targetKey)
+    {
+        if (string.IsNullOrEmpty(_houseKey) == true)
+            return 0;
+
+        HouseUpgradeTable upgradeTable = TableManager.instance.GetTable<HouseUpgradeTable>();
+        if (upgradeTable == null)
+        {
+            Logger.Error($"[PlayerManager] GetRunConfigBonus Failed! HouseUpgradeTable not found");
+            return 0;
+        }
+
+        int bonus = 0;
+        List<string> listNodeKey = upgradeTable.GetNodeKeyList(_houseKey);
+
+        for (int i = 0; i < listNodeKey.Count; ++i)
+        {
+            string nodeKey = listNodeKey[i];
+            int level = m_PlayerData.GetHouseUpgradeLevel(_houseKey, nodeKey);
+            if (level <= 0)
+                continue;
+
+            HouseUpgradeRecord record = upgradeTable.GetRecord(_houseKey, nodeKey, level);
+            if (record == null)
+                continue;
+
+            if (record.EffectType != HouseUpgradeRecord.EFFECT_RUN_CONFIG_ADD)
+                continue;
+
+            if (record.TargetKey != _targetKey)
+                continue;
+
+            // Value는 그 레벨의 총 증가량이라 레벨별로 합치지 않고 현재 레벨 행만 더한다.
+            bonus += Mathf.RoundToInt(record.Value);
+        }
+
+        return bonus;
     }
 
     // ---------------- 옵션 ----------------
