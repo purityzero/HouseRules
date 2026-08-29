@@ -11,10 +11,6 @@ public class TitleScene : BaseScene
 {
     private const string INGAME_SCENE_NAME = "InGameScene";
 
-    [SerializeField] private TextMeshProUGUI m_PlayButtonText;
-    [SerializeField] private TextMeshProUGUI m_HouseSelectButtonText;
-    [SerializeField] private TextMeshProUGUI m_UpgradeButtonText;
-    [SerializeField] private TextMeshProUGUI m_SettingButtonText;
 
     [SerializeField] private RawImage m_TitleBackground;
     [SerializeField] private TitleUnitRow m_TitleUnitRow;
@@ -27,10 +23,13 @@ public class TitleScene : BaseScene
         TableManager.instance.init();
 
         // 저장본을 여기서 깨운다(MonoSingleton이 없으면 만들면서 Awake -> Load까지 돈다).
-        // ApplyLocalizedText()보다 반드시 먼저여야 한다 — 저장된 언어가 StringTable.CurrentLanguage에 반영된 뒤 텍스트를 뽑아야 한다.
+        // UIText.RefreshAll()보다 반드시 먼저여야 한다 — 저장된 언어가 StringTable.CurrentLanguage에 반영된 뒤 텍스트를 뽑아야 한다.
         PlayerManager.instance.Load();
 
-        ApplyLocalizedText();
+        // 정적 라벨은 UIText가 스스로 채운다. 씬 오브젝트의 OnEnable은 위 테이블 로드보다
+        // 먼저 돌기 때문에 여기서 최초 1회만 직접 돌려준다.
+        UIText.RefreshAll();
+
         ApplyHouseTheme();
         PlayBgm();
     }
@@ -62,21 +61,6 @@ public class TitleScene : BaseScene
         }
 
         m_TitleUnitRow?.Apply(_record);
-    }
-
-    private void ApplyLocalizedText()
-    {
-        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
-        if (stringTable == null)
-        {
-            Logger.Error($"[TitleScene] ApplyLocalizedText Failed! StringTable not found");
-            return;
-        }
-
-        SetText(m_PlayButtonText, stringTable.GetString("TitlePlay"));
-        SetText(m_HouseSelectButtonText, stringTable.GetString("TitleHouseSelect"));
-        SetText(m_UpgradeButtonText, stringTable.GetString("TitleUpgrade"));
-        SetText(m_SettingButtonText, stringTable.GetString("TitleSetting"));
     }
 
     private void SetText(TextMeshProUGUI _text, string _value)

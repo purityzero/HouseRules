@@ -9,7 +9,6 @@ using UnityEngine.UI;
 public class UIInGameAction : MonoBehaviour
 {
     [SerializeField] private Button m_BattleStartButton;
-    [SerializeField] private TextMeshProUGUI m_BattleStartText;
 
     [SerializeField] private RectTransform m_SwapPipRoot;
     [SerializeField] private Image m_SwapPipTemplate;
@@ -47,7 +46,6 @@ public class UIInGameAction : MonoBehaviour
 
         m_RunData = _runData;
 
-        ApplyLocalizedText();
         BuildSwapPipList(_runData.swapCountMax);
 
         Refresh();
@@ -69,18 +67,6 @@ public class UIInGameAction : MonoBehaviour
 
         SetText(m_SwapText, stringTable.GetString("ActionSwap", m_RunData.swapCount));
         SetText(m_BattleSpeedText, stringTable.GetString("ActionBattleSpeed", m_RunData.battleSpeed));
-    }
-
-    private void ApplyLocalizedText()
-    {
-        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
-        if (stringTable == null)
-        {
-            Logger.Error("[UIInGameAction] ApplyLocalizedText Failed! StringTable not found");
-            return;
-        }
-
-        SetText(m_BattleStartText, stringTable.GetString("ActionBattleStart"));
     }
 
     private void BuildSwapPipList(int _count)

@@ -1402,6 +1402,7 @@ GameObject:
   - component: {fileID: 1414206869}
   - component: {fileID: 1414206871}
   - component: {fileID: 1414206870}
+  - component: {fileID: 1414206872}
   m_Layer: 5
   m_Name: Text
   m_TagString: Untagged
@@ -1528,6 +1529,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1414206868}
   m_CullTransparentMesh: 1
+--- !u!114 &1414206872
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1414206868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 1414206870}
+  m_Key: TitlePlay
 --- !u!1 &1471447769
 GameObject:
   m_ObjectHideFlags: 0
@@ -1539,6 +1554,7 @@ GameObject:
   - component: {fileID: 1471447770}
   - component: {fileID: 1471447772}
   - component: {fileID: 1471447771}
+  - component: {fileID: 1471447773}
   m_Layer: 5
   m_Name: Text
   m_TagString: Untagged
@@ -1665,6 +1681,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1471447769}
   m_CullTransparentMesh: 1
+--- !u!114 &1471447773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1471447769}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 1471447771}
+  m_Key: TitleHouseSelect
 --- !u!1 &1542094827
 GameObject:
   m_ObjectHideFlags: 0
@@ -1826,6 +1856,7 @@ GameObject:
   - component: {fileID: 1635805570}
   - component: {fileID: 1635805572}
   - component: {fileID: 1635805571}
+  - component: {fileID: 1635805573}
   m_Layer: 5
   m_Name: Text
   m_TagString: Untagged
@@ -1952,6 +1983,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1635805569}
   m_CullTransparentMesh: 1
+--- !u!114 &1635805573
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1635805569}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 1635805571}
+  m_Key: TitleUpgrade
 --- !u!1 &1639976465
 GameObject:
   m_ObjectHideFlags: 0
@@ -2379,6 +2424,7 @@ GameObject:
   - component: {fileID: 2086075815}
   - component: {fileID: 2086075817}
   - component: {fileID: 2086075816}
+  - component: {fileID: 2086075818}
   m_Layer: 5
   m_Name: Text
   m_TagString: Untagged
@@ -2505,6 +2551,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2086075814}
   m_CullTransparentMesh: 1
+--- !u!114 &2086075818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2086075814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 2086075816}
+  m_Key: TitleSetting
 --- !u!1 &2129095341
 GameObject:
   m_ObjectHideFlags: 0

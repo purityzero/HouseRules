@@ -20,11 +20,6 @@ public class UISetting : UIPopup
         eFpsOption.Fps60,
     };
 
-    [SerializeField] private TextMeshProUGUI m_TitleText;
-    [SerializeField] private TextMeshProUGUI m_LanguageLabel;
-    [SerializeField] private TextMeshProUGUI m_BgmLabel;
-    [SerializeField] private TextMeshProUGUI m_SfxLabel;
-    [SerializeField] private TextMeshProUGUI m_FpsLabel;
     [SerializeField] private UIButton m_LanguageButton;
     [SerializeField] private TextMeshProUGUI m_LanguageValueText;
     [SerializeField] private UIButton m_FpsButton;
@@ -48,7 +43,7 @@ public class UISetting : UIPopup
         rectTransform.sizeDelta = new Vector2(1920f, 1080f);
 
         OptionData option = PlayerManager.instance.optionData;
-        ApplyLocalizedText();
+        RefreshOptionValueText();
 
         m_BgmSlider.SetValueWithoutNotify(option.bgmVolume);
         m_SfxSlider.SetValueWithoutNotify(option.sfxVolume);
@@ -72,27 +67,21 @@ public class UISetting : UIPopup
     {
         int index = Array.IndexOf(Languages, PlayerManager.instance.optionData.language);
         PlayerManager.instance.SetLanguage(Languages[(index + 1) % Languages.Length]);
-        ApplyLocalizedText();
+        RefreshOptionValueText();
     }
 
     private void OnClickFpsButton()
     {
         int index = Array.IndexOf(FpsOptions, PlayerManager.instance.optionData.fpsOption);
         PlayerManager.instance.SetFpsOption(FpsOptions[(index + 1) % FpsOptions.Length]);
-        ApplyLocalizedText();
+        RefreshOptionValueText();
     }
 
-    private void ApplyLocalizedText()
+    private void RefreshOptionValueText()
     {
         StringTable table = TableManager.instance.GetTable<StringTable>();
         if (table == null)
             return;
-
-        m_TitleText.text = table.GetString("SettingsTitle");
-        m_LanguageLabel.text = table.GetString("SettingsLanguage");
-        m_BgmLabel.text = table.GetString("SettingsBgm");
-        m_SfxLabel.text = table.GetString("SettingsSfx");
-        m_FpsLabel.text = table.GetString("SettingsFps");
 
         string[] languageNames = { "한국어", "English", "中文", "日本語" };
         string[] fpsNames =

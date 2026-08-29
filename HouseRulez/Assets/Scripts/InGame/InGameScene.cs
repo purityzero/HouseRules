@@ -10,7 +10,6 @@ public class InGameScene : BaseScene
 {
     [SerializeField] private UIHouseSlotMachine m_SlotMachine;
     [SerializeField] private Button m_SpinButton;
-    [SerializeField] private TextMeshProUGUI m_SpinButtonText;
     [SerializeField] private RawImage m_BackgroundImage;
     [SerializeField] private UIInGameHud m_Hud;
     [SerializeField] private UIInGameAction m_Action;
@@ -41,7 +40,8 @@ public class InGameScene : BaseScene
 
         m_RunData.Init();
 
-        ApplyLocalizedText();
+        // 정적 라벨은 UIText가 스스로 채운다. 최초 1회만 여기서 돌린다.
+        UIText.RefreshAll();
 
         m_SlotMachine.Apply(record);
 
@@ -57,18 +57,6 @@ public class InGameScene : BaseScene
     }
 
     // HUD/ACTION 라벨은 각 UI가 스스로 채운다 — 여기서 다루는 건 어느 UI에도 안 속한 SPIN 버튼 하나다.
-    private void ApplyLocalizedText()
-    {
-        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
-        if (stringTable == null)
-        {
-            Logger.Error($"[InGameScene] ApplyLocalizedText Failed! StringTable not found");
-            return;
-        }
-
-        SetText(m_SpinButtonText, stringTable.GetString("ReelSpin"));
-    }
-
     private void SetText(TextMeshProUGUI _text, string _value)
     {
         if (_text == null)

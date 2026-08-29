@@ -112,6 +112,7 @@ GameObject:
   - component: {fileID: 8351474705147786258}
   - component: {fileID: 1685154115393903355}
   - component: {fileID: 1719816932737002606}
+  - component: {fileID: 1034383601651444208}
   m_Layer: 0
   m_Name: BgmLabel
   m_TagString: Untagged
@@ -238,6 +239,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &1034383601651444208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 284675512204241737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 1719816932737002606}
+  m_Key: SettingsBgm
 --- !u!1 &1457110416273448512
 GameObject:
   m_ObjectHideFlags: 0
@@ -709,7 +724,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_ClickSoundKey:
+  m_ClickSoundKey: 
 --- !u!1 &2718926945744374849
 GameObject:
   m_ObjectHideFlags: 0
@@ -832,6 +847,7 @@ GameObject:
   - component: {fileID: 7308023783455871133}
   - component: {fileID: 4171750964784436921}
   - component: {fileID: 8398486681679013783}
+  - component: {fileID: 3631768046626232211}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -958,6 +974,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &3631768046626232211
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3028881322874556706}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 8398486681679013783}
+  m_Key: SettingsTitle
 --- !u!1 &3359675020829416220
 GameObject:
   m_ObjectHideFlags: 0
@@ -1441,7 +1471,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
-  m_ClickSoundKey:
+  m_ClickSoundKey: 
 --- !u!1 &4605280213561332181
 GameObject:
   m_ObjectHideFlags: 0
@@ -1453,6 +1483,7 @@ GameObject:
   - component: {fileID: 5604097228412920105}
   - component: {fileID: 4376692937702516402}
   - component: {fileID: 2385745039012161434}
+  - component: {fileID: 8433552429031140344}
   m_Layer: 0
   m_Name: FpsLabel
   m_TagString: Untagged
@@ -1579,6 +1610,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &8433552429031140344
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4605280213561332181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 2385745039012161434}
+  m_Key: SettingsFps
 --- !u!1 &4656159093069566080
 GameObject:
   m_ObjectHideFlags: 0
@@ -1626,6 +1671,7 @@ GameObject:
   - component: {fileID: 7058037403865400105}
   - component: {fileID: 921925431910797325}
   - component: {fileID: 5658313936830235769}
+  - component: {fileID: 6296889546100788851}
   m_Layer: 0
   m_Name: LanguageLabel
   m_TagString: Untagged
@@ -1752,6 +1798,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &6296889546100788851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4714189926927210248}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 5658313936830235769}
+  m_Key: SettingsLanguage
 --- !u!1 &5279240021378731318
 GameObject:
   m_ObjectHideFlags: 0
@@ -1963,7 +2023,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
-  m_ClickSoundKey:
+  m_ClickSoundKey: 
 --- !u!1 &6113834839551233825
 GameObject:
   m_ObjectHideFlags: 0
@@ -2147,6 +2207,7 @@ GameObject:
   - component: {fileID: 6997606536373973120}
   - component: {fileID: 6149826551745711312}
   - component: {fileID: 7313734560275314506}
+  - component: {fileID: 1053055166321309038}
   m_Layer: 0
   m_Name: SfxLabel
   m_TagString: Untagged
@@ -2273,6 +2334,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &1053055166321309038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7740281114820255678}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 7313734560275314506}
+  m_Key: SettingsSfx
 --- !u!1 &8115223275556901260
 GameObject:
   m_ObjectHideFlags: 0

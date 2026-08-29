@@ -17,7 +17,6 @@ public class UIHouseSelect : UIPopup
         public TextMeshProUGUI ValueText;
     }
 
-    [SerializeField] private TextMeshProUGUI m_TitleText;
 
     [SerializeField] private Transform m_UnitRoot;        // 말 종류가 깔리는 곳
     [SerializeField] private Image m_UnitSlotPrefabImage; // 슬롯 하나의 원본(비활성 상태로 씬에 둔다)
@@ -79,8 +78,6 @@ public class UIHouseSelect : UIPopup
         }
 
         StringTable stringTable = TableManager.instance.GetTable<StringTable>();
-        if (stringTable != null && m_TitleText != null)
-            m_TitleText.text = stringTable.GetString("HouseSelectTitle");
 
         m_ListHouse.Clear();
         m_ListHouse.AddRange(houseTable.list);

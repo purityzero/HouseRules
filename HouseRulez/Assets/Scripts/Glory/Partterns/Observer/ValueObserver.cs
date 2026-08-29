@@ -45,7 +45,11 @@ public class ObservableVariable<T>
 
     private void NotifyObservers(T old, T newValue)
     {
-        foreach (var observer in observers)
+        // 콜백 안에서 Register/Unregister가 일어날 수 있다 — UI가 알림을 받아 다시 그리는 도중
+        // 자식 오브젝트가 켜지거나 꺼지면 그 자식의 구독이 바뀐다.
+        // 원본을 그대로 순회하면 "Collection was modified" 예외로 알림이 중간에 끊긴다.
+        Action<T, T>[] snapshot = observers.ToArray();
+        foreach (var observer in snapshot)
         {
             observer.Invoke(old, newValue);
         }

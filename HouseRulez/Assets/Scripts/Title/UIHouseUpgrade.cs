@@ -5,10 +5,7 @@ using UnityEngine.UI;
 
 public class UIHouseUpgrade : UIPopup
 {
-    [SerializeField] private TextMeshProUGUI m_TitleText;
     [SerializeField] private TextMeshProUGUI m_SelectedHouseNameText;
-    [SerializeField] private TextMeshProUGUI m_EmptyText;
-
     // 빈 상태 텍스트는 배경 패널 안에 들어 있다. 텍스트만 끄면 빈 배경 상자가 그대로 남는다.
     [SerializeField] private GameObject m_EmptyStatePanel;
     [SerializeField] private Image m_AccentImage;
@@ -46,7 +43,6 @@ public class UIHouseUpgrade : UIPopup
         m_ListHouse.Clear();
         m_ListHouse.AddRange(houseTable.list);
 
-        ApplyLocalizedText(stringTable);
         BuildHouseButtons(stringTable);
 
         HouseRecord selectedHouse = PlayerManager.instance.GetSelectedHouseRecord();
@@ -78,7 +74,6 @@ public class UIHouseUpgrade : UIPopup
             return;
 
         StringTable stringTable = TableManager.instance.GetTable<StringTable>();
-        ApplyLocalizedText(stringTable);
         BuildHouseButtons(stringTable);
         SelectHouse(m_SelectedHouse);
     }
@@ -88,24 +83,6 @@ public class UIHouseUpgrade : UIPopup
         Close();
     }
 
-    private void ApplyLocalizedText(StringTable _stringTable)
-    {
-        string title = "HouseUpgradeTitle";
-        string emptyMessage = "HouseUpgradeEmpty";
-
-        if (_stringTable != null)
-        {
-            title = _stringTable.GetString("HouseUpgradeTitle");
-            emptyMessage = _stringTable.GetString("HouseUpgradeEmpty");
-        }
-
-        if (m_TitleText != null)
-            m_TitleText.text = title;
-
-        // 켜고 끄는 건 노드를 실제로 만들어 본 BuildNodes가 정한다 — 여기서 켜두면 노드가 있어도 같이 뜬다.
-        if (m_EmptyText != null)
-            m_EmptyText.text = emptyMessage;
-    }
 
     private void BuildHouseButtons(StringTable _stringTable)
     {
@@ -195,8 +172,6 @@ public class UIHouseUpgrade : UIPopup
         bool isEmpty = (listNodeKey.Count <= 0);
         if (m_EmptyStatePanel != null)
             m_EmptyStatePanel.SetActive(isEmpty);
-        else if (m_EmptyText != null)
-            m_EmptyText.gameObject.SetActive(isEmpty);
 
         m_ListNode.Clear();
         m_NodeRoot.GetComponentsInChildren(true, m_ListNode);

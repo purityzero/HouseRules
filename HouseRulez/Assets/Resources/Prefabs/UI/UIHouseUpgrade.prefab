@@ -1402,6 +1402,7 @@ GameObject:
   - component: {fileID: 2321656647463184017}
   - component: {fileID: 821828590253920477}
   - component: {fileID: 5040224297799261258}
+  - component: {fileID: 816643576958411111}
   m_Layer: 0
   m_Name: EmptyText
   m_TagString: Untagged
@@ -1528,6 +1529,20 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &816643576958411111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3235464583277429111}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 5040224297799261258}
+  m_Key: HouseUpgradeEmpty
 --- !u!1 &3292980810342452635
 GameObject:
   m_ObjectHideFlags: 0
@@ -2937,6 +2952,7 @@ GameObject:
   - component: {fileID: 3603939590635783314}
   - component: {fileID: 796242109510323379}
   - component: {fileID: 8116182128057976502}
+  - component: {fileID: 1516594434335497262}
   m_Layer: 0
   m_Name: TitleText
   m_TagString: Untagged
@@ -3063,3 +3079,17 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &1516594434335497262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8979204663620431149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88c88e1ba5d7cf940b0cb45140b5e612, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIText
+  m_Text: {fileID: 8116182128057976502}
+  m_Key: HouseUpgradeTitle

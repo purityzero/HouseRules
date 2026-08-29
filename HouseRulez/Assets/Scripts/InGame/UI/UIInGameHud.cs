@@ -7,16 +7,13 @@ using UnityEngine.UI;
 // 표시만 한다 — 값을 바꾸는 건 런을 소유한 InGameScene이고, 이 클래스는 Refresh()로 다시 그리기만 한다.
 public class UIInGameHud : MonoBehaviour
 {
-    [SerializeField] private TextMeshProUGUI m_HomeLabelText;
     [SerializeField] private RectTransform m_HomeHpPipRoot;
     [SerializeField] private Image m_HomeHpPipTemplate;
 
     [SerializeField] private TextMeshProUGUI m_YearText;
 
-    [SerializeField] private TextMeshProUGUI m_GoldLabelText;
     [SerializeField] private TextMeshProUGUI m_GoldValueText;
 
-    [SerializeField] private TextMeshProUGUI m_SpinCoinLabelText;
     [SerializeField] private RectTransform m_SpinCoinPipRoot;
     [SerializeField] private Image m_SpinCoinPipTemplate;
 
@@ -44,7 +41,6 @@ public class UIInGameHud : MonoBehaviour
         m_RunData = _runData;
         m_HouseRecord = _houseRecord;
 
-        ApplyLocalizedText();
 
         BuildPipList(m_HomeHpPipRoot, m_HomeHpPipTemplate, _runData.homeHpMax, m_ListHomeHpPip);
         BuildPipList(m_SpinCoinPipRoot, m_SpinCoinPipTemplate, _runData.spinCoinMax, m_ListSpinCoinPip);
@@ -63,20 +59,6 @@ public class UIInGameHud : MonoBehaviour
         RefreshYear();
         RefreshGold();
         RefreshBet();
-    }
-
-    private void ApplyLocalizedText()
-    {
-        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
-        if (stringTable == null)
-        {
-            Logger.Error("[UIInGameHud] ApplyLocalizedText Failed! StringTable not found");
-            return;
-        }
-
-        SetText(m_HomeLabelText, stringTable.GetString("HudHome"));
-        SetText(m_GoldLabelText, stringTable.GetString("HudGold"));
-        SetText(m_SpinCoinLabelText, stringTable.GetString("HudSpinCoin"));
     }
 
     private void BuildPipList(RectTransform _root, Image _template, int _count, List<Image> _listPip)
