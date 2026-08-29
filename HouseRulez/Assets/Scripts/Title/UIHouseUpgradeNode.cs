@@ -11,13 +11,15 @@ public class UIHouseUpgradeNode : MonoBehaviour
     [SerializeField] private TextMeshProUGUI m_LevelText;
     [SerializeField] private TextMeshProUGUI m_CostText;
     [SerializeField] private UIButton m_UpgradeButton;
-    [SerializeField] private GameObject m_MaxObject;
+    [SerializeField] private TextMeshProUGUI m_UpgradeButtonText;
+    [SerializeField] private TextMeshProUGUI m_MaxText;
 
     private string m_NodeKey = string.Empty;
     private Action<string> m_OnClickUpgrade;
 
     public void SetData(string _nodeKey, string _displayName, string _description,
-        string _levelLabel, int _cost, bool _isMaxLevel, bool _isAffordable, Action<string> _onClickUpgrade)
+        string _levelLabel, string _costLabel, bool _isMaxLevel, bool _isAffordable,
+        string _purchaseLabel, string _maxLabel, Action<string> _onClickUpgrade)
     {
         m_NodeKey = _nodeKey;
         m_OnClickUpgrade = _onClickUpgrade;
@@ -31,14 +33,22 @@ public class UIHouseUpgradeNode : MonoBehaviour
         if (m_LevelText != null)
             m_LevelText.text = _levelLabel;
 
-        if (m_MaxObject != null)
-            m_MaxObject.SetActive(_isMaxLevel);
+        // 문구는 프리팹에 남은 값을 믿지 않고 매번 넣는다 — 템플릿을 복제해 만든 오브젝트라
+        // 손대지 않으면 복제 원본의 텍스트("X" 등)가 그대로 화면에 남는다.
+        if (m_MaxText != null)
+        {
+            m_MaxText.text = _maxLabel;
+            m_MaxText.gameObject.SetActive(_isMaxLevel);
+        }
 
         if (m_CostText != null)
         {
             m_CostText.gameObject.SetActive(_isMaxLevel == false);
-            m_CostText.text = _cost.ToString();
+            m_CostText.text = _costLabel;
         }
+
+        if (m_UpgradeButtonText != null)
+            m_UpgradeButtonText.text = _purchaseLabel;
 
         if (m_UpgradeButton != null)
         {

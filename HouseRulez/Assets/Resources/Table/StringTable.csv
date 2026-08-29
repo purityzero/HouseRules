@@ -45,5 +45,6 @@ Id,Key,Kr,En,Cn,Jp
 44,HouseUpgradeStartGoldDesc,런 시작 골드가 늘어난다,Increases starting gold,开局金币增加,ラン開始時のゴールドが増える
 45,HouseUpgradeRoyal,옥새,Royal Seal,玉玺,玉璽
 46,HouseUpgradePurchase,강화,Upgrade,强化,強化
-47,HouseUpgradeMaxLevel,최대,MAX,已满级,最大
+47,HouseUpgradeMaxLevel,MAX LEVEL,MAX LEVEL,已满级,最大レベル
 48,HouseUpgradeLevelFormat,Lv {0}/{1},Lv {0}/{1},Lv {0}/{1},Lv {0}/{1}
+49,HouseUpgradeCostFormat,옥새 {0},{0} Seals,玉玺 {0},玉璽 {0}

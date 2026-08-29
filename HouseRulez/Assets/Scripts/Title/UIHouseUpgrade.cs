@@ -187,6 +187,9 @@ public class UIHouseUpgrade : UIPopup
 
         int royal = PlayerManager.instance.royal;
 
+        string purchaseLabel = (_stringTable != null) ? _stringTable.GetString("HouseUpgradePurchase") : "HouseUpgradePurchase";
+        string maxLabel = (_stringTable != null) ? _stringTable.GetString("HouseUpgradeMaxLevel") : "HouseUpgradeMaxLevel";
+
         for (int i = 0; i < m_ListNode.Count; ++i)
         {
             UIHouseUpgradeNode node = m_ListNode[i];
@@ -221,8 +224,14 @@ public class UIHouseUpgrade : UIPopup
             int cost = (isMaxLevel == true) ? 0 : nextRecord.CostValue;
             bool isAffordable = (isMaxLevel == false && royal >= cost);
 
+            // 맨숫자만 두면 옆의 "Lv 0/3"과 구분이 안 되고 무엇을 치르는지도 안 보인다.
+            string costLabel = (_stringTable != null)
+                ? _stringTable.GetString("HouseUpgradeCostFormat", cost)
+                : cost.ToString();
+
             node.gameObject.SetActive(true);
-            node.SetData(nodeKey, displayName, description, levelLabel, cost, isMaxLevel, isAffordable, OnClickUpgradeNode);
+            node.SetData(nodeKey, displayName, description, levelLabel, costLabel, isMaxLevel, isAffordable,
+                purchaseLabel, maxLabel, OnClickUpgradeNode);
         }
     }
 
