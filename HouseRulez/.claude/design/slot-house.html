@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="Orca design document converter">
-  <meta name="source" content="slot-house.md">
   <title>슬롯 — 6번째 종족 추가 구현 스펙 쨌 HouseRulez Design</title>
   <style>
     :root {
@@ -115,7 +114,7 @@
     <header class="document-header">
       <p class="eyebrow">HouseRulez 쨌 Design Specification</p>
       <h1>슬롯 — 6번째 종족 추가 구현 스펙</h1>
-      <p class="source">Canonical HTML 쨌 Previous source: <code>slot-house.md</code></p>
+      <p class="source">Canonical HTML</p>
     </header>
     <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#출처-문서">출처 문서</a></li><li class="toc-level-2"><a href="#결론-가능-단-조건-2건">결론 — 가능. 단 조건 2건.</a></li><li class="toc-level-2"><a href="#1-종족-정체성과-판정-문법">1. 종족 정체성과 판정 문법</a></li><li class="toc-level-3"><a href="#1-1-한-줄-정체성">1.1 한 줄 정체성</a></li><li class="toc-level-3"><a href="#1-2-신규-판정-문법-payline-rank">1.2 신규 판정 문법 PAYLINE_RANK</a></li><li class="toc-level-3"><a href="#1-3-이-문법이-낳는-플레이-차이-홀드와-맞물리는-지점">1.3 이 문법이 낳는 플레이 차이 (홀드와 맞물리는 지점)</a></li><li class="toc-level-2"><a href="#2-심볼-풀-최종안-6종">2. 심볼 풀 최종안 — 6종</a></li><li class="toc-level-3"><a href="#2-1-왜-6종인가-수치-근거">2.1 왜 6종인가 (수치 근거)</a></li><li class="toc-level-3"><a href="#2-2-심볼-6종-등급-서열-배당-서열">2.2 심볼 6종 (등급 서열 = 배당 서열)</a></li><li class="toc-level-2"><a href="#3-배당표-최종안">3. 배당표 최종안</a></li><li class="toc-level-3"><a href="#왜-라인당-정확히-2개-에-전부-배당을-주는가">왜 라인당 &quot;정확히 2개&quot;에 전부 배당을 주는가</a></li><li class="toc-level-2"><a href="#4-시뮬레이션-결과-1스핀-척도-gdd-05-judgebalance와-동일-척도">4. 시뮬레이션 결과 — 1스핀 척도 (GDD &#167;05 JudgeBalance와 동일 척도)</a></li><li class="toc-level-3"><a href="#4-1-검증-방법-기존-수치를-먼저-재현했다">4.1 검증 방법 — 기존 수치를 먼저 재현했다</a></li><li class="toc-level-3"><a href="#4-2-judgebalance-표-기존-5종족과-나란히">4.2 JudgeBalance 표 — 기존 5종족과 나란히</a></li><li class="toc-level-3"><a href="#4-3-시드-안정성-각-50만-시행">4.3 시드 안정성 (각 50만 시행)</a></li><li class="toc-level-3"><a href="#4-4-cv-목표와-잭팟-체감의-충돌을-어떻게-해소했는가">4.4 CV 목표와 잭팟 체감의 충돌을 어떻게 해소했는가</a></li><li class="toc-level-2"><a href="#5-조건-a-연차-척도에서-슬롯은-홀드가-너무-세다">5. 조건 A — 연차 척도에서 슬롯은 홀드가 너무 세다</a></li><li class="toc-level-3"><a href="#5-1-왜-이-절이-필요한가">5.1 왜 이 절이 필요한가</a></li><li class="toc-level-3"><a href="#5-2-모델-검증">5.2 모델 검증</a></li><li class="toc-level-3"><a href="#5-3-슬롯의-홀드-상한별-연차-전력-각-50만-시행">5.3 슬롯의 홀드 상한별 연차 전력 (각 50만 시행)</a></li><li class="toc-level-3"><a href="#5-4-기존-5종족과-나란히-마작-스펙-3-5-3-7-표에-이어-붙임">5.4 기존 5종족과 나란히 (마작 스펙 &#167;3.5 / &#167;3.7 표에 이어 붙임)</a></li><li class="toc-level-3"><a href="#5-5-권장-슬롯만-홀드-상한-2칸">5.5 권장 — 슬롯만 홀드 상한 2칸</a></li><li class="toc-level-2"><a href="#6-해금-순서-슬롯을-1번-튜토리얼-종족-에-둔다">6. 해금 순서 — 슬롯을 1번(튜토리얼 종족)에 둔다</a></li><li class="toc-level-3"><a href="#6-1-브리프가-걱정한-풀-크기-6종-동률-충돌은-이미-없다">6.1 브리프가 걱정한 &quot;풀 크기 6종 동률&quot; 충돌은 이미 없다</a></li><li class="toc-level-3"><a href="#6-2-학습-난이도-순이면-슬롯은-1번이다">6.2 학습 난이도 순이면 슬롯은 1번이다</a></li><li class="toc-level-3"><a href="#6-3-서사-충돌-판을-까는-쪽-인데-튜토리얼인가">6.3 서사 충돌 — &quot;판을 까는 쪽&quot;인데 튜토리얼인가</a></li><li class="toc-level-3"><a href="#6-4-알려진-비용-숨기지-않는다">6.4 알려진 비용 (숨기지 않는다)</a></li><li class="toc-level-2"><a href="#7-조건-b-혼혈-페널티-면제는-기각한다-브리프-가설-반증">7. 조건 B — 혼혈 페널티 면제는 기각한다 (브리프 가설 반증)</a></li><li class="toc-level-3"><a href="#7-1-브리프의-가설">7.1 브리프의 가설</a></li><li class="toc-level-3"><a href="#7-2-측정-전리품에-중위-등급을-부여했을-때-50만-시행">7.2 측정 — 전리품에 중위 등급을 부여했을 때 (50만 시행)</a></li><li class="toc-level-3"><a href="#7-3-표준-규칙-gdd-06-을-그대로-적용하면-오히려-낫다">7.3 표준 규칙(GDD &#167;06)을 그대로 적용하면 오히려 낫다</a></li><li class="toc-level-3"><a href="#7-4-결론">7.4 결론</a></li><li class="toc-level-2"><a href="#8-housetable-csv-추가-행과-액센트-색">8. HouseTable.csv 추가 행과 액센트 색</a></li><li class="toc-level-3"><a href="#8-1-액센트-색-d45c9e">8.1 액센트 색 — D45C9E</a></li><li class="toc-level-3"><a href="#8-2-housetable-csv에-추가할-행">8.2 HouseTable.csv에 추가할 행</a></li><li class="toc-level-3"><a href="#8-3-id-재번호-슬롯을-1번에-둘-경우">8.3 Id 재번호 (슬롯을 1번에 둘 경우)</a></li><li class="toc-level-2"><a href="#9-아트-발주서">9. 아트 발주서</a></li><li class="toc-level-3"><a href="#9-1-절대-규격">9.1 절대 규격</a></li><li class="toc-level-3"><a href="#9-2-심볼-6종-32-32-안에서-어떻게-그릴지">9.2 심볼 6종 — 32&#215;32 안에서 어떻게 그릴지</a></li><li class="toc-level-3"><a href="#9-3-배경">9.3 배경</a></li><li class="toc-level-3"><a href="#9-4-릴-프레임">9.4 릴 프레임</a></li><li class="toc-level-3"><a href="#9-5-대좌-플린스">9.5 대좌(플린스)</a></li><li class="toc-level-3"><a href="#9-6-생성-완료-2026-08-27-0">9.6 생성 완료 — 2026-08-27-0</a></li><li class="toc-level-2"><a href="#10-문서에-없어서-확인이-필요한-부분-미결정">10. 문서에 없어서 확인이 필요한 부분 (미결정)</a></li><li class="toc-level-3"><a href="#10-1-슬롯-전용-홀드-상한-2칸-승인-필요-최우선">10-1. 슬롯 전용 홀드 상한 2칸 — 승인 필요 (최우선)</a></li><li class="toc-level-3"><a href="#10-2-해금-순서-승인-필요">10-2. 해금 순서 — 승인 필요</a></li><li class="toc-level-3"><a href="#10-3-axisceiling-axislearning-값-승인-필요">10-3. AxisCeiling / AxisLearning 값 — 승인 필요</a></li><li class="toc-level-3"><a href="#10-4-체리-1매치-배당을-되살릴지">10-4. 체리 1매치 배당을 되살릴지</a></li><li class="toc-level-3"><a href="#10-5-슬롯-전용-코어-수치-미정">10-5. 슬롯 전용 코어 — 수치 미정</a></li><li class="toc-level-3"><a href="#10-6-6종족-시-12연차-구조-마작-스펙-9-13과-같은-미결">10-6. 6종족 시 12연차 구조 — 마작 스펙 &#167;9-13과 같은 미결</a></li><li class="toc-level-3"><a href="#10-7-gdd-06-부판정-짝의-정확한-정의">10-7. GDD &#167;06 부판정 짝의 정확한 정의</a></li><li class="toc-level-3"><a href="#10-8-배경-테마명-neonstrip-미국-문화권-중복">10-8. 배경 테마명 neonstrip / 미국 문화권 중복</a></li><li class="toc-level-2"><a href="#11-기존-구현과의-접점">11. 기존 구현과의 접점</a></li><li class="toc-level-3"><a href="#11-1-현재-구현-상태">11.1 현재 구현 상태</a></li><li class="toc-level-3"><a href="#11-2-새로-필요한-것">11.2 새로 필요한 것</a></li><li class="toc-level-3"><a href="#11-3-충돌-가능-지점">11.3 충돌 가능 지점</a></li><li class="toc-level-2"><a href="#12-필요한-신규-stringtable-키">12. 필요한 신규 StringTable 키</a></li><li class="toc-level-3"><a href="#12-1-지금-당장-필요-종족-선택-화면이-종족명을-못-찾으면-빈칸이-뜬다">12.1 지금 당장 필요 (종족 선택 화면이 종족명을 못 찾으면 빈칸이 뜬다)</a></li><li class="toc-level-3"><a href="#12-2-판정-ui를-붙일-때-필요-배당표-표시">12.2 판정 UI를 붙일 때 필요 (배당표 표시)</a></li><li class="toc-level-2"><a href="#13-참고">13. 참고</a></li><li class="toc-level-2"><a href="#개정-이력">개정 이력</a></li><li class="toc-level-3"><a href="#2026-08-27-0-초판">2026-08-27-0 — 초판</a></li><li class="toc-level-2"><a href="#검증-상태">검증 상태</a></li></ol></details>
     <article>
@@ -146,7 +145,7 @@
 </tr>
 <tr>
 <td>2</td>
-<td><strong>1스핀 밸런스가 목표 대역에 앉는다.</strong> 평균 <strong>6.24</strong> (기존 6.11<del>6.27) · CV <strong>1.17</strong> (목표 0.9</del>1.2) · 무소환 4.96% (→ §4)</td>
+<td><strong>1스핀 밸런스가 목표 대역에 앉는다.</strong> 평균 <strong>6.24</strong> (기존 6.11~6.27) · CV <strong>1.17</strong> (목표 0.9~1.2) · 무소환 4.96% (→ §4)</td>
 <td>통과</td>
 </tr>
 <tr>
@@ -549,13 +548,13 @@
 <td>2.20%</td>
 </tr>
 </tbody></table>
-<p>전 시드에서 평균 6.1<del>6.3 · CV 0.9</del>1.2 조건을 만족한다.</p>
+<p>전 시드에서 평균 6.1~6.3 · CV 0.9~1.2 조건을 만족한다.</p>
 <h3 id="4-4-cv-목표와-잭팟-체감의-충돌을-어떻게-해소했는가">4.4 <strong>CV 목표와 잭팟 체감의 충돌을 어떻게 해소했는가</strong><a class="heading-anchor" href="#4-4-cv-목표와-잭팟-체감의-충돌을-어떻게-해소했는가" aria-label="Section link">#</a></h3>
 <p>브리프가 진짜 문제로 지목한 지점이다. 정리하면:</p>
 <p><strong>(가) 사용자 손계산의 결론 — &quot;CV 1.0을 맞추면 잭팟이 죽는다&quot; — 은 CV 목표를 1.0으로 잡았을 때만 참이다.</strong>
 손계산안(2매치 = 3매치의 25%)을 실제 3×3으로 검산한 결과 <strong>CV 0.969</strong>로 손계산과 일치했다(라인 상관의 영향은 CV에 거의 없었다). 이때 평균 6.2 정규화 시 세븐 3매치는 <strong>22.9</strong> — 평균의 3.7배에 그친다.</p>
 <p><strong>(나) 그런데 CV 1.0은 이미 마작이 앉아 있는 자리다.</strong>
-브리프가 나열한 사다리(체스 0.64 / 장기 0.67 / <strong>[빈 구간]</strong> / 화투 1.53)에는 <strong>마작이 빠져 있다.</strong> 마작은 2026-08-25에 5번째 종족으로 확정되며 <strong>CV 1.03</strong>을 차지했다(<code>mahjong-house.md</code> §3.4). 목표 대역 0.9~1.2의 정중앙(1.05)은 비어 있는 게 아니라 마작 자리다.</p>
+브리프가 나열한 사다리(체스 0.64 / 장기 0.67 / <strong>[빈 구간]</strong> / 화투 1.53)에는 <strong>마작이 빠져 있다.</strong> 마작은 2026-08-25에 5번째 종족으로 확정되며 <strong>CV 1.03</strong>을 차지했다(<code>mahjong-house.html</code> §3.4). 목표 대역 0.9~1.2의 정중앙(1.05)은 비어 있는 게 아니라 마작 자리다.</p>
 <p><strong>(다) 따라서 슬롯은 대역의 위쪽 끝을 겨냥해야 하고, 그게 곧 잭팟 예산이 된다.</strong>
 CV 목표를 1.0 → <strong>1.17</strong>로 올리면:</p>
 <table>
@@ -1251,8 +1250,8 @@ CV 목표를 1.0 → <strong>1.17</strong>로 올리면:</p>
 </tbody></table>
 <ul>
 <li><strong>블러 변환은 추측이 아니라 역산이다.</strong> <code>chess_*</code> 5쌍을 대조해 «세로 7탭 박스(반경 3) · 상단은 0확장 / 하단은 가장자리 클램프 · 알파는 단순 평균, RGB는 알파가중 평균»을 도출했고, 체스 5종 전부에서 재현 오차 0으로 검증한 뒤 같은 변환을 슬롯에 적용했다.</li>
-<li><strong>BAR ↔ 2BAR 판독 대책</strong>: 글자 수로 구분시키지 않았다. BAR는 26×13 한 덩이를 세로 중앙에만 두고(y10<del>22), 2BAR는 26×11 두 덩이를 y3</del>13 / y17~27에 두어 <strong>사이 3px를 완전 투명으로 비웠다</strong>. 실루엣 총 높이가 13 vs 25로 두 배 가까이 갈리므로, 글자를 읽지 않아도 덩어리 개수와 화면 점유로 먼저 구분된다.</li>
-<li><strong>배경/프레임 제작 방법</strong>: 생성 모델을 쓰지 않고 전부 Python + Pillow로 픽셀을 직접 찍었다. 배경은 기존 5장을 픽셀 단위로 분석해 확인한 화풍(베이어 4×4 디더 그라데이션 하늘 + 안개색 원경 능선 + 밴드형 지면)을 그대로 재현했고, 능선·디더·차선 주기를 전부 640의 약수로 맞춰 가로 seamless를 유지했다. 검정 3색(<code>14161C</code>/<code>050609</code>/<code>282C39</code>)은 미사용이며 최암부는 <code>363B4A</code>다. 프레임은 <code>frame_poker.png</code>를 골격으로 삼아 액센트만 <code>D45C9E</code>로 치환하고 좌우 기둥에 3줄 페이라인 표식을 더했다 — <strong>릴 창 위치는 기존 5장과 동일한 y54<del>149 / x20</del>115 (96×96)로 일치 확인</strong>.</li>
+<li><strong>BAR ↔ 2BAR 판독 대책</strong>: 글자 수로 구분시키지 않았다. BAR는 26×13 한 덩이를 세로 중앙에만 두고(y10~22), 2BAR는 26×11 두 덩이를 y3~13 / y17~27에 두어 <strong>사이 3px를 완전 투명으로 비웠다</strong>. 실루엣 총 높이가 13 vs 25로 두 배 가까이 갈리므로, 글자를 읽지 않아도 덩어리 개수와 화면 점유로 먼저 구분된다.</li>
+<li><strong>배경/프레임 제작 방법</strong>: 생성 모델을 쓰지 않고 전부 Python + Pillow로 픽셀을 직접 찍었다. 배경은 기존 5장을 픽셀 단위로 분석해 확인한 화풍(베이어 4×4 디더 그라데이션 하늘 + 안개색 원경 능선 + 밴드형 지면)을 그대로 재현했고, 능선·디더·차선 주기를 전부 640의 약수로 맞춰 가로 seamless를 유지했다. 검정 3색(<code>14161C</code>/<code>050609</code>/<code>282C39</code>)은 미사용이며 최암부는 <code>363B4A</code>다. 프레임은 <code>frame_poker.png</code>를 골격으로 삼아 액센트만 <code>D45C9E</code>로 치환하고 좌우 기둥에 3줄 페이라인 표식을 더했다 — <strong>릴 창 위치는 기존 5장과 동일한 y54~149 / x20~115 (96×96)로 일치 확인</strong>.</li>
 <li><code>.meta</code>는 종류별 형제 파일(<code>chess_king.png.meta</code> / <code>bg_chess_castle.png.meta</code> / <code>frame_chess.png.meta</code>)을 복사해 GUID·스프라이트 ID·서브스프라이트 rect만 교체했다. 신규 GUID 20개는 프로젝트 전체 <code>.meta</code>와 대조해 충돌 없음을 확인했다.</li>
 <li><strong>미검증</strong> — Unity 에디터에서 실제 임포트/표시는 확인하지 못했다.</li>
 </ul>

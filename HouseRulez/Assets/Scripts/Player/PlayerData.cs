@@ -2,8 +2,41 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-// 플레이어 진행도. GDD 06장 "메타 진행은 종족 해금 하나로 시작한다 / 영구 강화 트리는 초기 빌드에 넣지 않는다"가
-// 이 클래스가 들 수 있는 필드의 상한선이다 — 코어·각인·재화는 런(run) 안에서만 사는 값이라 여기 들어오지 않는다.
+// 플레이어 진행도. 종족별 영구 메타 진행은 저장하지만, 런 내부 승급·각인·코어는 저장하지 않는다.
+[Serializable]
+public class HouseUpgradeNodeProgressData
+{
+    [SerializeField] private string m_NodeKey = string.Empty;
+    [SerializeField] private int m_Level;
+
+    public string nodeKey => m_NodeKey;
+    public int level => m_Level;
+}
+
+[Serializable]
+public class HouseUpgradeProgressData
+{
+    [SerializeField] private string m_HouseKey = string.Empty;
+    [SerializeField] private List<HouseUpgradeNodeProgressData> m_ListNodeProgress = new List<HouseUpgradeNodeProgressData>();
+
+    public string houseKey => m_HouseKey;
+
+    public int GetLevel(string _nodeKey)
+    {
+        if (string.IsNullOrEmpty(_nodeKey) == true)
+            return 0;
+
+        if (m_ListNodeProgress == null)
+            return 0;
+
+        HouseUpgradeNodeProgressData nodeProgress = m_ListNodeProgress.Find(progress => progress != null && progress.nodeKey == _nodeKey);
+        if (nodeProgress == null)
+            return 0;
+
+        return nodeProgress.level;
+    }
+}
+
 [Serializable]
 public class PlayerData : SaveData
 {
@@ -14,6 +47,8 @@ public class PlayerData : SaveData
 
     [SerializeField] private string m_LastPlayedAt = string.Empty;
 
+    [SerializeField] private List<HouseUpgradeProgressData> m_ListHouseUpgradeProgress = new List<HouseUpgradeProgressData>();
+
     public string selectedHouseKey => m_SelectedHouseKey;
     public List<string> listUnlockedHouseKey => m_ListUnlockedHouseKey;
     public string lastPlayedAt => m_LastPlayedAt;
@@ -23,6 +58,7 @@ public class PlayerData : SaveData
         m_SelectedHouseKey = string.Empty;
         m_ListUnlockedHouseKey.Clear();
         m_LastPlayedAt = string.Empty;
+        m_ListHouseUpgradeProgress = new List<HouseUpgradeProgressData>();
     }
 
     public void SetSelectedHouseKey(string _houseKey)
@@ -58,6 +94,24 @@ public class PlayerData : SaveData
 
         m_LastPlayedAt = _lastPlayedAt;
         SetChanged();
+    }
+
+    public int GetHouseUpgradeLevel(string _houseKey, string _nodeKey)
+    {
+        if (string.IsNullOrEmpty(_houseKey) == true)
+            return 0;
+
+        if (string.IsNullOrEmpty(_nodeKey) == true)
+            return 0;
+
+        if (m_ListHouseUpgradeProgress == null)
+            return 0;
+
+        HouseUpgradeProgressData houseProgress = m_ListHouseUpgradeProgress.Find(progress => progress != null && progress.houseKey == _houseKey);
+        if (houseProgress == null)
+            return 0;
+
+        return houseProgress.GetLevel(_nodeKey);
     }
 }
 

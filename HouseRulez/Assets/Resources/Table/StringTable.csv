@@ -33,3 +33,5 @@ Id,Key,Kr,En,Cn,Jp
 32,SettingsFpsAdaptive,자동,Adaptive,自动,自動
 33,SettingsFps30,30 FPS,30 FPS,30 FPS,30 FPS
 34,SettingsFps60,60 FPS,60 FPS,60 FPS,60 FPS
+35,HouseUpgradeTitle,종족 업그레이드,House Upgrades,种族升级,種族アップグレード
+36,HouseUpgradeEmpty,업그레이드 노드 기획 중,Upgrade nodes are in development,升级节点规划中,アップグレードノード企画中

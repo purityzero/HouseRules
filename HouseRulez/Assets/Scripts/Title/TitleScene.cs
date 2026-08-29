@@ -118,7 +118,7 @@ public class TitleScene : BaseScene
 
     public void OnClickUpgradeButton()
     {
-        // TODO: 업그레이드 화면
+        UIManager.instance.Get<UIHouseUpgrade>();
     }
 
     public void OnClickSettingButton()

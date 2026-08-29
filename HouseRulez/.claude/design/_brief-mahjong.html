@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="Orca design document converter">
-  <meta name="source" content="_brief-mahjong.md">
   <title>[위임 브리프] 마작 5번째 종족 검토 — design-planner에게 넘길 것 쨌 HouseRulez Design</title>
   <style>
     :root {
@@ -115,14 +114,14 @@
     <header class="document-header">
       <p class="eyebrow">HouseRulez 쨌 Design Specification</p>
       <h1>[위임 브리프] 마작 5번째 종족 검토 — design-planner에게 넘길 것</h1>
-      <p class="source">Canonical HTML 쨌 Previous source: <code>_brief-mahjong.md</code></p>
+      <p class="source">Canonical HTML</p>
     </header>
     <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#요청">요청</a></li><li class="toc-level-2"><a href="#반드시-먼저-읽을-것">반드시 먼저 읽을 것</a></li><li class="toc-level-2"><a href="#검토해야-할-핵심-쟁점">검토해야 할 핵심 쟁점</a></li><li class="toc-level-2"><a href="#산출물">산출물</a></li></ol></details>
     <article>
 <h1 id="위임-브리프-마작-5번째-종족-검토-design-planner에게-넘길-것">[위임 브리프] 마작 5번째 종족 검토 — design-planner에게 넘길 것<a class="heading-anchor" href="#위임-브리프-마작-5번째-종족-검토-design-planner에게-넘길-것" aria-label="Section link">#</a></h1>
 <blockquote>
 <p>이 파일은 <strong>작업 지시서</strong>다. 새 세션에서 <code>design-planner</code> 에이전트에게 아래 내용을 그대로 프롬프트로 넘기면 된다.
-위임이 끝나고 <code>mahjong-house.md</code>가 나오면 이 파일은 지운다.</p>
+위임이 끝나고 <code>mahjong-house.html</code>가 나오면 이 파일은 지운다.</p>
 <p>(2026-08-25 작성. 위임하려던 세션에서 커스텀 에이전트가 목록에 안 잡혀 넘기지 못했다.)</p>
 </blockquote>
 <hr>
@@ -146,7 +145,7 @@
 <li><strong>판정 종류의 중복</strong>: 마작의 슌쯔(연속 3장)는 포커의 스트레이트와, 커쯔(같은 3장)는 포커의 트리플/체스의 정렬과 겹친다. 기존 넷은 전부 라인(가로3·세로3·대각2) 또는 열 단위로 읽는다. 마작이 별개 종족이 되려면 어떤 판정 축을 가져와야 하는가. 한 가지 후보: <strong>라인을 아예 안 보고 9칸 전체를 3장씩 세 묶음으로 분할(전역 조합 최적화)</strong> — 9칸의 3분할은 280가지라 완전탐색 가능. 이 축이 타당한지, 더 나은 축이 있는지 판단해달라.</li>
 <li><strong>심볼 풀 크기</strong>: 마작 전체는 34종(수패 27 + 자패 7)이라 포커 13보다 훨씬 크다. GDD가 포커 13종조차 초심자 이탈 위험으로 지적했다. 수패 한 종류만 써서 1~9의 9종으로 줄이는 안이 타당한가.</li>
 <li><strong>해금 순서 규칙 충돌</strong>: 풀 9종이면 장기(7)와 화투(12) 사이인데, 학습 비용은 마작이 가장 높을 가능성이 크다. &quot;풀 크기 순&quot;이라는 기존 규칙을 유지할지 바꿀지.</li>
-<li><strong>밸런스 축</strong>: 기존 넷의 평균 전력 61<del>63, 변동계수 0.64</del>1.73 범위 안에서 마작을 어디에 놓을지. 기존 넷과 차별되는 정체성 한 줄.</li>
+<li><strong>밸런스 축</strong>: 기존 넷의 평균 전력 61~63, 변동계수 0.64~1.73 범위 안에서 마작을 어디에 놓을지. 기존 넷과 차별되는 정체성 한 줄.</li>
 <li><strong>문화권 중복</strong>: 현재 장기 배경이 &quot;한국·중국 고대&quot;로 잡혀 있어 마작(중국)과 겹친다. 배경 테마 분리안이 필요하다.</li>
 <li><strong>액센트 색</strong>: 체스 <code>#7FA7C9</code> / 장기 <code>#57A277</code> / 포커 <code>#D6A441</code> / 화투 <code>#D1554C</code>가 이미 쓰였다. 남는 색 제안(청록·보라 계열 등). 반드시 환경 최암부 한계 <code>#363B4A</code>(휘도 L59.2)보다 밝을 것.</li>
 </ul>

@@ -140,6 +140,17 @@ public class PlayerManager : MonoSingleton<PlayerManager>
         return houseTable.list.Find(house => IsHouseUnlocked(house) == true);
     }
 
+    public int GetHouseUpgradeLevel(string _houseKey, string _nodeKey)
+    {
+        if (string.IsNullOrEmpty(_houseKey) == true)
+            return 0;
+
+        if (string.IsNullOrEmpty(_nodeKey) == true)
+            return 0;
+
+        return m_PlayerData.GetHouseUpgradeLevel(_houseKey, _nodeKey);
+    }
+
     // ---------------- 옵션 ----------------
 
     public void SetBgmVolume(float _volume)

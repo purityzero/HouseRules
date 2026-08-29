@@ -40,6 +40,7 @@ public class TableManager : MonoSingleton<TableManager>
         List<SlotLineRecord> slotLineRecords = LoadCsvTable<SlotLineRecord>("Table/SlotLineTable");
         List<GameConfigRecord> gameConfigRecords = LoadCsvTable<GameConfigRecord>("Table/GameConfigTable");
         List<SutdaBetRecord> sutdaBetRecords = LoadCsvTable<SutdaBetRecord>("Table/SutdaBetTable");
+        List<HouseUpgradeRecord> houseUpgradeRecords = LoadCsvTable<HouseUpgradeRecord>("Table/HouseUpgradeTable");
 
         UITable uiTable = new UITable(uiRecords);
         SoundTable soundTable = new SoundTable(soundRecords);
@@ -50,6 +51,7 @@ public class TableManager : MonoSingleton<TableManager>
         SlotLineTable slotLineTable = new SlotLineTable(slotLineRecords);
         GameConfigTable gameConfigTable = new GameConfigTable(gameConfigRecords);
         SutdaBetTable sutdaBetTable = new SutdaBetTable(sutdaBetRecords);
+        HouseUpgradeTable houseUpgradeTable = new HouseUpgradeTable(houseUpgradeRecords);
 
         m_TableDictionary.Add(typeof(UITable), uiTable);
         m_TableDictionary.Add(typeof(SoundTable), soundTable);
@@ -60,6 +62,7 @@ public class TableManager : MonoSingleton<TableManager>
         m_TableDictionary.Add(typeof(SlotLineTable), slotLineTable);
         m_TableDictionary.Add(typeof(GameConfigTable), gameConfigTable);
         m_TableDictionary.Add(typeof(SutdaBetTable), sutdaBetTable);
+        m_TableDictionary.Add(typeof(HouseUpgradeTable), houseUpgradeTable);
     }
 
     public async Task<List<T>> LoadCsvTableToAddressable<T>(string key) where T : new()
