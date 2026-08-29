@@ -709,7 +709,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-  m_ClickSoundKey: ButtonClick
+  m_ClickSoundKey:
 --- !u!1 &2718926945744374849
 GameObject:
   m_ObjectHideFlags: 0
@@ -1441,7 +1441,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
-  m_ClickSoundKey: ButtonClick
+  m_ClickSoundKey:
 --- !u!1 &4605280213561332181
 GameObject:
   m_ObjectHideFlags: 0
@@ -1963,7 +1963,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
-  m_ClickSoundKey: ButtonClick
+  m_ClickSoundKey:
 --- !u!1 &6113834839551233825
 GameObject:
   m_ObjectHideFlags: 0

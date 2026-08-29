@@ -1,3 +1,4 @@
 UIName,UIType,PrefabPath
 UISetting,Popup,Prefabs/UI/UISetting
 UIHouseSelect,Popup,Prefabs/UI/UIHouseSelect
+UIHouseUpgrade,Popup,Prefabs/UI/UIHouseUpgrade
