@@ -41,10 +41,12 @@ public class UIHouseUpgradeNode : MonoBehaviour
             m_MaxText.gameObject.SetActive(_isMaxLevel);
         }
 
+        // 최대 레벨이어도 비용 칸을 끄지 않고 비워만 둔다. 오브젝트를 끄면 그 폭만큼
+        // 오른쪽 칸이 당겨져, 줄마다 강화 버튼과 MAX LEVEL의 위치가 어긋난다.
         if (m_CostText != null)
         {
-            m_CostText.gameObject.SetActive(_isMaxLevel == false);
-            m_CostText.text = _costLabel;
+            m_CostText.gameObject.SetActive(true);
+            m_CostText.text = (_isMaxLevel == true) ? string.Empty : _costLabel;
         }
 
         if (m_UpgradeButtonText != null)

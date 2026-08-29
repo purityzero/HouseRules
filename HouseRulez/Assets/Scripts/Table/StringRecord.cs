@@ -12,7 +12,17 @@ public class StringRecord : Record
 
 public class StringTable : Table<StringRecord>
 {
-    public static eLanguage CurrentLanguage = GetDefaultLanguage();
+    // 언어는 관찰 가능한 값이다. 열려 있는 화면이 여럿일 때 바꾼 쪽이 남의 화면까지
+    // 챙겨 갱신해줄 수는 없으므로, 각 화면이 스스로 구독해서 다시 그린다.
+    // RegisterObserver는 등록 즉시 현재 값으로 한 번 호출하므로 최초 적용도 겸한다.
+    public static readonly ObservableVariable<eLanguage> LANGUAGE = new ObservableVariable<eLanguage>(GetDefaultLanguage());
+
+    // 기존 호출부를 그대로 두기 위한 통로. 읽고 쓰는 건 전부 위 관찰 값이다.
+    public static eLanguage CurrentLanguage
+    {
+        get { return LANGUAGE.Value; }
+        set { LANGUAGE.Value = value; }
+    }
 
     public StringTable(List<StringRecord> _listRecord) : base(_listRecord) { }
 

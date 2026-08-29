@@ -54,11 +54,33 @@ public class UIHouseUpgrade : UIPopup
             selectedHouse = m_ListHouse[0];
 
         SelectHouse(selectedHouse);
+
+        // 언어가 바뀌면 스스로 다시 그린다. 등록 즉시 한 번 호출되지만 바로 위에서
+        // 이미 그렸으므로 같은 내용을 한 번 더 채우는 것뿐이다.
+        StringTable.LANGUAGE.RegisterObserver(OnLanguageChanged);
     }
 
     public override void Close()
     {
+        StringTable.LANGUAGE.UnregisterObserver(OnLanguageChanged);
         base.Close();
+    }
+
+    // 구독을 남긴 채 파괴되면 관찰 목록이 죽은 객체를 계속 붙들고 있게 된다.
+    private void OnDestroy()
+    {
+        StringTable.LANGUAGE.UnregisterObserver(OnLanguageChanged);
+    }
+
+    private void OnLanguageChanged(eLanguage _oldLanguage, eLanguage _newLanguage)
+    {
+        if (m_SelectedHouse == null)
+            return;
+
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        ApplyLocalizedText(stringTable);
+        BuildHouseButtons(stringTable);
+        SelectHouse(m_SelectedHouse);
     }
 
     public void OnClickCloseButton()

@@ -35,7 +35,7 @@ Id,Key,Kr,En,Cn,Jp
 34,SettingsFps60,60 FPS,60 FPS,60 FPS,60 FPS
 35,HouseUpgradeTitle,종족 업그레이드,House Upgrades,种族升级,種族アップグレード
 36,HouseUpgradeEmpty,업그레이드 노드 기획 중,Upgrade nodes are in development,升级节点规划中,アップグレードノード企画中
-37,HouseUpgradeHomeHpName,본거지 보강,Stronghold Reinforcement,本部加固,本拠地補強
+37,HouseUpgradeHomeHpName,본거지 보강,Stronghold HP,本部加固,本拠地補強
 38,HouseUpgradeHomeHpDesc,런 시작 본거지 HP 증가,Starting stronghold HP,开局本部生命值,ラン開始時の本拠地HP
 39,HouseUpgradeSpinCoinName,스핀 코인,Spin Coins,旋转币,スピンコイン
 40,HouseUpgradeSpinCoinDesc,연차당 스핀 코인 증가,Spin coins per year,每年旋转币,年ごとのスピンコイン
