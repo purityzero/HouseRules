@@ -149,7 +149,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4283089648
   m_fontColor: {r: 0.9411765, g: 0.7607843, b: 0.2901961, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -620,10 +620,10 @@ RectTransform:
   - {fileID: 3867046862031742778}
   m_Father: {fileID: 4277032726220489410}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0.5}
+  m_AnchorMax: {x: 1, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1440, y: 880}
+  m_SizeDelta: {x: 0, y: 880}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1066914043841435615
 CanvasRenderer:
@@ -2292,9 +2292,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fedb928228178314b8d74759cd6fd805, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIHouseUpgrade
-  m_TitleText: {fileID: 8116182128057976502}
   m_SelectedHouseNameText: {fileID: 3955117680554982843}
-  m_EmptyText: {fileID: 5040224297799261258}
   m_EmptyStatePanel: {fileID: 4248308676366153029}
   m_AccentImage: {fileID: 5390704406227717644}
   m_HouseButtonRoot: {fileID: 4253513473485490509}

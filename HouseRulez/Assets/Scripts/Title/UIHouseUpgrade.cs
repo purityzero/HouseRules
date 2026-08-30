@@ -118,6 +118,30 @@ public class UIHouseUpgrade : UIPopup
             button.gameObject.SetActive(true);
             button.SetData(record, displayName, lockedLabel, isUnlocked, SelectHouse);
         }
+
+        FitHouseButtonsToRoot();
+    }
+
+    // 종족 수가 늘어도 탭이 팝업 밖으로 밀려나지 않도록 현재 루트 폭을 균등 분배한다.
+    private void FitHouseButtonsToRoot()
+    {
+        RectTransform rootRect = m_HouseButtonRoot as RectTransform;
+        HorizontalLayoutGroup layoutGroup = m_HouseButtonRoot.GetComponent<HorizontalLayoutGroup>();
+        if (rootRect == null || layoutGroup == null || m_ListHouse.Count <= 0)
+            return;
+
+        float availableWidth = rootRect.rect.width
+            - layoutGroup.padding.left
+            - layoutGroup.padding.right
+            - layoutGroup.spacing * (m_ListHouse.Count - 1);
+        float buttonWidth = availableWidth / m_ListHouse.Count;
+
+        for (int i = 0; i < m_ListHouse.Count && i < m_ListHouseButton.Count; ++i)
+        {
+            LayoutElement layoutElement = m_ListHouseButton[i].GetComponent<LayoutElement>();
+            if (layoutElement != null)
+                layoutElement.preferredWidth = buttonWidth;
+        }
     }
 
     private void SelectHouse(HouseRecord _record)

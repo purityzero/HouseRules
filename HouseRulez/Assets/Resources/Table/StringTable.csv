@@ -48,3 +48,4 @@ Id,Key,Kr,En,Cn,Jp
 47,HouseUpgradeMaxLevel,MAX LEVEL,MAX LEVEL,已满级,最大レベル
 48,HouseUpgradeLevelFormat,Lv {0}/{1},Lv {0}/{1},Lv {0}/{1},Lv {0}/{1}
 49,HouseUpgradeCostFormat,옥새 {0},{0} Seals,玉玺 {0},玉璽 {0}
+50,HouseYut,윷놀이,Yutnori,柶戏,ユンノリ
