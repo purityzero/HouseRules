@@ -22,6 +22,10 @@ public class GameConfigTable : Table<GameConfigRecord>
     public const string KEY_ROYAL_PER_YEAR = "RoyalPerYear";
     public const string KEY_ROYAL_CLEAR_BONUS = "RoyalClearBonus";
 
+    // 웨이브 적 전력의 기준값. 플레이어가 스핀 1회로 소환하는 평균 유닛 수(6기)에 맞춰 두었다 —
+    // 이 값이 1연차 1웨이브의 난이도를 정하고, 나머지는 WaveTable의 계수가 배수로 올린다.
+    public const string KEY_WAVE_BASE_POWER = "WaveBasePower";
+
     public GameConfigTable(List<GameConfigRecord> _listRecord) : base(_listRecord) { }
 
     // 키가 없으면 기본값으로 조용히 흘러가지 않도록 에러를 남긴다 —

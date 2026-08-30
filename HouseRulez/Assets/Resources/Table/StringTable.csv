@@ -49,3 +49,13 @@ Id,Key,Kr,En,Cn,Jp
 48,HouseUpgradeLevelFormat,Lv {0}/{1},Lv {0}/{1},Lv {0}/{1},Lv {0}/{1}
 49,HouseUpgradeCostFormat,옥새 {0},{0} Seals,玉玺 {0},玉璽 {0}
 50,HouseYut,윷놀이,Yutnori,柶戏,ユンノリ
+51,EnemyGrunt,졸병,Grunt,小卒,雑兵
+52,EnemyShield,방패병,Shieldman,盾兵,盾兵
+53,EnemyArcher,궁수,Archer,弓手,弓兵
+54,EnemyBrute,거인,Brute,巨汉,巨人
+55,EnemyKingFirst,첫 번째 왕,First King,初代王,最初の王
+56,EnemyKingSecond,두 번째 왕,Second King,二代王,二番目の王
+57,EnemyKingFinal,연합군 왕,Allied King,联军王,連合軍の王
+58,UnitGrade1,1성,1 Star,1星,1つ星
+59,UnitGrade2,2성,2 Star,2星,2つ星
+60,UnitGrade3,3성,3 Star,3星,3つ星

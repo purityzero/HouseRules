@@ -1,0 +1,8 @@
+Id,Key,NameKey,SpritePath,Hp,Atk,AtkSpeed,Range,MoveSpeed,Power
+1,grunt,EnemyGrunt,Image/InGame/Enemy/enemy_grunt,10,2,1.0,1,1.0,1
+2,shield,EnemyShield,Image/InGame/Enemy/enemy_shield,26,3,0.8,1,0.8,2
+3,archer,EnemyArcher,Image/InGame/Enemy/enemy_archer,14,5,1.0,3,0.9,2
+4,brute,EnemyBrute,Image/InGame/Enemy/enemy_brute,52,8,0.7,1,0.7,4
+5,king_first,EnemyKingFirst,Image/InGame/Enemy/enemy_king_first,240,18,0.9,2,0.6,17
+6,king_second,EnemyKingSecond,Image/InGame/Enemy/enemy_king_second,600,34,0.9,2,0.6,41
+7,king_final,EnemyKingFinal,Image/InGame/Enemy/enemy_king_final,1650,78,1.0,2,0.6,110

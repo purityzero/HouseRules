@@ -41,6 +41,10 @@ public class TableManager : MonoSingleton<TableManager>
         List<GameConfigRecord> gameConfigRecords = LoadCsvTable<GameConfigRecord>("Table/GameConfigTable");
         List<SutdaBetRecord> sutdaBetRecords = LoadCsvTable<SutdaBetRecord>("Table/SutdaBetTable");
         List<HouseUpgradeRecord> houseUpgradeRecords = LoadCsvTable<HouseUpgradeRecord>("Table/HouseUpgradeTable");
+        List<EnemyRecord> enemyRecords = LoadCsvTable<EnemyRecord>("Table/EnemyTable");
+        List<WaveRecord> waveRecords = LoadCsvTable<WaveRecord>("Table/WaveTable");
+        List<JudgeRecord> judgeRecords = LoadCsvTable<JudgeRecord>("Table/JudgeTable");
+        List<UnitGradeRecord> unitGradeRecords = LoadCsvTable<UnitGradeRecord>("Table/UnitGradeTable");
 
         UITable uiTable = new UITable(uiRecords);
         SoundTable soundTable = new SoundTable(soundRecords);
@@ -52,6 +56,10 @@ public class TableManager : MonoSingleton<TableManager>
         GameConfigTable gameConfigTable = new GameConfigTable(gameConfigRecords);
         SutdaBetTable sutdaBetTable = new SutdaBetTable(sutdaBetRecords);
         HouseUpgradeTable houseUpgradeTable = new HouseUpgradeTable(houseUpgradeRecords);
+        EnemyTable enemyTable = new EnemyTable(enemyRecords);
+        WaveTable waveTable = new WaveTable(waveRecords);
+        JudgeTable judgeTable = new JudgeTable(judgeRecords);
+        UnitGradeTable unitGradeTable = new UnitGradeTable(unitGradeRecords);
 
         m_TableDictionary.Add(typeof(UITable), uiTable);
         m_TableDictionary.Add(typeof(SoundTable), soundTable);
@@ -63,6 +71,10 @@ public class TableManager : MonoSingleton<TableManager>
         m_TableDictionary.Add(typeof(GameConfigTable), gameConfigTable);
         m_TableDictionary.Add(typeof(SutdaBetTable), sutdaBetTable);
         m_TableDictionary.Add(typeof(HouseUpgradeTable), houseUpgradeTable);
+        m_TableDictionary.Add(typeof(EnemyTable), enemyTable);
+        m_TableDictionary.Add(typeof(WaveTable), waveTable);
+        m_TableDictionary.Add(typeof(JudgeTable), judgeTable);
+        m_TableDictionary.Add(typeof(UnitGradeTable), unitGradeTable);
     }
 
     public async Task<List<T>> LoadCsvTableToAddressable<T>(string key) where T : new()

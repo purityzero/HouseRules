@@ -1,0 +1,10 @@
+Id,HouseKey,PatternKey,Coef
+1,chess,ChessLineTriple,8.0
+2,chess,ChessLinePair,1.3
+3,janggi,JanggiJump,3.8
+4,janggi,JanggiCannon,3.8
+5,janggi,JanggiEdge,0.95
+6,poker,PokerTriple,40
+7,poker,PokerStraight,11
+8,poker,PokerPair,1
+9,hwatu,HwatuScale,0.2055
