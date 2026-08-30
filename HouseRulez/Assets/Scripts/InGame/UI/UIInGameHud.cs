@@ -97,6 +97,12 @@ public class UIInGameHud : MonoBehaviour
 
             _listPip.Add(pip);
         }
+
+        // 루트 폭을 실제 개수에 맞춘다. 이걸 빼먹으면 씬에 박아둔 폭(설계 당시 개수 기준)이 남아,
+        // 업그레이드로 최대치가 늘어난 순간 핍이 루트 밖으로 뻗어 옆 항목 위에 겹쳐 그려진다.
+        // 실제로 본거지 보강 Lv3(HP 8→11)에서 연차 표시를 덮은 적이 있다.
+        float rootWidth = (_count > 0) ? (_count * (pipWidth + m_PipSpacing) - m_PipSpacing) : 0f;
+        _root.sizeDelta = new Vector2(rootWidth, _root.sizeDelta.y);
     }
 
     private void RefreshPipList(List<Image> _listPip, int _filledCount, Color _filledColor)

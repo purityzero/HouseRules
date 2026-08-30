@@ -165,7 +165,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InGameScene
   m_SlotMachine: {fileID: 900200072}
   m_SpinButton: {fileID: 900200144}
-  m_SpinButtonText: {fileID: 900200152}
   m_BackgroundImage: {fileID: 900200163}
   m_Hud: {fileID: 900200172}
   m_Action: {fileID: 900200292}
@@ -606,10 +605,10 @@ RectTransform:
   - {fileID: 900200291}
   m_Father: {fileID: 900200054}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1920, y: 864}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &900200070
 GameObject:
@@ -646,11 +645,11 @@ RectTransform:
   - {fileID: 900200141}
   m_Father: {fileID: 900200061}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 12, y: -72}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 12, y: 12}
   m_SizeDelta: {x: 408, y: 780}
-  m_Pivot: {x: 0, y: 1}
+  m_Pivot: {x: 0, y: 0}
 --- !u!114 &900200072
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1366,11 +1365,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 900200061}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1920, y: 864}
-  m_Pivot: {x: 0, y: 1}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &900200162
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1416,6 +1415,7 @@ GameObject:
   m_Component:
   - component: {fileID: 900200171}
   - component: {fileID: 900200172}
+  - component: {fileID: 900200173}
   m_Layer: 5
   m_Name: Hud
   m_TagString: Untagged
@@ -1447,10 +1447,10 @@ RectTransform:
   m_Father: {fileID: 900200061}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 1920, y: 60}
-  m_Pivot: {x: 0, y: 1}
+  m_SizeDelta: {x: 0, y: 72}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &900200172
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1463,13 +1463,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4297ac55d4dd4aaba652a3bf087fb865, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIInGameHud
-  m_HomeLabelText: {fileID: 900200192}
   m_HomeHpPipRoot: {fileID: 900200201}
   m_HomeHpPipTemplate: {fileID: 900200212}
   m_YearText: {fileID: 900200222}
-  m_GoldLabelText: {fileID: 900200232}
   m_GoldValueText: {fileID: 900200242}
-  m_SpinCoinLabelText: {fileID: 900200252}
   m_SpinCoinPipRoot: {fileID: 900200261}
   m_SpinCoinPipTemplate: {fileID: 900200272}
   m_BetText: {fileID: 900200282}
@@ -1477,6 +1474,32 @@ MonoBehaviour:
   m_PipFilledColor: {r: 0.81960785, g: 0.33333334, b: 0.29803923, a: 1}
   m_PipEmptyColor: {r: 0.22352941, g: 0.24313726, b: 0.30588236, a: 1}
   m_SpinCoinFilledColor: {r: 0.9647059, g: 0.9607843, b: 0.9411765, a: 1}
+--- !u!114 &900200173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900200170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.HorizontalLayoutGroup
+  m_Padding:
+    m_Left: 24
+    m_Right: 24
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 3
+  m_Spacing: 16
+  m_ChildForceExpandWidth: 0
+  m_ChildForceExpandHeight: 0
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &900200180
 GameObject:
   m_ObjectHideFlags: 0
@@ -1488,6 +1511,7 @@ GameObject:
   - component: {fileID: 900200181}
   - component: {fileID: 900200183}
   - component: {fileID: 900200182}
+  - component: {fileID: 900200184}
   m_Layer: 5
   m_Name: Panel
   m_TagString: Untagged
@@ -1552,6 +1576,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 900200180}
   m_CullTransparentMesh: 1
+--- !u!114 &900200184
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900200180}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 1
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1 &900200190
 GameObject:
   m_ObjectHideFlags: 0
@@ -2515,6 +2559,7 @@ GameObject:
   - component: {fileID: 900200281}
   - component: {fileID: 900200283}
   - component: {fileID: 900200282}
+  - component: {fileID: 900200284}
   m_Layer: 5
   m_Name: BetText
   m_TagString: Untagged
@@ -2641,6 +2686,26 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 900200280}
   m_CullTransparentMesh: 1
+--- !u!114 &900200284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900200280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 306cc8c2b49d7114eaa3623786fc2126, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.LayoutElement
+  m_IgnoreLayout: 1
+  m_MinWidth: -1
+  m_MinHeight: -1
+  m_PreferredWidth: -1
+  m_PreferredHeight: -1
+  m_FlexibleWidth: -1
+  m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!1 &900200290
 GameObject:
   m_ObjectHideFlags: 0
@@ -2676,11 +2741,11 @@ RectTransform:
   - {fileID: 900200351}
   m_Father: {fileID: 900200061}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 432, y: -750}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 432, y: 12}
   m_SizeDelta: {x: 1044, y: 102}
-  m_Pivot: {x: 0, y: 1}
+  m_Pivot: {x: 0, y: 0}
 --- !u!114 &900200292
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2694,7 +2759,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIInGameAction
   m_BattleStartButton: {fileID: 900200304}
-  m_BattleStartText: {fileID: 900200312}
   m_SwapPipRoot: {fileID: 900200321}
   m_SwapPipTemplate: {fileID: 900200332}
   m_SwapText: {fileID: 900200342}

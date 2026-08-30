@@ -73,3 +73,6 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 QA_Recordings/
+
+# QA 검증용 캡처 (증거일 뿐 저장소에 남기지 않는다)
+QACapture/
