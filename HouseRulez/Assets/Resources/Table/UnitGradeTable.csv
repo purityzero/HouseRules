@@ -1,4 +1,4 @@
-Id,Grade,NameKey,Multiplier
-1,1,UnitGrade1,1.0
-2,2,UnitGrade2,2.6
-3,3,UnitGrade3,7.0
+Id,Grade,NameKey,Multiplier,Hp,Atk,AtkSpeed,Range,MoveSpeed
+1,1,UnitGrade1,1.0,10,2,1.0,1,1.0
+2,2,UnitGrade2,2.6,26,5,1.0,1,1.0
+3,3,UnitGrade3,7.0,70,14,1.0,1,1.0

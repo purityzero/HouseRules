@@ -15,7 +15,17 @@ public class InGameScene : BaseScene
     [SerializeField] private UIInGameAction m_Action;
     [SerializeField] private float m_SpinDuration = 1.5f; // 판정기가 아직 없어 임의로 굴리는 시간(전투/판정 붙으면 대체될 값)
 
+    [SerializeField] private UIInGameField m_Field;
+    [SerializeField] private UIInGameBattle m_Battle;
+
+    // 릴 3개가 순차 정지를 끝낼 때까지 기다렸다가 소환을 띄운다.
+    [SerializeField] private float m_SummonDelay = 0.9f;
+
     private Coroutine m_SpinRoutine;
+
+    // 전투 시작이 마지막 스핀 결과를 쓴다. 스핀을 안 돌렸으면 전투가 성립하지 않는다.
+    private JudgeResult m_LastJudgeResult;
+    private int[] m_LastGrid;
 
     // 런 상태의 소유자는 이 씬이다. UI는 읽어서 그리기만 하고, 값을 바꾸는 건 전부 여기를 거친다.
     private RunData m_RunData = new RunData();
@@ -44,6 +54,9 @@ public class InGameScene : BaseScene
         UIText.RefreshAll();
 
         m_SlotMachine.Apply(record);
+
+        if (m_Field != null)
+            m_Field.Apply();
 
         ApplyBackground(record);
 
@@ -109,10 +122,48 @@ public class InGameScene : BaseScene
         m_SpinRoutine = StartCoroutine(CoSpinAndStop());
     }
 
-    // TODO: 배치/전투 단계가 아직 없다. 단계가 생기면 여기서 넘긴다.
+    // 전투 시작. 마지막 스핀의 판정 결과를 아군으로, 현재 연차·웨이브의 적을 상대로 세운다.
     private void OnBattleStart()
     {
-        Logger.Log($"[InGameScene] OnBattleStart - 전투 단계 미구현");
+        if (m_Battle == null)
+        {
+            Logger.Error("[InGameScene] OnBattleStart Failed! UIInGameBattle 미연결 (기대: 씬에서 직렬화 연결)");
+            return;
+        }
+
+        if (m_LastJudgeResult == null || m_LastGrid == null)
+        {
+            Logger.Log("[InGameScene] OnBattleStart - 스핀 결과가 없어 전투를 시작하지 않는다 (기대: SPIN 선행)");
+            return;
+        }
+
+        WaveTable waveTable = TableManager.instance.GetTable<WaveTable>();
+        if (waveTable == null)
+        {
+            Logger.Error("[InGameScene] OnBattleStart Failed! WaveTable not found");
+            return;
+        }
+
+        WaveRecord wave = waveTable.GetRecord(m_RunData.year, m_RunData.waveIndex);
+        if (wave == null)
+        {
+            Logger.Error($"[InGameScene] OnBattleStart Failed! 웨이브 없음 - 연차 {m_RunData.year} 웨이브 {m_RunData.waveIndex} (기대: WaveTable.csv에 해당 행)");
+            return;
+        }
+
+        // 소환 표시는 전투 유닛이 대신하므로 겹쳐 보이지 않게 지운다.
+        if (m_Field != null)
+            m_Field.Clear();
+
+        m_Battle.Begin(m_LastJudgeResult, m_LastGrid, m_SlotMachine.spritePool, wave);
+    }
+
+    private void Update()
+    {
+        if (m_Battle == null || m_Battle.isRunning == false)
+            return;
+
+        m_Battle.Tick(Time.deltaTime * m_RunData.battleSpeed);
     }
 
     private void OnBattleSpeed()
@@ -127,9 +178,31 @@ public class InGameScene : BaseScene
     {
         m_SlotMachine.Spin();
 
+        if (m_Field != null)
+            m_Field.Clear();
+
+        // 결과를 먼저 만들고 그 값 하나로 판정과 릴을 모두 돌린다.
+        // 릴이 스스로 무작위를 굴리게 두면 화면에 보이는 3×3과 판정한 3×3이 달라진다.
+        HouseRecord record = PlayerManager.instance.GetSelectedHouseRecord();
+        int[] grid = m_SlotMachine.CreateRandomGrid();
+        m_SlotMachine.SetResultByGrid(grid);
+
+        JudgeResult judgeResult = (record != null) ? Judge.Evaluate(record.Key, grid) : null;
+
         yield return new WaitForSeconds(m_SpinDuration);
 
         m_SlotMachine.StopAll();
+
+        // 릴이 순차 정지를 마치는 동안 기다렸다가 소환을 보여준다 —
+        // 정지 전에 띄우면 아직 돌고 있는 릴의 결과를 미리 알려주는 꼴이 된다.
+        yield return new WaitForSeconds(m_SummonDelay);
+
+        m_LastJudgeResult = judgeResult;
+        m_LastGrid = grid;
+
+        if (m_Field != null && judgeResult != null)
+            m_Field.ShowSummon(judgeResult, grid, m_SlotMachine.spritePool);
+
         m_SpinRoutine = null;
     }
 

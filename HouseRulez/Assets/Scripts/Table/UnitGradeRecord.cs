@@ -7,11 +7,28 @@ public class UnitGradeRecord : Record
     public int Grade;
     public string NameKey;
     public float Multiplier;
+
+    // 전투 스탯. Hp/Atk은 1성 기본값(10/2)에 Multiplier를 곱한 값이라
+    // 전력 1 = 1성 1기라는 환산과 어긋나지 않는다. 적 grunt(Power 1, Hp 10, Atk 2)와도 같은 눈금이다.
+    public int Hp;
+    public int Atk;
+    public float AtkSpeed;
+    public int Range;
+    public float MoveSpeed;
 }
 
 public class UnitGradeTable : Table<UnitGradeRecord>
 {
     public UnitGradeTable(List<UnitGradeRecord> _listRecord) : base(_listRecord) { }
+
+    public UnitGradeRecord GetRecord(int _grade)
+    {
+        UnitGradeRecord record = list.Find(grade => grade != null && grade.Grade >= _grade && grade.Grade <= _grade);
+        if (record == null)
+            Logger.Error($"[UnitGradeTable] GetRecord Failed! 등급 없음 - {_grade} (기대: UnitGradeTable.csv에 해당 행 존재)");
+
+        return record;
+    }
 
     public float GetMultiplier(int _grade)
     {

@@ -1,5 +1,77 @@
 # 미완료 작업
 
+## 2026-08-30-0 — 인게임 3·4단계 (소환 연결 + 전투) 미커밋, Codex 인계 대기
+
+브랜치 `work/2026-08-29-upgrade-content`. **작업 트리에 그대로 있고 커밋 안 됐다.**
+Git 마무리는 Codex 메인 세션 담당이다(`CODEX.md` 전담 조항).
+
+### 이번에 한 것
+| 단계 | 내용 | 상태 |
+|---|---|---|
+| 1 | 전투 테이블 3종(`EnemyTable`/`WaveTable`/`JudgeTable`) + `UnitGradeTable` 확장 | 커밋 `8efc247` (1~2단계) |
+| 2 | 4종족 판정기 `Judge` — 몬테카를로 50만 회로 GDD 수치 재현 | 커밋 `8efc247` |
+| 3 | 스핀 → 판정 → 소환 표시 연결, 전장 3×3을 **바닥 위 깊이 배치**로 전환 | **미커밋** |
+| 4 | 전투(`BattleUnit`/`UIInGameBattle`), ACTION 바 상단 이동, 접이식 요약 패널 | **미커밋** |
+
+### 미커밋 변경 파일
+```
+ M Assets/Resources/Table/UnitGradeTable.csv        전투 스탯 5컬럼 추가
+ M Assets/Scenes/InGameScene.unity                  Field/Battle/Summary 신설, Action 상단 이동
+ M Assets/Scripts/InGame/InGameScene.cs             판정→소환→전투 연결, Update()로 전투 tick
+ M Assets/Scripts/InGame/RunData.cs                 waveIndex / AdvanceWave / TakeHomeDamage
+ M Assets/Scripts/InGame/Slot/UIHouseSlotMachine.cs CreateRandomGrid / SetResultByGrid / spritePool
+ M Assets/Scripts/Table/UnitGradeRecord.cs          Hp/Atk/AtkSpeed/Range/MoveSpeed + GetRecord
+?? Assets/Scripts/InGame/Battle/                    BattleUnit.cs / UIInGameBattle.cs (+ .meta)
+?? Assets/Scripts/InGame/UI/UIInGameField.cs        (+ .meta)
+?? Assets/Scripts/InGame/UI/UIInGameFieldSlot.cs    (+ .meta)
+?? Assets/Scripts/InGame/UI/UIInGameSummary.cs      (+ .meta)
+```
+
+**같이 딸려온 것 — 판단이 필요하다**
+- `ProjectSettings/ProjectSettings.asset` : `runInBackground: 0 → 1`.
+  **의도한 변경이다.** 에디터가 포커스를 잃어도 Play Mode가 계속 돌아야 MCP QA가 가능하다.
+- `Assets/font/*.asset` 3개 : TMP 동적 폰트가 **새 글리프를 아틀라스에 캐시한 결과**다
+  (이번에 처음 화면에 나온 글자들). 에디터가 자동 생성한 것이지만 지우면 다음 실행 때 다시 생긴다.
+
+### 검증 상태 — Codex QA 통과 (Unity MCP)
+Unity MCP 검증은 전부 Codex가 수행했다(`AGENT.MD` 라우팅). Claude는 씬/스크립트 편집만 했다.
+Codex 실행은 매번 `git status` 스냅샷으로 앞뒤를 감쌌고 **7회 모두 파일 변경 0건**을 확인했다.
+
+**전투 A~G** — `BattleStartButton.onClick.Invoke()`(프로덕션 진입점)로 시작
+- 아군 x 60 → 497 우측 이동 / 적 x 1040 → 604 좌측 이동
+- 아군 HP 10 → 8 → 4 → 0, 사망 시 비활성화
+- 6.00s에 `Running → Defeat`
+- 적 마릿수 `0.85 × 6 ÷ 1 = 5.1 → 5` 로 테이블 역산과 일치
+- 레인 교차 교전 **0건** (계수로 단언)
+
+**요약 패널** — `ToggleButton.onClick.Invoke()`로 열고 닫음
+- 닫힘 패널 x [12, 420] ⊂ 슬롯머신 x [12, 420] — 완전 은폐
+- 열림 anchored x 56
+- 본문 실제 문자열 `진 2` / `전력 1.9 · 소환 2기` (상태 플래그가 아니라 표시값을 읽음)
+
+**사람 눈 확인 완료** — `QACapture/summary_final.png`. 화살표·슬라이드·바닥 유닛·ACTION 위치 모두 의도대로.
+
+### 이번에 고친 결함 (전부 Codex QA가 잡은 것)
+1. **9칸이 전부 같은 자리에 겹침** — 씬에 이미 저장된 컴포넌트에 `[SerializeField]`를 나중에 추가하면
+   기본값이 아니라 **0**이 역직렬화된다. 레이아웃 값을 `const`로 옮기고 코드가 `sizeDelta`까지 소유하게 했다
+2. **요약 패널 12px 노출** — 패널 폭 420 vs 슬롯머신 가시 폭 408. 408로 맞춤
+3. **뒤 레인 유닛이 성문과 겹침** — `Field`/`Battle` x 560 → 520. 후열 우측 끝 892 < 성문 900
+
+### 남은 위험 / 이어서 할 일
+- ⚠️ **36웨이브 밸런스 재산정** — 승인 당시 12연차 플레이어 전력을 **×18.0(프리즘)**으로 잡았으나
+  실제 판정 소환은 **3성 ×7.0**이 상한이다(`JudgeResult` 주석). 후반이 계산보다 훨씬 어렵다
+- ⚠️ **웨이브 종료 처리가 없다.** `UIInGameBattle.result`/`homeHit`을 `RunData`로 넘기는 호출부가 없어
+  `AdvanceWave()`·`TakeHomeDamage()`·`GetRoyalReward()` 셋 다 **부르는 곳이 없다**
+- 적 아트 없음 — `Image/InGame/Enemy/enemy_*` 규칙만 정해뒀고 파일이 없어 실루엣으로 뜬다
+- 슬롯·마작·윷 3종족 판정기 미구현 — `JudgeTable.csv`에 행이 없다(GDD에 계수 없음)
+- 옥새 획득 경로 없음 — 런 종료 단계가 없어 `GetRoyalReward()`가 고아다
+
+**클래스 문서**: `.claude/class/`에 11개 신설(`UIInGameField`, `UIInGameFieldSlot`, `UIInGameSummary`,
+`BattleUnit`, `UIInGameBattle`, `Judge`, `JudgeResult`, `JudgeRecord`, `WaveRecord`, `EnemyRecord`,
+`UnitGradeRecord`) + 5개 갱신(`InGameScene`, `RunData`, `UIHouseSlotMachine`, `UIInGameHud`, `UIInGameAction`).
+
+---
+
 ## 2026-08-28-4 — 기획 문서 HTML 정본 전환
 
 완료. `.claude/design/`의 기존 기획 Markdown 5개를 HTML로 교체하고 Orca 정본의 `upgrade-system.html`을 포함해 총 6개 문서를 동기화했다. 문서 간 `.html` 링크, `design-planner` 산출물 형식, `code-writer` 입력 경로도 함께 갱신했다.
@@ -216,9 +288,13 @@ MCP가 붙어 **Play Mode로 처음 실제 검증**했다. 어제 미검증으�
 
 ## 이어서 할 일
 
-- **판정기 연결** — `UIHouseSlotMachine`의 `// TODO`. 릴은 이제 굴러가는데 결과를 소비할 곳이 없다.
-  기획서에 **전력 → 소환 유닛 수 환산 규칙이 다섯 종족 공통으로 없다**(`Judge.csv`에 `SummonCount`
-  컬럼만 있고 산식 없음). 규칙이 정해지기 전엔 이어붙일 대상이 없다
+- ~~**판정기 연결**~~ — **2026-08-30 해소.** 4종족(체스·장기·포커·화투) 판정기 `Judge`를 붙였고
+  스핀 → 판정 → 소환 → 전투까지 이어졌다. 막고 있던 "전력 → 소환 환산 규칙이 기획서에 없다"는
+  **GDD에 정말로 없어서** 이번에 정의했다(`.claude/class/JudgeResult.md`):
+  전력 1 = 1성 1기, 9칸을 넘는 전력은 등급(1→2→3성)으로 흡수, 9 × 7.0 = 63이 하드 상한.
+  ★ GDD를 고치지는 않았다 — 이 규칙은 GDD의 어느 절과도 충돌하지 않는 **추가**라서,
+  기획자 정본을 말없이 손대는 대신 클래스 문서와 코드 주석에 근거를 남겼다.
+  슬롯·마작·윷 3종족은 여전히 미구현(`JudgeTable.csv`에 계수 행 없음)
 - **스핀 소모값** — 배당·재화 정산을 아직 만들지 않았다(2026-08-27 사용자 지시). 당첨은 화면 연출로만 알린다
 - **종족 강조색(`AccentColor`)이 인게임에 안 물린다** — `UIHouseSlotMachine.m_HeaderBarImage`가
   미연결(fileID 0)이고, 물릴 헤더 바 오브젝트 자체가 씬에 없다. 종족 구분이 배경 + 프레임으로만 난다

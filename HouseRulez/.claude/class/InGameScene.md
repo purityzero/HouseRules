@@ -211,3 +211,48 @@ HUD/ACTION 라벨은 각각 `UIInGameHud`/`UIInGameAction`이 자기 것을 채�
 
 ### 검증 상태 — 미검증
 MCP 미연결 세션. 씬 정합성 재대조는 통과(fileID 138 블록, 중복/dangling/고아 0건).
+
+## 2026-08-30-0 — 스핀 → 판정 → 소환 → 전투 연결
+
+### 개요
+지금까지 릴만 돌던 씬에 판정·소환 표시·전투를 이어 붙였다. 런 상태의 소유자는 여전히 이 씬 하나다.
+
+### 추가된 직렬화 필드
+| 필드 | 연결 대상 |
+|---|---|
+| `m_Field` | [[UIInGameField]] (GO 508569370) |
+| `m_Battle` | [[UIInGameBattle]] (GO 1703635131) |
+| `m_SummonDelay` (0.9) | 릴 3개가 순차 정지를 끝낼 때까지의 대기 |
+
+### 흐름
+```
+OnClickSpinButton
+  └ RunData.SpendSpinCoin()  실패 시 여기서 끝 (코인 0)
+  └ CoSpinAndStop
+       Spin() → Field.Clear()
+       grid = SlotMachine.CreateRandomGrid()      ← 결과를 먼저 만든다
+       SlotMachine.SetResultByGrid(grid)
+       judgeResult = Judge.Evaluate(houseKey, grid)
+       wait m_SpinDuration → StopAll()
+       wait m_SummonDelay  → Field.ShowSummon(judgeResult, grid, spritePool)
+       m_LastJudgeResult / m_LastGrid 보관
+
+OnBattleStart (UIInGameAction 이벤트)
+  └ 스핀 결과 없으면 로그만 남기고 반환
+  └ WaveTable.GetRecord(year, waveIndex)
+  └ Field.Clear()                                ← 소환 표시를 지운다 (전투 유닛과 겹치므로)
+  └ Battle.Begin(judgeResult, grid, spritePool, wave)
+
+Update() → Battle.Tick(Time.deltaTime * RunData.battleSpeed)
+```
+
+### 릴 정지 전에 소환을 띄우지 않는 이유
+`m_SummonDelay`를 두지 않으면 아직 돌고 있는 릴의 결과를 화면이 미리 알려주는 꼴이 된다.
+
+### 배속을 유닛이 아니라 여기서 곱하는 이유
+`BattleUnit.Tick`은 `Time.deltaTime`을 직접 읽지 않고 인자로 받는다. 배속의 소유자를 씬 한 곳에 두면
+"어디선가 또 곱해져 두 배가 되는" 사고가 구조적으로 안 생긴다.
+
+### 검증 상태 — Codex QA 통과 (2026-08-30)
+`SpinButton`/`BattleStartButton`의 `onClick.Invoke()`로 프로덕션 경로를 타서 확인.
+Unity MCP 검증은 Codex가 수행했다(AGENT.MD 라우팅).

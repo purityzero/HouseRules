@@ -3,9 +3,12 @@
 // 초기값은 전부 GameConfigTable에서 온다. 여기에 숫자를 박으면 CSV만으로 튜닝할 수 없게 된다.
 public class RunData
 {
+    public const int WAVE_PER_YEAR = 3;
+
     private int m_HomeHp;
     private int m_HomeHpMax;
     private int m_Year;
+    private int m_WaveIndex;
     private int m_YearMax;
     private int m_Gold;
     private int m_SpinCoin;
@@ -19,6 +22,9 @@ public class RunData
     public int homeHp => m_HomeHp;
     public int homeHpMax => m_HomeHpMax;
     public int year => m_Year;
+
+    // 연차당 웨이브 3개. 스핀 코인 1개가 웨이브 1개다.
+    public int waveIndex => m_WaveIndex;
     public int yearMax => m_YearMax;
     public int gold => m_Gold;
     public int spinCoin => m_SpinCoin;
@@ -53,6 +59,7 @@ public class RunData
 
         m_HomeHp = m_HomeHpMax;
         m_Year = 1;
+        m_WaveIndex = 1;
         m_Gold = configTable.GetValue(GameConfigTable.KEY_RUN_START_GOLD, 0)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_RUN_START_GOLD);
         m_SpinCoin = m_SpinCoinMax;
@@ -69,6 +76,29 @@ public class RunData
 
         m_SpinCoin -= 1;
         return true;
+    }
+
+    // 웨이브를 하나 끝냈다. 3개를 다 치르면 다음 연차로 넘어간다.
+    // TODO: 연차 전환 시 스핀 코인·스왑 회복과 상점/외교 단계는 그 단계가 생길 때 여기에 붙인다.
+    public void AdvanceWave()
+    {
+        m_WaveIndex++;
+        if (m_WaveIndex <= WAVE_PER_YEAR)
+            return;
+
+        m_WaveIndex = 1;
+        m_Year++;
+    }
+
+    // 본거지가 맞았다. 0이 되면 런이 끝난다(종료 처리는 아직 없다).
+    public void TakeHomeDamage(int _amount)
+    {
+        if (_amount <= 0)
+            return;
+
+        m_HomeHp -= _amount;
+        if (m_HomeHp < 0)
+            m_HomeHp = 0;
     }
 
     // 런 종료 시 줄 옥새. 패배해도 도달 연차만큼은 지급하고, 완주하면 보너스가 붙는다.

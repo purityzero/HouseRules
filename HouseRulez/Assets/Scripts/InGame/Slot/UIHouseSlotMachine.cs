@@ -159,6 +159,59 @@ public class UIHouseSlotMachine : MonoBehaviour
         m_HasExternalResult = true;
     }
 
+    // 무작위 3×3 결과를 만들어 돌려준다. 판정기가 이 값을 읽어 전력을 내고,
+    // 같은 값을 SetResultByGrid()로 릴에 넣어 화면과 판정이 어긋나지 않게 한다.
+    //
+    // 좌표계는 **셀 인덱스 0~8(행 우선)**로 통일한다 — Judge가 쓰는 것과 같다.
+    // 릴은 열이고 칸은 행이라 cell = row * 릴수 + reel 로 옮긴다. 이 변환을 호출부마다
+    // 다시 쓰면 한쪽만 틀렸을 때 판정과 화면이 조용히 달라진다.
+    public int[] CreateRandomGrid()
+    {
+        int poolCount = m_SpritePool.Count;
+        int[] grid = new int[m_ReelList.Length * m_VisibleSymbolCount];
+
+        if (poolCount <= 0)
+        {
+            Logger.Error("[UIHouseSlotMachine] CreateRandomGrid Failed! 스프라이트 풀이 비었다 (기대: Apply() 선행 호출)");
+            return grid;
+        }
+
+        for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
+        {
+            for (int rowIndex = 0; rowIndex < m_VisibleSymbolCount; ++rowIndex)
+            {
+                grid[rowIndex * m_ReelList.Length + reelIndex] = Random.Range(0, poolCount);
+            }
+        }
+
+        return grid;
+    }
+
+    // 셀 인덱스(0~8) 배열을 릴 기준 배열로 바꿔 릴에 넣는다.
+    public void SetResultByGrid(int[] _grid)
+    {
+        int need = m_ReelList.Length * m_VisibleSymbolCount;
+        if (_grid == null || _grid.Length < need)
+        {
+            Logger.Error($"[UIHouseSlotMachine] SetResultByGrid Failed! grid 길이 부족 - {(_grid == null ? "null" : _grid.Length.ToString())} (기대: {need})");
+            return;
+        }
+
+        int[][] byReel = new int[m_ReelList.Length][];
+        for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
+        {
+            byReel[reelIndex] = new int[m_VisibleSymbolCount];
+            for (int rowIndex = 0; rowIndex < m_VisibleSymbolCount; ++rowIndex)
+            {
+                byReel[reelIndex][rowIndex] = _grid[rowIndex * m_ReelList.Length + reelIndex];
+            }
+        }
+
+        SetResult(byReel);
+    }
+
+    public IReadOnlyList<HouseSlotSymbolSprite> spritePool => m_SpritePool;
+
     // 릴마다 시간차를 두고 순차 정지시킨다.
     public void StopAll()
     {

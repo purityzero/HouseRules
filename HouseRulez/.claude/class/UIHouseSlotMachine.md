@@ -86,3 +86,27 @@ UIHouseSlotMachine (컨트롤러)
 
 ### 2026-08-26-2 — InGameScene에 실제 배치
 프리팹 대신 `Assets/Scenes/InGameScene.unity`에 직접 배치해 처음으로 실제 씬에 연결했다. 계층/좌표/마스크 구조는 `.claude/class/InGameScene.md` 참고. `Apply()`/`Spin()`/`StopAll()` 호출부는 `InGameScene.OnSetup()`/`OnClickSpinButton()`.
+
+## 2026-08-30-0 — 판정과 화면이 같은 3×3을 쓰도록 좌표계 통합
+
+### 증상
+릴이 스스로 무작위를 굴려 멈추면, 화면에 보이는 3×3과 `Judge`가 판정한 3×3이 서로 다른 값이 된다.
+"보이는 대로 소환된다"가 깨진다.
+
+### 원인
+결과 생성 주체가 둘이었다. 릴(`Glory` 슬롯머신)이 자기 결과를 만들고, 판정기는 별도의 배열을 받았다.
+
+### 수정 — 결과를 먼저 만들고 그 하나로 둘 다 돌린다
+| 추가 멤버 | 하는 일 |
+|---|---|
+| `CreateRandomGrid()` | 심볼 개수 안에서 9칸 무작위 배열을 만든다. 칸 인덱스 = `row * 3 + reel` |
+| `SetResultByGrid(int[])` | 그 배열대로 릴 3개의 정지 결과를 지정한다 |
+| `spritePool` | 이미 로드해 둔 `HouseSlotSymbolSprite` 목록 공개. 전장/전투가 재로드 없이 그대로 쓴다 |
+
+호출 순서(`InGameScene.CoSpinAndStop`):
+`Spin()` → `CreateRandomGrid()` → `SetResultByGrid(grid)` → `Judge.Evaluate(houseKey, grid)` → `StopAll()`
+
+### 칸 인덱스 규칙 (프로젝트 공통)
+`cell = row * 3 + reel`, 0~8 행 우선. `Judge`·`JudgeResult`·[[UIInGameField]]·[[UIInGameBattle]]이 전부 이 좌표계다.
+
+### 검증 상태 — Codex QA 통과 (2026-08-30)
