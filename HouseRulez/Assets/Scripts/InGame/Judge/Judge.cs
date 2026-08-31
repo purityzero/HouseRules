@@ -23,13 +23,13 @@ public static class Judge
         new[] { 0, 4, 8 }, new[] { 2, 4, 6 },
     };
 
-    // 슬롯의 페이라인은 5개다 — 가로 3 · 대각 2. 세로는 쓰지 않는다.
-    // 릴이 세로로 도는 기계라 세로줄은 "한 릴 안의 연속된 칸"이지 슬롯머신의 라인이 아니다.
-    private static readonly int[][] SLOT_PAYLINES =
-    {
-        new[] { 0, 1, 2 }, new[] { 3, 4, 5 }, new[] { 6, 7, 8 },
-        new[] { 0, 4, 8 }, new[] { 2, 4, 6 },
-    };
+    // 슬롯의 페이라인은 `SlotLineTable`(CSV)이 정한다 — 코드에 박지 않는다.
+    // 그 테이블이 "라인을 늘리거나 빼는 건 밸런싱이라 코드 수정 없이 조정할 수 있어야 한다"고
+    // 명시하고 있고, 실제 값도 가로 3 · 대각 2로 슬롯 문법과 같다.
+    // (세로는 없다. 릴이 세로로 도는 기계라 세로줄은 "한 릴 안의 연속된 칸"이지 라인이 아니다)
+    //
+    // 재사용 버퍼다. 20만 회 몬테카를로에서 라인마다 배열을 새로 만들면 그만큼 GC가 돈다.
+    private static readonly int[] SLOT_LINE_BUFFER = new int[COLUMN_COUNT];
 
     // 섯다는 세로 3열이 각각 한 손이다.
     private static readonly int[][] COLUMNS =
@@ -213,19 +213,40 @@ public static class Judge
         int match3 = 0;
         int match2 = 0;
         float power = 0f;
+        float power3 = 0f;
+        float power2 = 0f;
         int bestSymbol = -1;
 
-        for (int i = 0; i < SLOT_PAYLINES.Length; ++i)
+        SlotLineTable lineTable = TableManager.instance.GetTable<SlotLineTable>();
+        if (lineTable == null)
         {
-            int a = _grid[SLOT_PAYLINES[i][0]];
-            int b = _grid[SLOT_PAYLINES[i][1]];
-            int c = _grid[SLOT_PAYLINES[i][2]];
+            Logger.Error("[Judge] EvaluateSlot Failed! SlotLineTable not found (기대: TableManager에 등록됨)");
+            return;
+        }
+
+        for (int i = 0; i < lineTable.list.Count; ++i)
+        {
+            SlotLineRecord line = lineTable.list[i];
+            if (line == null)
+                continue;
+
+            // 라인은 릴별 "몇 번째 행"으로 적혀 있다. 칸 인덱스로 바꾼다 — cell = row * 릴수 + 릴.
+            for (int reelIndex = 0; reelIndex < COLUMN_COUNT; ++reelIndex)
+            {
+                SLOT_LINE_BUFFER[reelIndex] = line.GetRow(reelIndex) * COLUMN_COUNT + reelIndex;
+            }
+
+            int a = _grid[SLOT_LINE_BUFFER[0]];
+            int b = _grid[SLOT_LINE_BUFFER[1]];
+            int c = _grid[SLOT_LINE_BUFFER[2]];
 
             if (a == b && b == c)
             {
                 match3++;
-                power += _table.GetCoef("slot", JudgeTable.SLOT_MATCH3_PREFIX + a);
-                AddHit(_result, SLOT_PAYLINES[i]);
+                float coef3 = _table.GetCoef("slot", JudgeTable.SLOT_MATCH3_PREFIX + a);
+                power += coef3;
+                power3 += coef3;
+                AddHit(_result, SLOT_LINE_BUFFER);
 
                 if (a > bestSymbol)
                     bestSymbol = a;
@@ -246,10 +267,19 @@ public static class Judge
                 continue;
 
             match2++;
-            power += _table.GetCoef("slot", JudgeTable.SLOT_MATCH2_PREFIX + paired);
+            float coef2 = _table.GetCoef("slot", JudgeTable.SLOT_MATCH2_PREFIX + paired);
+            power += coef2;
+            power2 += coef2;
+            AddPartialPair(_result, _grid, SLOT_LINE_BUFFER);
         }
 
         _result.Power = power;
+
+        // 슬롯은 심볼마다 배당이 달라 "N개 × 계수" 꼴로 못 묶는다.
+        // 개수만 세고 계수 자리에는 그 줄들의 평균 배당을 넣는다(합계는 Power와 일치한다).
+        AddTerm(_result, "3매치", match3, (match3 > 0) ? power3 / match3 : 0f);
+        AddTerm(_result, "2매치", match2, (match2 > 0) ? power2 / match2 : 0f);
+
         _result.PatternName = (match3 > 0)
             ? $"{GetSlotSymbolName(bestSymbol)} {match3}줄"
             : ((match2 > 0) ? $"짝 {match2}줄" : "무판정");
@@ -290,22 +320,33 @@ public static class Judge
         int kotsu = 0;
         Decompose(counts, ref meld, ref kotsu);
 
-        float power = _table.GetCoef("mahjong", JudgeTable.MAHJONG_MELD) * meld;
+        float meldCoef = _table.GetCoef("mahjong", JudgeTable.MAHJONG_MELD);
+        float power = meldCoef * meld;
         bool isWin = (meld >= MAHJONG_MELD_MAX);
         bool isIkkitsukan = false;
+
+        AddTerm(_result, "면자", meld, meldCoef);
 
         if (isWin == true)
         {
             isIkkitsukan = IsIkkitsukan(counts);
 
-            power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_WIN);
+            float winCoef = _table.GetCoef("mahjong", JudgeTable.MAHJONG_WIN);
+            power += winCoef;
+            AddTerm(_result, "화료", 1, winCoef);
 
             // 커쯔 프리미엄은 화료라는 문턱을 넘은 뒤에만 열린다.
             // 부분 성립에도 주면 마작이 "같은 것 3개 모으기"가 되어 체스 정렬·포커 트리플과 체감이 겹친다.
-            power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_KOTSU) * kotsu;
+            float kotsuCoef = _table.GetCoef("mahjong", JudgeTable.MAHJONG_KOTSU);
+            power += kotsuCoef * kotsu;
+            AddTerm(_result, "커쯔", kotsu, kotsuCoef);
 
             if (isIkkitsukan == true)
-                power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_IKKITSUKAN);
+            {
+                float ikkiCoef = _table.GetCoef("mahjong", JudgeTable.MAHJONG_IKKITSUKAN);
+                power += ikkiCoef;
+                AddTerm(_result, "일기통관", 1, ikkiCoef);
+            }
 
             // 화료는 9칸을 전부 쓴 것이라 판정에 걸린 칸도 9칸 전체다.
             for (int i = 0; i < _grid.Length; ++i)
@@ -319,7 +360,9 @@ public static class Judge
         else if (IsTenpai(counts) == true)
         {
             // 텐파이 보너스는 화료를 못 한 상태에서만 붙는다(유국텐파이료).
-            power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_TENPAI);
+            float tenpaiCoef = _table.GetCoef("mahjong", JudgeTable.MAHJONG_TENPAI);
+            power += tenpaiCoef;
+            AddTerm(_result, "텐파이", 1, tenpaiCoef);
         }
 
         _result.Power = power;
@@ -543,6 +586,23 @@ public static class Judge
         _result.Power = power;
         _result.placedPower = power;
 
+        // 윷은 계수를 곱해 전력을 만드는 게 아니라 배치 결과가 곧 전력이다.
+        // 그래서 내역도 "말 N기 × 등급 배수"가 아니라 등급별 기수로 보여준다.
+        UnitGradeTable termTable = gradeTable;
+        for (int grade = 1; grade <= termTable.maxGrade; ++grade)
+        {
+            int count = 0;
+            for (int i = 0; i < _result.ListSummon.Count; ++i)
+            {
+                if (_result.ListSummon[i].Grade < grade || _result.ListSummon[i].Grade > grade)
+                    continue;
+
+                count++;
+            }
+
+            AddTerm(_result, $"{grade}성 말", count, termTable.GetMultiplier(grade));
+        }
+
         if (summonCount <= 0)
             _result.PatternName = "낙";
         else if (lapCount > 0)
@@ -629,6 +689,15 @@ public static class Judge
         return (track % COLUMN_COUNT) * COLUMN_COUNT + (track / COLUMN_COUNT);
     }
 
+    // 전력 내역 한 줄. 0개면 안 담는다 — 화면에 "정렬 0 × 8.0 = 0"이 뜨면 잡음이다.
+    private static void AddTerm(JudgeResult _result, string _label, float _value, float _coef)
+    {
+        if (_value <= 0f)
+            return;
+
+        _result.ListTerm.Add(new JudgeTerm(_label, _value, _coef));
+    }
+
     private static void AddHit(JudgeResult _result, int[] _line)
     {
         for (int i = 0; i < _line.Length; ++i)
@@ -637,6 +706,40 @@ public static class Judge
                 continue;
 
             _result.ListHitCell.Add(_line[i]);
+        }
+    }
+
+    // 절반만 성립한 칸. 주판정 칸과 겹치면 넣지 않는다 — 겹치면 약한 강조가 강한 강조를 덮는다.
+    private static void AddPartial(JudgeResult _result, int[] _line)
+    {
+        for (int i = 0; i < _line.Length; ++i)
+        {
+            if (_result.ListPartialCell.Contains(_line[i]) == true)
+                continue;
+
+            _result.ListPartialCell.Add(_line[i]);
+        }
+    }
+
+    // 같은 심볼이 2개인 라인에서 그 2칸만 골라낸다.
+    // 라인 전체를 약하게 칠하면 관계없는 세 번째 칸까지 반짝여 규칙을 더 헷갈리게 만든다.
+    private static void AddPartialPair(JudgeResult _result, int[] _grid, int[] _line)
+    {
+        for (int i = 0; i < _line.Length; ++i)
+        {
+            for (int j = i + 1; j < _line.Length; ++j)
+            {
+                if (_grid[_line[i]] != _grid[_line[j]])
+                    continue;
+
+                if (_result.ListPartialCell.Contains(_line[i]) == false)
+                    _result.ListPartialCell.Add(_line[i]);
+
+                if (_result.ListPartialCell.Contains(_line[j]) == false)
+                    _result.ListPartialCell.Add(_line[j]);
+
+                return;
+            }
         }
     }
 
@@ -660,11 +763,16 @@ public static class Judge
             else if (a == b || b == c || a == c)
             {
                 pair++;
+                AddPartialPair(_result, _grid, LINES[i]);
             }
         }
 
-        _result.Power = _table.GetCoef("chess", JudgeTable.CHESS_LINE_TRIPLE) * triple
-                      + _table.GetCoef("chess", JudgeTable.CHESS_LINE_PAIR) * pair;
+        float tripleCoef = _table.GetCoef("chess", JudgeTable.CHESS_LINE_TRIPLE);
+        float pairCoef = _table.GetCoef("chess", JudgeTable.CHESS_LINE_PAIR);
+        _result.Power = tripleCoef * triple + pairCoef * pair;
+
+        AddTerm(_result, "정렬", triple, tripleCoef);
+        AddTerm(_result, "반정렬", pair, pairCoef);
         _result.PatternName = (triple > 0) ? $"정렬 {triple}" : ((pair > 0) ? $"반정렬 {pair}" : "무판정");
     }
 
@@ -692,12 +800,18 @@ public static class Judge
             else if (a == b || b == c)
             {
                 edge++;
+                AddPartialPair(_result, _grid, LINES[i]);
             }
         }
 
-        _result.Power = _table.GetCoef("janggi", JudgeTable.JANGGI_JUMP) * jump
-                      + _table.GetCoef("janggi", JudgeTable.JANGGI_CANNON) * cannon
-                      + _table.GetCoef("janggi", JudgeTable.JANGGI_EDGE) * edge;
+        float jumpCoef = _table.GetCoef("janggi", JudgeTable.JANGGI_JUMP);
+        float cannonCoef = _table.GetCoef("janggi", JudgeTable.JANGGI_CANNON);
+        float edgeCoef = _table.GetCoef("janggi", JudgeTable.JANGGI_EDGE);
+        _result.Power = jumpCoef * jump + cannonCoef * cannon + edgeCoef * edge;
+
+        AddTerm(_result, "포 넘기", jump, jumpCoef);
+        AddTerm(_result, "대포", cannon, cannonCoef);
+        AddTerm(_result, "진", edge, edgeCoef);
         _result.PatternName = (jump > 0)
             ? ((cannon > 0) ? $"포 넘기 {jump} · 대포 {cannon}" : $"포 넘기 {jump}")
             : ((edge > 0) ? $"진 {edge}" : "무판정");
@@ -731,12 +845,18 @@ public static class Judge
             else if (hand[0] == hand[1] || hand[1] == hand[2])
             {
                 pair++;
+                AddPartialPair(_result, _grid, LINES[i]);
             }
         }
 
-        _result.Power = _table.GetCoef("poker", JudgeTable.POKER_TRIPLE) * triple
-                      + _table.GetCoef("poker", JudgeTable.POKER_STRAIGHT) * straight
-                      + _table.GetCoef("poker", JudgeTable.POKER_PAIR) * pair;
+        float tripleCoef = _table.GetCoef("poker", JudgeTable.POKER_TRIPLE);
+        float straightCoef = _table.GetCoef("poker", JudgeTable.POKER_STRAIGHT);
+        float pairCoef = _table.GetCoef("poker", JudgeTable.POKER_PAIR);
+        _result.Power = tripleCoef * triple + straightCoef * straight + pairCoef * pair;
+
+        AddTerm(_result, "트리플", triple, tripleCoef);
+        AddTerm(_result, "스트레이트", straight, straightCoef);
+        AddTerm(_result, "페어", pair, pairCoef);
         _result.PatternName = (triple > 0) ? $"트리플 {triple}"
             : ((straight > 0) ? $"스트레이트 {straight}" : ((pair > 0) ? $"페어 {pair}" : "하이카드"));
     }
@@ -910,7 +1030,14 @@ public static class Judge
             _result.ListHitCell.Add(bestCells[i]);
         }
 
-        _result.Power = bestValue * _table.GetCoef("hwatu", JudgeTable.HWATU_SCALE);
+        float scale = _table.GetCoef("hwatu", JudgeTable.HWATU_SCALE);
+        _result.Power = bestValue * scale;
+
+        // 화투는 족보 값 자체가 크고(삼광 300, 땡 90) 스케일로 눌러 맞춘다.
+        // 그래서 "족보값 × 스케일"이 그대로 계산 과정이다.
+        // 족보값을 정수로 깎지 않는다. 끗은 2.4 같은 실수라 반올림하면 식과 전력이 어긋난다.
+        AddTerm(_result, bestName, bestValue, scale);
+
         _result.PatternName = (bestColumn < 0) ? "망통" : $"{bestColumn + 1}열 · {bestName}";
     }
 }

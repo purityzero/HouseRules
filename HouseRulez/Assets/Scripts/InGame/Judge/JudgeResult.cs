@@ -29,6 +29,30 @@ public struct SummonSlot
     }
 }
 
+// 전력이 어디서 나왔는지 한 항목. "진 2줄 × 0.95 = 1.9"의 재료다.
+//
+// 결과만 보여주면 종족 규칙을 배울 수가 없다 — 무엇이 몇 개 성립해서 얼마가 됐는지
+// 식으로 보여줘야 "아, 저 배치가 저 값이구나"가 쌓인다.
+public struct JudgeTerm
+{
+    public string Label;
+
+    // 대부분은 "몇 개 성립했나"(정렬 2줄)지만 화투만 **족보값**이다(끗 2.4 등).
+    // 그래서 int가 아니라 float다 — 정수로 깎으면 화면의 식과 실제 전력이 어긋난다.
+    // (실제로 int로 뒀다가 화투 20,000회 중 1,252회가 어긋났다. 2026-08-31 QA)
+    public float Value;
+    public float Coef;
+
+    public JudgeTerm(string _label, float _value, float _coef)
+    {
+        Label = _label;
+        Value = _value;
+        Coef = _coef;
+    }
+
+    public float total => Value * Coef;
+}
+
 // 스핀 1회의 판정 결과.
 //
 // 전력을 유닛으로 바꾸는 규칙(2026-08-30 확정):
@@ -58,6 +82,17 @@ public class JudgeResult
 
     // 판정에 실제로 걸린 칸(0~8). 소환 위치를 정할 때 이 칸을 먼저 채운다.
     public List<int> ListHitCell = new List<int>();
+
+    // 절반만 성립한 칸. 전력은 주지만 주판정은 아닌 것들 —
+    // 체스 반정렬, 장기 진, 포커 페어, 슬롯 2매치가 여기 들어간다.
+    //
+    // 소환 위치에는 쓰지 않는다. 오직 **화면에서 약하게 강조**하기 위한 값이다.
+    // 이게 없으면 "전력이 나왔는데 릴은 아무것도 안 반짝인다"가 되어
+    // 플레이어가 규칙을 유추할 단서를 잃는다.
+    public List<int> ListPartialCell = new List<int>();
+
+    // 전력의 내역. 화면에 계산 과정을 보여주는 데만 쓴다 — 밸런스 계산은 Power가 정본이다.
+    public List<JudgeTerm> ListTerm = new List<JudgeTerm>();
 
     // 소환 결과. 칸마다 등급이 다를 수 있다.
     public List<SummonSlot> ListSummon = new List<SummonSlot>();

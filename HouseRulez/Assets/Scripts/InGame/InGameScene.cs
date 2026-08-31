@@ -193,9 +193,19 @@ public class InGameScene : BaseScene
 
         JudgeResult judgeResult = (record != null) ? Judge.Evaluate(record.Key, grid) : null;
 
+        // 릴이 멈춘 뒤 "판정에 실제로 걸린 칸"을 반짝이게 하려고 결과를 먼저 넘겨둔다.
+        // 예전엔 슬롯머신이 자기 규칙("같은 심볼 3개")으로 반짝여서 7종족 중 6종족에서 거짓 신호였다.
+        m_SlotMachine.SetJudgeResult(judgeResult);
+
         yield return new WaitForSeconds(m_SpinDuration);
 
         m_SlotMachine.StopAll();
+
+        // 무엇이 성립했는지 크게 한 번 알린다. 요약 패널은 접혀 있어서 안 열면 안 보이는데,
+        // 그러면 "왜 이만큼 소환됐지"를 배울 기회가 매 스핀 그냥 지나간다.
+        // 무판정일 때는 띄우지 않는다 — 전력이 0인 스핀이 화면을 덮을 이유가 없다.
+        if (judgeResult != null && judgeResult.Power > 0f && m_Banner != null)
+            m_Banner.Show(judgeResult.PatternName);
 
         // 릴이 순차 정지를 마치는 동안 기다렸다가 소환을 보여준다 —
         // 정지 전에 띄우면 아직 돌고 있는 릴의 결과를 미리 알려주는 꼴이 된다.

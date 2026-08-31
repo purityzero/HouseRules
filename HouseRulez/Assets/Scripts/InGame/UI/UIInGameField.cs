@@ -134,6 +134,32 @@ public class UIInGameField : MonoBehaviour
         }
 
         if (m_Summary != null)
-            m_Summary.SetText($"{_result.PatternName}" + System.Environment.NewLine + $"전력 {_result.Power:F1}  ·  소환 {_result.summonCount}기");
+            m_Summary.SetText(BuildSummaryText(_result));
+    }
+
+    // 결과만 적으면 종족 규칙을 배울 수가 없다. 무엇이 몇 개 성립해 얼마가 됐는지 식으로 적는다.
+    //
+    //   포 넘기 2 · 대포 1
+    //   포 넘기 2 × 3.8 = 7.6
+    //   대포 1 × 3.8 = 3.8
+    //   전력 11.4  →  소환 9기
+    //
+    // "전력 1.9인데 왜 2기?"(반올림)도 마지막 줄에서 함께 풀린다.
+    private static string BuildSummaryText(JudgeResult _result)
+    {
+        System.Text.StringBuilder builder = new System.Text.StringBuilder();
+        builder.Append(_result.PatternName);
+
+        for (int i = 0; i < _result.ListTerm.Count; ++i)
+        {
+            JudgeTerm term = _result.ListTerm[i];
+            builder.Append(System.Environment.NewLine);
+            builder.Append($"{term.Label} {term.Value:0.##} × {term.Coef:0.##} = {term.total:0.##}");
+        }
+
+        builder.Append(System.Environment.NewLine);
+        builder.Append($"전력 {_result.Power:F1}  →  소환 {_result.summonCount}기");
+
+        return builder.ToString();
     }
 }

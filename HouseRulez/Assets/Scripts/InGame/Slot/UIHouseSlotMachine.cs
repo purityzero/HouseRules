@@ -30,6 +30,9 @@ public class UIHouseSlotMachine : MonoBehaviour
     [SerializeField] private float m_WinShakeAngle = 12f;
     [SerializeField] private float m_WinShakeDuration = 0.5f;
 
+    // 절반만 성립한 칸은 주판정 칸보다 약하게 흔든다. 같은 세기면 둘이 구분되지 않는다.
+    private const float PARTIAL_SHAKE_RATIO = 0.45f;
+
     private List<HouseSlotSymbolSprite> m_SpritePool = new List<HouseSlotSymbolSprite>();
     private HouseRecord m_Record;
     private Coroutine m_StopRoutine;
@@ -259,7 +262,7 @@ public class UIHouseSlotMachine : MonoBehaviour
             yield return null;
         }
 
-        PlayWinEffect();
+        PlayJudgeEffect();
 
         m_StopRoutine = null;
     }
@@ -275,56 +278,58 @@ public class UIHouseSlotMachine : MonoBehaviour
         return true;
     }
 
-    // 페이라인 테이블을 훑어 라인 전체가 같은 심볼이면 그 라인의 칸을 튕겨준다.
-    // 배당/재화 정산은 아직 없다 — 지금은 "맞았다"를 화면으로만 알린다.
-    private void PlayWinEffect()
+    // 이번 스핀의 판정 결과. 릴이 멈춘 뒤 어느 칸을 반짝일지 정하는 데만 쓴다.
+    private JudgeResult m_JudgeResult;
+
+    // 릴을 멈추기 전에 판정 결과를 넘겨둔다. 정지 코루틴이 릴 정착까지 끝난 시점을 알고 있어서
+    // 연출 타이밍을 밖에서 다시 재현하는 것보다 여기에 맡기는 쪽이 정확하다.
+    public void SetJudgeResult(JudgeResult _result)
     {
-        SlotLineTable lineTable = TableManager.instance.GetTable<SlotLineTable>();
-        if (lineTable == null)
-        {
-            Logger.Error("[UIHouseSlotMachine] PlayWinEffect Failed! SlotLineTable not found");
-            return;
-        }
-
-        for (int lineIndex = 0; lineIndex < lineTable.list.Count; ++lineIndex)
-        {
-            SlotLineRecord record = lineTable.list[lineIndex];
-            if (IsLineMatched(record) == false)
-                continue;
-
-            for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
-            {
-                UIHouseSlotSymbol symbol = m_ReelList[reelIndex].GetVisibleSymbol(record.GetRow(reelIndex));
-                if (symbol == null)
-                    continue;
-
-                symbol.PlayWinEffect(m_WinShakeAngle, m_WinShakeDuration);
-            }
-        }
+        m_JudgeResult = _result;
     }
 
-    // 라인의 모든 칸이 같은 심볼 종류인지. symbolType은 스프라이트 풀의 인덱스(=말 종류 식별자)라 동등 비교가 맞다.
-    private bool IsLineMatched(SlotLineRecord _record)
+    // 판정에 실제로 걸린 칸을 반짝인다.
+    //
+    // 예전에는 SlotLineTable을 훑어 "라인 3칸이 전부 같은 심볼"이면 반짝였다. 그건 종족과 무관한
+    // 슬롯머신 규칙이라 **7종족 중 6종족에서 거짓 신호였다** —
+    // 장기(A-B-A)는 아예 안 반짝이고, 화투·마작·윷은 "같은 심볼"이 판정 근거가 아닌데도 반짝였다.
+    // 플레이어는 반짝인 걸 보고 규칙을 유추하므로, 틀린 신호는 없느니만 못하다.
+    //
+    // 이제 판정기가 채운 칸을 그대로 쓴다. 종족마다 자기 문법대로 반짝인다.
+    private void PlayJudgeEffect()
     {
-        int firstSymbolType = -1;
+        if (m_JudgeResult == null)
+            return;
 
-        for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
+        PlayCellEffect(m_JudgeResult.ListHitCell, m_WinShakeAngle, m_WinShakeDuration);
+
+        // 절반만 성립한 칸(체스 반정렬, 장기 진, 포커 페어, 슬롯 2매치)은 약하게 흔든다.
+        // 전력은 나왔는데 릴이 조용하면 "왜 소환됐지"가 되고, 똑같이 흔들면 주판정과 구분이 안 된다.
+        PlayCellEffect(m_JudgeResult.ListPartialCell,
+            m_WinShakeAngle * PARTIAL_SHAKE_RATIO, m_WinShakeDuration * PARTIAL_SHAKE_RATIO);
+    }
+
+    private void PlayCellEffect(List<int> _listCell, float _angle, float _duration)
+    {
+        if (_listCell == null)
+            return;
+
+        for (int i = 0; i < _listCell.Count; ++i)
         {
-            UIHouseSlotSymbol symbol = m_ReelList[reelIndex].GetVisibleSymbol(_record.GetRow(reelIndex));
-            if (symbol == null)
-                return false;
-
-            if (reelIndex <= 0)
-            {
-                firstSymbolType = symbol.symbolType;
+            int cell = _listCell[i];
+            if (cell < 0 || cell >= JudgeResult.GRID_SIZE)
                 continue;
-            }
 
-            if (symbol.symbolType != firstSymbolType)
-                return false;
+            // 칸 인덱스는 행 우선(cell = row * 릴수 + 릴), Judge·전장과 같은 좌표계다.
+            int row = cell / m_ReelList.Length;
+            int reelIndex = cell % m_ReelList.Length;
+
+            UIHouseSlotSymbol symbol = m_ReelList[reelIndex].GetVisibleSymbol(row);
+            if (symbol == null)
+                continue;
+
+            symbol.PlayWinEffect(_angle, _duration);
         }
-
-        return true;
     }
 
     private void StopWinEffect()
