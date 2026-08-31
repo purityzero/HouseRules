@@ -200,6 +200,15 @@ public class InGameScene : BaseScene
         m_LastJudgeResult = judgeResult;
         m_LastGrid = grid;
 
+        // 당첨 배당. 소환과 별개로 골드가 나온다 — 전력이 소환 1기에 못 미치는 스핀도 빈손이 아니다.
+        if (judgeResult != null)
+        {
+            m_RunData.AwardGoldByPower(judgeResult.Power);
+
+            if (m_Hud != null)
+                m_Hud.Refresh();
+        }
+
         if (m_Field != null && judgeResult != null)
             m_Field.ShowSummon(judgeResult, grid, m_SlotMachine.spritePool);
 

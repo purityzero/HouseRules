@@ -125,7 +125,8 @@ public class UIInGameField : MonoBehaviour
             if (summon.Cell < 0 || summon.Cell >= m_ListSlot.Count)
                 continue;
 
-            int symbolType = _grid[summon.Cell];
+            // 판정기가 심볼을 직접 정했으면 그걸 쓴다(윷). 아니면 그 칸에 나온 심볼을 쓴다.
+            int symbolType = (summon.SymbolType >= 0) ? summon.SymbolType : _grid[summon.Cell];
             if (symbolType < 0 || symbolType >= _spritePool.Count)
                 continue;
 

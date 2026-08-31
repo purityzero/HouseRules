@@ -116,7 +116,7 @@
       <h1>업그레이드 시스템 구현 스펙</h1>
       <p class="source">Canonical HTML</p>
     </header>
-    <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#출처-문서">출처 문서</a></li><li class="toc-level-2"><a href="#핵심-결론">핵심 결론</a></li><li class="toc-level-3"><a href="#1-최신-방향은-종족별-독립-업그레이드다">1. 최신 방향은 종족별 독립 업그레이드다</a></li><li class="toc-level-3"><a href="#2-이-결정은-gdd의-초기-제한을-변경한다">2. 이 결정은 GDD의 초기 제한을 변경한다</a></li><li class="toc-level-3"><a href="#3-런-내부-흡수-승급은-별도-시스템이다">3. 런 내부 흡수 승급은 별도 시스템이다</a></li><li class="toc-level-3"><a href="#4-각인과-코어는-승급의-다음-단계이며-서로-다른-시스템이다">4. 각인과 코어는 승급의 다음 단계이며 서로 다른 시스템이다</a></li><li class="toc-level-2"><a href="#확정된-요구">확정된 요구</a></li><li class="toc-level-3"><a href="#housemetaupgrade-종족별-영구-메타">HouseMetaUpgrade — 종족별 영구 메타</a></li><li class="toc-level-3"><a href="#unitgrowth-승급-단계">UnitGrowth — 승급 단계</a></li><li class="toc-level-3"><a href="#imprint-각인-풀">Imprint — 각인 풀</a></li><li class="toc-level-3"><a href="#core-코어-경계">Core — 코어 경계</a></li><li class="toc-level-2"><a href="#현재-구현-상태">현재 구현 상태</a></li><li class="toc-level-3"><a href="#이미-있는-것">이미 있는 것</a></li><li class="toc-level-3"><a href="#부분-구현">부분 구현</a></li><li class="toc-level-3"><a href="#완전-미구현">완전 미구현</a></li><li class="toc-level-2"><a href="#데이터-스키마">데이터 스키마</a></li><li class="toc-level-3"><a href="#houseupgradetable-csv-종족별-메타-노드-레벨">HouseUpgradeTable.csv — 종족별 메타 노드/레벨</a></li><li class="toc-level-3"><a href="#playerdata-종족별-영구-진행-저장">PlayerData — 종족별 영구 진행 저장</a></li><li class="toc-level-3"><a href="#런-시작-시-메타-효과-스냅샷">런 시작 시 메타 효과 스냅샷</a></li><li class="toc-level-3"><a href="#unittable-csv-유닛-등급별-확정-스탯">UnitTable.csv — 유닛 등급별 확정 스탯</a></li><li class="toc-level-3"><a href="#imprinttable-csv-각인-정의">ImprintTable.csv — 각인 정의</a></li><li class="toc-level-3"><a href="#런타임-rununitdata-개별-유닛-상태">런타임 RunUnitData — 개별 유닛 상태</a></li><li class="toc-level-3"><a href="#rundata-확장-방향">RunData 확장 방향</a></li><li class="toc-level-2"><a href="#트리거-시점과-데이터-흐름">트리거 시점과 데이터 흐름</a></li><li class="toc-level-3"><a href="#a-타이틀-종족별-메타">A. 타이틀 종족별 메타</a></li><li class="toc-level-3"><a href="#b-런-내부-승급">B. 런 내부 승급</a></li><li class="toc-level-3"><a href="#일반-승급">일반 승급</a></li><li class="toc-level-3"><a href="#프리즘">프리즘</a></li><li class="toc-level-3"><a href="#각인">각인</a></li><li class="toc-level-2"><a href="#공식-로직">공식 / 로직</a></li><li class="toc-level-3"><a href="#흡수-가능-조건">흡수 가능 조건</a></li><li class="toc-level-3"><a href="#연쇄-승급">연쇄 승급</a></li><li class="toc-level-3"><a href="#스탯">스탯</a></li><li class="toc-level-3"><a href="#각인-가중치-롤">각인 가중치 롤</a></li><li class="toc-level-2"><a href="#단계별-구현-구상">단계별 구현 구상</a></li><li class="toc-level-3"><a href="#phase-0-선행-기반-판정-결과와-소환-데이터">Phase 0 — 선행 기반: 판정 결과와 소환 데이터</a></li><li class="toc-level-3"><a href="#phase-1-체스-흡수-승급-mvp">Phase 1 — 체스 흡수 승급 MVP</a></li><li class="toc-level-3"><a href="#phase-2-각인">Phase 2 — 각인</a></li><li class="toc-level-3"><a href="#phase-3-심판과-프리즘">Phase 3 — 심판과 프리즘</a></li><li class="toc-level-3"><a href="#phase-4-코어">Phase 4 — 코어</a></li><li class="toc-level-3"><a href="#phase-m-종족별-영구-메타">Phase M — 종족별 영구 메타</a></li><li class="toc-level-2"><a href="#ui-ux-요구">UI/UX 요구</a></li><li class="toc-level-3"><a href="#인게임-승급-표시">인게임 승급 표시</a></li><li class="toc-level-3"><a href="#타이틀-메뉴">타이틀 메뉴</a></li><li class="toc-level-2"><a href="#엣지-케이스">엣지 케이스</a></li><li class="toc-level-2"><a href="#문서에-없어서-확인이-필요한-부분">문서에 없어서 확인이 필요한 부분</a></li><li class="toc-level-3"><a href="#u-1-종족마다-업그레이드-의-저장-범위-결정됨-2026-08-28-영구-메타">U-1. “종족마다 업그레이드”의 저장 범위 — 결정됨 (2026-08-28) &#183; 영구 메타</a></li><li class="toc-level-3"><a href="#m-2-종족별-메타의-형태-구현-전-필수">M-2. 종족별 메타의 형태 — 구현 전 필수</a></li><li class="toc-level-3"><a href="#m-3-영구-재화와-획득-경로-구현-전-필수">M-3. 영구 재화와 획득 경로 — 구현 전 필수</a></li><li class="toc-level-3"><a href="#m-4-종족별-실제-노드-효과와-수치-구현-전-필수">M-4. 종족별 실제 노드 효과와 수치 — 구현 전 필수</a></li><li class="toc-level-3"><a href="#m-5-초기화-재분배-최대-진행">M-5. 초기화&#183;재분배&#183;최대 진행</a></li><li class="toc-level-3"><a href="#m-6-혼혈-유닛에-어떤-종족-메타를-적용하는가">M-6. 혼혈 유닛에 어떤 종족 메타를 적용하는가</a></li><li class="toc-level-3"><a href="#u-2-흡수-승급이-자동인가-플레이어-선택인가-구현-전-필수">U-2. 흡수 승급이 자동인가, 플레이어 선택인가 — 구현 전 필수</a></li><li class="toc-level-3"><a href="#u-3-흡수-시-어느-각인을-유지하는가-각인-구현-전-필수">U-3. 흡수 시 어느 각인을 유지하는가 — 각인 구현 전 필수</a></li><li class="toc-level-3"><a href="#u-4-프리즘-승급-대상과-횟수">U-4. 프리즘 승급 대상과 횟수</a></li><li class="toc-level-3"><a href="#u-5-등급-배수와-각인-합성-범위">U-5. 등급 배수와 각인 합성 범위</a></li><li class="toc-level-3"><a href="#u-6-2성-추가-롤에서-realign이-나오면-즉시-발동하는가">U-6. 2성 추가 롤에서 Realign이 나오면 즉시 발동하는가</a></li><li class="toc-level-3"><a href="#u-7-유닛-사망-처리">U-7. 유닛 사망 처리</a></li><li class="toc-level-3"><a href="#u-8-승급-후-위치와-현재-hp">U-8. 승급 후 위치와 현재 HP</a></li><li class="toc-level-3"><a href="#u-9-종족-고유-3성-스킬">U-9. 종족 고유 3성 스킬</a></li><li class="toc-level-2"><a href="#구현-승인-게이트">구현 승인 게이트</a></li><li class="toc-level-2"><a href="#참고">참고</a></li></ol></details>
+    <details class="toc" open><summary>Contents</summary><ol><li class="toc-level-2"><a href="#출처-문서">출처 문서</a></li><li class="toc-level-2"><a href="#핵심-결론">핵심 결론</a></li><li class="toc-level-3"><a href="#1-최신-방향은-종족별-독립-업그레이드다">1. 최신 방향은 종족별 독립 업그레이드다</a></li><li class="toc-level-3"><a href="#2-이-결정은-gdd의-초기-제한을-변경한다">2. 이 결정은 GDD의 초기 제한을 변경한다</a></li><li class="toc-level-3"><a href="#3-런-내부-흡수-승급은-별도-시스템이다">3. 런 내부 흡수 승급은 별도 시스템이다</a></li><li class="toc-level-3"><a href="#4-각인과-코어는-승급의-다음-단계이며-서로-다른-시스템이다">4. 각인과 코어는 승급의 다음 단계이며 서로 다른 시스템이다</a></li><li class="toc-level-2"><a href="#확정된-요구">확정된 요구</a></li><li class="toc-level-3"><a href="#housemetaupgrade-종족별-영구-메타">HouseMetaUpgrade — 종족별 영구 메타</a></li><li class="toc-level-3"><a href="#unitgrowth-승급-단계">UnitGrowth — 승급 단계</a></li><li class="toc-level-3"><a href="#imprint-각인-풀">Imprint — 각인 풀</a></li><li class="toc-level-3"><a href="#core-코어-경계">Core — 코어 경계</a></li><li class="toc-level-2"><a href="#현재-구현-상태">현재 구현 상태</a></li><li class="toc-level-3"><a href="#이미-있는-것">이미 있는 것</a></li><li class="toc-level-3"><a href="#부분-구현">부분 구현</a></li><li class="toc-level-3"><a href="#완전-미구현">완전 미구현</a></li><li class="toc-level-2"><a href="#데이터-스키마">데이터 스키마</a></li><li class="toc-level-3"><a href="#houseupgradetable-csv-종족별-메타-노드-레벨">HouseUpgradeTable.csv — 종족별 메타 노드/레벨</a></li><li class="toc-level-3"><a href="#playerdata-종족별-영구-진행-저장">PlayerData — 종족별 영구 진행 저장</a></li><li class="toc-level-3"><a href="#런-시작-시-메타-효과-스냅샷">런 시작 시 메타 효과 스냅샷</a></li><li class="toc-level-3"><a href="#unittable-csv-유닛-등급별-확정-스탯">UnitTable.csv — 유닛 등급별 확정 스탯</a></li><li class="toc-level-3"><a href="#imprinttable-csv-각인-정의">ImprintTable.csv — 각인 정의</a></li><li class="toc-level-3"><a href="#런타임-rununitdata-개별-유닛-상태">런타임 RunUnitData — 개별 유닛 상태</a></li><li class="toc-level-3"><a href="#rundata-확장-방향">RunData 확장 방향</a></li><li class="toc-level-2"><a href="#트리거-시점과-데이터-흐름">트리거 시점과 데이터 흐름</a></li><li class="toc-level-3"><a href="#a-타이틀-종족별-메타">A. 타이틀 종족별 메타</a></li><li class="toc-level-3"><a href="#b-런-내부-승급">B. 런 내부 승급</a></li><li class="toc-level-3"><a href="#일반-승급">일반 승급</a></li><li class="toc-level-3"><a href="#프리즘">프리즘</a></li><li class="toc-level-3"><a href="#각인">각인</a></li><li class="toc-level-2"><a href="#공식-로직">공식 / 로직</a></li><li class="toc-level-3"><a href="#흡수-가능-조건">흡수 가능 조건</a></li><li class="toc-level-3"><a href="#연쇄-승급">연쇄 승급</a></li><li class="toc-level-3"><a href="#스탯">스탯</a></li><li class="toc-level-3"><a href="#각인-가중치-롤">각인 가중치 롤</a></li><li class="toc-level-2"><a href="#단계별-구현-구상">단계별 구현 구상</a></li><li class="toc-level-3"><a href="#phase-0-선행-기반-판정-결과와-소환-데이터">Phase 0 — 선행 기반: 판정 결과와 소환 데이터</a></li><li class="toc-level-3"><a href="#phase-1-체스-흡수-승급-mvp">Phase 1 — 체스 흡수 승급 MVP</a></li><li class="toc-level-3"><a href="#phase-2-각인">Phase 2 — 각인</a></li><li class="toc-level-3"><a href="#phase-3-심판과-프리즘">Phase 3 — 심판과 프리즘</a></li><li class="toc-level-3"><a href="#phase-4-코어">Phase 4 — 코어</a></li><li class="toc-level-3"><a href="#phase-m-종족별-영구-메타">Phase M — 종족별 영구 메타</a></li><li class="toc-level-2"><a href="#ui-ux-요구">UI/UX 요구</a></li><li class="toc-level-3"><a href="#인게임-승급-표시">인게임 승급 표시</a></li><li class="toc-level-3"><a href="#타이틀-메뉴">타이틀 메뉴</a></li><li class="toc-level-2"><a href="#엣지-케이스">엣지 케이스</a></li><li class="toc-level-2"><a href="#문서에-없어서-확인이-필요한-부분">문서에 없어서 확인이 필요한 부분</a></li><li class="toc-level-3"><a href="#u-1-종족마다-업그레이드-의-저장-범위-결정됨-2026-08-28-영구-메타">U-1. “종족마다 업그레이드”의 저장 범위 — 결정됨 (2026-08-28) &#183; 영구 메타</a></li><li class="toc-level-3"><a href="#m-2-종족별-메타의-형태-구현-전-필수">M-2. 종족별 메타의 형태 — 확정</a></li><li class="toc-level-3"><a href="#m-3-영구-재화와-획득-경로-구현-전-필수">M-3. 영구 재화와 획득 경로 — 확정</a></li><li class="toc-level-3"><a href="#m-4-종족별-실제-노드-효과와-수치-구현-전-필수">M-4. 종족별 실제 노드 효과와 수치 — 1차 확정</a></li><li class="toc-level-3"><a href="#m-5-초기화-재분배-최대-진행">M-5. 초기화&#183;재분배&#183;최대 진행 — 확정</a></li><li class="toc-level-3"><a href="#m-6-혼혈-유닛에-어떤-종족-메타를-적용하는가">M-6. 혼혈 유닛에 어떤 종족 메타를 적용하는가 — 확정</a></li><li class="toc-level-3"><a href="#u-2-흡수-승급이-자동인가-플레이어-선택인가-구현-전-필수">U-2. 흡수 승급이 자동인가, 플레이어 선택인가 — 구현 전 필수</a></li><li class="toc-level-3"><a href="#u-3-흡수-시-어느-각인을-유지하는가-각인-구현-전-필수">U-3. 흡수 시 어느 각인을 유지하는가 — 각인 구현 전 필수</a></li><li class="toc-level-3"><a href="#u-4-프리즘-승급-대상과-횟수">U-4. 프리즘 승급 대상과 횟수</a></li><li class="toc-level-3"><a href="#u-5-등급-배수와-각인-합성-범위">U-5. 등급 배수와 각인 합성 범위</a></li><li class="toc-level-3"><a href="#u-6-2성-추가-롤에서-realign이-나오면-즉시-발동하는가">U-6. 2성 추가 롤에서 Realign이 나오면 즉시 발동하는가</a></li><li class="toc-level-3"><a href="#u-7-유닛-사망-처리">U-7. 유닛 사망 처리</a></li><li class="toc-level-3"><a href="#u-8-승급-후-위치와-현재-hp">U-8. 승급 후 위치와 현재 HP</a></li><li class="toc-level-3"><a href="#u-9-종족-고유-3성-스킬">U-9. 종족 고유 3성 스킬</a></li><li class="toc-level-2"><a href="#구현-승인-게이트">구현 승인 게이트</a></li><li class="toc-level-2"><a href="#참고">참고</a></li></ol></details>
     <article>
 <h1 id="업그레이드-시스템-구현-스펙">업그레이드 시스템 구현 스펙<a class="heading-anchor" href="#업그레이드-시스템-구현-스펙" aria-label="Section link">#</a></h1>
 <p>작성일 2026-08-28 · 기획 경계 확정용 초판</p>
@@ -353,7 +353,7 @@
 <li><code>OnBattleStart()</code>는 전투를 시작하지 않는다. 웨이브 승리/심판 승리 이벤트도 없다.</li>
 <li><code>PlayerManager.UnlockHouse()</code> API는 있으나 왕 처치 후 호출 경로는 없다.</li>
 <li>현재 <code>HouseTable.csv</code>는 슬롯·체스·장기·화투·포커·마작 6종 모두 <code>isUnlocked=1</code>이다. 따라서 GDD의 종족 해금 메타는 데이터상 비활성화되어 있다.</li>
-<li>종족별 영구 메타는 <code>HouseUpgradeTable</code>, 읽기 전용 저장 조회, 공용 팝업과 6개 종족 탭까지 구현됐다. 승인된 노드·재화·효과가 없어 CSV는 헤더뿐이며 화면은 빈 상태를 표시한다.</li>
+<li>종족별 영구 메타는 <strong>2026-08-29에 구매까지 완성됐다</strong> — 노드 48행, 영구 재화 옥새, 구매, <code>RunData</code> 스냅샷, 6개 종족 탭. 다만 <strong>옥새를 얻을 경로가 아직 없다</strong>(런 종료 단계 미구현). 자세한 내용은 아래 §M-3·§M-4 참고.</li>
 </ul>
 <h3 id="완전-미구현">완전 미구현<a class="heading-anchor" href="#완전-미구현" aria-label="Section link">#</a></h3>
 <ul>
@@ -365,7 +365,6 @@
 <li>전투·사망·웨이브 클리어</li>
 <li>프리즘 2칸 점유</li>
 <li>코어 획득·장착·상점</li>
-<li>종족별 메타 업그레이드의 실제 노드 행·재화·구매·효과 적용과 <code>RunData</code> 스냅샷</li>
 </ul>
 <p>즉 현재 상태는 <strong>흡수 승급 자체가 아니라 그 입력이 되는 판정·소환·전투도 아직 없는 단계</strong>다.</p>
 <h2 id="데이터-스키마">데이터 스키마<a class="heading-anchor" href="#데이터-스키마" aria-label="Section link">#</a></h2>
@@ -462,19 +461,26 @@ HouseUpgradeNodeProgressData
   level: int
 </code></pre>
 <p><code>PlayerData</code>에는 <code>List&lt;HouseUpgradeProgressData&gt;</code> 한 필드만 추가하고, 밖에서는 <code>PlayerManager</code>의 API로만 변경한다. 기존 <code>SaveData.SetChanged()</code> 경로를 유지해야 자동 저장이 빠지지 않는다.</p>
-<p>읽기 API는 구현됐고, 나머지는 재화·구매 계약 확정 뒤의 예정 API다.</p>
-<pre><code class="language-text">int GetHouseUpgradeLevel(houseKey, nodeKey)
-bool CanPurchaseHouseUpgrade(houseKey, nodeKey)
+<p><strong>2026-08-29 기준 실제 구현된 API다.</strong> 문서에 예정으로 적었던 <code>CanPurchaseHouseUpgrade()</code>와 <code>GetHouseUpgradeRecords()</code>는 만들지 않았다 — 구매 가능 여부는 <code>GetNextUpgradeRecord()</code>의 <code>null</code> 여부와 보유 재화로 화면에서 판단하고, 레코드 목록은 <code>HouseUpgradeTable</code>이 직접 제공하므로 매니저를 한 겹 더 두면 통로만 늘어난다.</p>
+<pre><code class="language-text">// PlayerManager
+int  royal                                              // 보유 옥새
+void AddRoyal(amount)                                   // 지급
+int  GetHouseUpgradeLevel(houseKey, nodeKey)
+HouseUpgradeRecord GetNextUpgradeRecord(houseKey, nodeKey)   // null이면 최대 레벨
 bool TryPurchaseHouseUpgrade(houseKey, nodeKey)
-IReadOnlyList&lt;HouseUpgradeRecord&gt; GetHouseUpgradeRecords(houseKey)
+int  GetRunConfigBonus(houseKey, targetKey)             // 런 시작값에 더할 보너스
+
+// PlayerData (저장 계층, 매니저만 호출)
+bool TryPurchaseHouseUpgrade(houseKey, nodeKey, level, cost)
 </code></pre>
-<p><code>TryPurchase</code>는 재화·선행 조건이 확정된 뒤 구현한다. 지금은 빈 재화를 가정해 성공시키는 임시 코드를 만들지 않는다.</p>
+<p><strong>구매 원자성</strong>: 비용 차감과 레벨 상승을 <code>PlayerData.TryPurchaseHouseUpgrade()</code> <strong>한 호출</strong>에서 끝낸다. 밖에서 차감과 레벨업을 따로 부르면 사이에 실패가 끼었을 때 재화만 사라지거나 레벨만 오른 상태가 저장된다. 잔액이 모자라면 아무것도 바꾸지 않고 <code>false</code>를 돌려준다.</p>
 <h3 id="런-시작-시-메타-효과-스냅샷">런 시작 시 메타 효과 스냅샷<a class="heading-anchor" href="#런-시작-시-메타-효과-스냅샷" aria-label="Section link">#</a></h3>
-<p>영구 메타를 매 프레임 <code>PlayerData</code>에서 직접 읽지 않는다. 선택 종족으로 런을 시작할 때 해당 <code>HouseKey</code> 진행을 <code>HouseUpgradeModifierSet</code>으로 계산해 <code>RunData</code>에 스냅샷한다.</p>
+<p>영구 메타를 매 프레임 <code>PlayerData</code>에서 직접 읽지 않는다. 선택 종족으로 런을 시작할 때(<code>RunData.Init()</code>) 그 <code>HouseKey</code>의 진행을 <strong>한 번만</strong> 읽어 시작값에 더한다.</p>
+<p><strong>구현은 <code>HouseUpgradeModifierSet</code> 같은 별도 타입을 만들지 않았다.</strong> 현재 효과가 <code>RunConfigAdd</code> 한 종류뿐이고 대상이 <code>GameConfigTable</code>의 스칼라 4개라, <code>PlayerManager.GetRunConfigBonus(houseKey, targetKey)</code>가 그 값을 돌려주고 <code>RunData</code>가 기본값에 더하면 끝난다. 효과 종류가 늘어나 합·곱·조건부가 섞이면 그때 modifier set을 도입한다.</p>
 <ul>
 <li>저장 데이터 변경 경로와 전투 계산 경로를 분리한다.</li>
 <li>런 도중 타이틀 저장값이 바뀌어도 진행 중 런의 밸런스가 갑자기 변하지 않는다.</li>
-<li>메타 0 기준 QA에서는 빈 modifier set을 주입해 GDD 프로토타입 기준을 유지할 수 있다.</li>
+<li>메타 0 기준 QA는 저장을 비우면 된다 — 진행이 없으면 보너스가 0이라 GDD 프로토타입 기준값이 그대로 나온다.</li>
 </ul>
 <p>효과 적용 순서(등급 배수 전/후, 각인 전/후)는 실제 노드 효과가 정해진 뒤 확정한다. 지금 순서를 만들면 수치 설계를 선점하게 된다.</p>
 <h3 id="unittable-csv-유닛-등급별-확정-스탯"><code>UnitTable.csv</code> — 유닛 등급별 확정 스탯<a class="heading-anchor" href="#unittable-csv-유닛-등급별-확정-스탯" aria-label="Section link">#</a></h3>
@@ -802,7 +808,16 @@ value = Random.Range(MinValue, MaxValue)
 <li>런 시작 시 선택 종족의 modifier set 스냅샷</li>
 <li>메타 0/적용 두 QA 프로필로 클리어율 비교</li>
 </ol>
-<p>노드 효과·비용이 미정인 상태에서 1~5의 골격과 읽기 전용 화면까지는 만들 수 있지만, 실제 구매와 전투 효과 적용은 M-2~M-5가 닫힌 뒤 진행한다.</p>
+<p><strong>2026-08-29 완료.</strong> M-2~M-6이 닫히면서 1~6을 전부 구현했다. 7(메타 0/적용 QA 프로필 비교)만 남았고, 그건 전투가 생겨야 클리어율을 잴 수 있다.</p>
+<p>실제로 만든 것은 다음과 같다.</p>
+<ul>
+<li><code>HouseUpgradeTable.csv</code> 48행 — 종족당 3노드 / 8레벨 / 51옥새로 균일</li>
+<li><code>eCurrencyType.Royal</code>, <code>PlayerData.royal</code>, 원자적 구매</li>
+<li><code>UIHouseUpgradeNode</code> — 노드 한 줄(이름·설명·레벨·비용·강화 버튼)</li>
+<li><code>RunData.Init()</code>에서 시작값 스냅샷 1회 반영</li>
+<li><code>RunData.GetRoyalReward()</code> — 계산은 되지만 <strong>호출부가 없다</strong>. 런 종료 단계가 아직 없다</li>
+</ul>
+<p><strong>따라서 지금은 옥새를 얻을 수 없다.</strong> 런 종료 처리가 생기면 <code>PlayerManager.AddRoyal()</code>에 연결하는 것이 이 시스템을 실제로 굴리는 마지막 한 줄이다.</p>
 <h2 id="ui-ux-요구">UI/UX 요구<a class="heading-anchor" href="#ui-ux-요구" aria-label="Section link">#</a></h2>
 <h3 id="인게임-승급-표시">인게임 승급 표시<a class="heading-anchor" href="#인게임-승급-표시" aria-label="Section link">#</a></h3>
 <ul>
@@ -820,14 +835,14 @@ value = Random.Range(MinValue, MaxValue)
 <li>상단/좌측 종족 선택: <code>HouseTable</code> 순서와 해금 상태 재사용</li>
 <li>기본 종족: <code>PlayerManager.GetSelectedHouseRecord().Key</code>로 확정한 현재 종족</li>
 <li>본문: 해당 <code>HouseKey</code>의 노드/단계만 표시</li>
-<li>진행도: 종족별 구매/해금 수, 필요하면 다음 단계 조건</li>
-<li>하단: 비용과 적용 효과. 값이 확정되기 전에는 구매 버튼을 노출하지 않음</li>
+<li>보유 재화: 상단 우측에 옥새 보유량. 비용과 같은 금색으로 묶어 무엇을 치르는지 한눈에 보이게 한다</li>
+<li>노드 줄마다: 이름 · 설명 · <code>Lv 현재/최대</code> · 비용(옥새) · 강화 버튼. 최대 레벨이면 비용과 버튼 자리에 <code>MAX LEVEL</code>이 대신 들어간다</li>
 </ul>
 <p>종족마다 전용 프리팹을 여섯 개 만들지 않는다. 종족별 차이는 테이블 행, 액센트 색, 아이콘, 설명으로 표현한다. 특수한 레이아웃이 실제로 필요한 종족만 후속 확장 포인트를 둔다.</p>
 <h2 id="엣지-케이스">엣지 케이스<a class="heading-anchor" href="#엣지-케이스" aria-label="Section link">#</a></h2>
 <ul>
 <li>같은 <code>nodeKey</code>가 두 종족에 중복되거나 잘못된 <code>HouseKey</code>로 저장됨</li>
-<li>테이블에서 노드가 삭제/이름 변경됐지만 기존 저장에 진행이 남음</li>
+<li>테이블에서 노드가 삭제/이름 변경됐지만 기존 저장에 진행이 남음 — <strong>실제로 발생했고 이미 안전하다.</strong> 보너스 합산이 저장이 아니라 <code>HouseUpgradeTable.GetNodeKeyList()</code>를 돌기 때문에, 테이블에 없는 노드의 레벨은 그냥 무시된다. 슬롯에서 <code>swap</code> 노드를 뺀 뒤 저장에 <code>swap=2</code>가 남은 상태로 <code>swapCountMax</code>가 기본값 2로 나오는 것을 확인했다. 저장본 정리는 출시 전 마이그레이션 시점에 판단한다</li>
 <li>잠긴 종족의 메타 화면 열람·구매 허용 여부</li>
 <li>최대 레벨 노드를 다시 구매함</li>
 <li>선행 노드가 충족되지 않았는데 저장에는 후속 노드가 열려 있음</li>
@@ -855,41 +870,53 @@ value = Random.Range(MinValue, MaxValue)
 <h3 id="u-1-종족마다-업그레이드-의-저장-범위-결정됨-2026-08-28-영구-메타">U-1. “종족마다 업그레이드”의 저장 범위 — <strong>결정됨 (2026-08-28) · 영구 메타</strong><a class="heading-anchor" href="#u-1-종족마다-업그레이드-의-저장-범위-결정됨-2026-08-28-영구-메타" aria-label="Section link">#</a></h3>
 <p>타이틀 <code>UpgradeButton</code>에서 종족별 노드를 해금하고 그 진행은 다음 런에도 유지한다. 사용자 확인으로 영구 메타 진행이 확정됐으며, 기존 GDD §09의 “초기 빌드 영구 강화 트리 제외” 제한은 최신 결정에 맞춰 개정 대상이 된다.</p>
 <p>영구 메타와 런 내부 성장은 이름·데이터·UI에서 계속 분리한다. 영구 노드가 런의 유닛 등급이나 각인·코어 보유 상태를 직접 저장하는 식으로 합치지 않는다.</p>
-<h3 id="m-2-종족별-메타의-형태-구현-전-필수">M-2. 종족별 메타의 형태 — <strong>구현 전 필수</strong><a class="heading-anchor" href="#m-2-종족별-메타의-형태-구현-전-필수" aria-label="Section link">#</a></h3>
+<h3 id="m-2-종족별-메타의-형태-구현-전-필수">M-2. 종족별 메타의 형태 — <strong>확정 (2026-08-29)</strong><a class="heading-anchor" href="#m-2-종족별-메타의-형태-구현-전-필수" aria-label="Section link">#</a></h3>
+<p><strong>선형 단계 목록</strong>을 채택했다. 트리와 분기는 쓰지 않으며 <code>PrerequisiteKey</code>는 비워 둔다. 노드 좌표·연결선 데이터도 만들지 않는다 — 현재 스키마(<code>Level</code>/<code>SortOrder</code>)와 이미 검증된 UI에 그대로 맞고, 좌표가 필요 없다.</p>
+<h3 id="m-3-영구-재화와-획득-경로-구현-전-필수">M-3. 영구 재화와 획득 경로 — <strong>확정 (2026-08-29)</strong><a class="heading-anchor" href="#m-3-영구-재화와-획득-경로-구현-전-필수" aria-label="Section link">#</a></h3>
+<p><strong>단일 공용 재화 “옥새”</strong>다. <code>eCurrencyType</code>에 <code>Royal</code>을 추가했고 표시 이름은 <code>StringTable</code>의 <code>HouseUpgradeRoyal</code> 키다.</p>
+<p>획득은 <strong>런 종료 시 도달 연차에 비례</strong>한다 — <code>도달 연차 × RoyalPerYear(1)</code>, 12연차 완주 시 <code>RoyalClearBonus(6)</code> 추가. <strong>패배해도 지급</strong>한다. 3연차 패배 3, 7연차 7, 완주 18이다.</p>
+<p>종족 하나를 완주하는 데 51옥새가 드니 평균 약 6~7런, 6종족 전부는 약 38런이다.</p>
+<p>종족별 재화 6종은 버렸다 — 해금 직후 종족은 재화가 0이라 진입장벽이 생기고 UI도 6종 표시로 늘어난다.</p>
+<h3 id="m-4-종족별-실제-노드-효과와-수치-구현-전-필수">M-4. 종족별 실제 노드 효과와 수치 — <strong>1차 확정 (2026-08-29)</strong><a class="heading-anchor" href="#m-4-종족별-실제-노드-효과와-수치-구현-전-필수" aria-label="Section link">#</a></h3>
+<p><strong>강화 대상 시스템이 아직 없다는 것이 이 결정을 지배한다.</strong> 유닛·전투·판정이 미구현이라 “공격력 +5%”류는 붙을 곳이 없다. 지금 존재하는 조정 축은 런 시작값 4개와 종족 고유 기구 3개뿐이다.</p>
+<p>이 중 <strong>종족 고유 기구(<code>HoldMax</code>·판돈 배율·<code>PoolCount</code>)는 제외했다.</strong> 영구 강화하면 GDD 종족 밸런스가 직접 바뀌는데 시뮬레이션 수단이 없다 — 슬롯 홀드 2→3만 해도 연차 14.23에서 22.91 쪽으로 밀린다.</p>
+<p>따라서 <strong>런 시작값 4축</strong>을 노드로 삼는다. <code>EffectType</code>은 <code>RunConfigAdd</code> 하나이고 <code>TargetKey</code>는 <code>GameConfigTable</code> 키 이름과 같다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>노드 키</th><th>이름</th><th>대상</th><th>Lv1</th><th>Lv2</th><th>Lv3</th></tr></thead>
+<tbody>
+<tr><td><code>home_hp</code></td><td>본거지 보강</td><td><code>HomeHpMax</code></td><td>+1</td><td>+2</td><td>+3</td></tr>
+<tr><td><code>spin_coin</code></td><td>스핀 코인</td><td><code>SpinCoinPerYear</code></td><td>+1</td><td>+2</td><td>+3</td></tr>
+<tr><td><code>swap</code></td><td>스왑 횟수</td><td><code>SwapCountPerYear</code></td><td>+1</td><td>+2</td><td>+3</td></tr>
+<tr><td><code>start_gold</code></td><td>초기 자금</td><td><code>RunStartGold</code></td><td>+5</td><td>+10</td><td>+15</td></tr>
+</tbody></table></div>
+<p><code>Value</code>는 <strong>그 레벨에서의 총 증가량</strong>이다(레벨당 증가분이 아니다). 호출부가 <code>Lv1..N</code>을 합산하지 않아 중복 누적 버그가 생길 여지를 없앴다. 비용은 <code>3 / 6 / 12</code>옥새.</p>
+<p><strong>종족은 4축 중 3축만 갖는다.</strong> 빠지는 축이 곧 종족 성격이다.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>종족</th><th>본거지</th><th>코인</th><th>스왑</th><th>자금</th><th>없는 축</th></tr></thead>
+<tbody>
+<tr><td>slot</td><td>2</td><td>3</td><td>—</td><td>3</td><td>스왑</td></tr>
+<tr><td>chess</td><td>3</td><td>—</td><td>3</td><td>2</td><td>코인</td></tr>
+<tr><td>janggi</td><td>3</td><td>2</td><td>3</td><td>—</td><td>자금</td></tr>
+<tr><td>hwatu</td><td>—</td><td>2</td><td>3</td><td>3</td><td>본거지</td></tr>
+<tr><td>poker</td><td>—</td><td>3</td><td>2</td><td>3</td><td>본거지</td></tr>
+<tr><td>mahjong</td><td>2</td><td>3</td><td>3</td><td>—</td><td>자금</td></tr>
+<tr><td>yut</td><td>—</td><td>3</td><td>3</td><td>2</td><td>본거지</td></tr>
+</tbody></table></div>
+<p>전 종족 <strong>8레벨 / 8행 / 51옥새</strong>로 균일하다. 총량은 같고 배분만 다르다.</p>
+<p><strong>윷놀이(2026-08-30 추가)</strong> — 윷·모가 나오면 한 번 더 던지고, 말을 업거나 지름길로 옮기는 종족이라 <strong>스핀 코인과 스왑</strong>을 최대까지 연다. 대신 본거지 보강이 없어 오래 버티지는 못한다.</p>
+<p><strong>처음엔 4축을 전 종족 공통으로 두었다가 되돌렸다.</strong> 노드 이름·설명이 6종족 전부 같아 탭을 바꿔도 <code>Lv 0/N</code>의 <code>N</code> 하나만 변해, 화면에서는 아무것도 안 바뀌는 것처럼 보였다. 이 문서가 §M-4에서 미리 경고한 “공용 스탯을 여섯 번 복제하면 종족별 분리의 의미가 약해진다”가 실제로 발생한 사례다. 축을 빼서 목록 자체가 달라지게 해결했다.</p>
+<p><strong>남은 위험</strong>: 스핀 코인 3→6은 스핀 횟수 2배로 4축 중 가장 강하다. 전투·판정이 없어 실측이 불가능하니 초기값으로 두고 판정기가 붙은 뒤 재조정한다. 또한 종족 정체성이 “무엇을 못 올리나”로만 갈리므로, 유닛 시스템 이후 종족 고유 노드를 얹는 M-4 2차가 전제다.</p>
+<h3 id="m-5-초기화-재분배-최대-진행">M-5. 초기화·재분배·최대 진행 — <strong>확정 (2026-08-29)</strong><a class="heading-anchor" href="#m-5-초기화-재분배-최대-진행" aria-label="Section link">#</a></h3>
 <ul>
-<li>선형 단계 목록</li>
-<li>선행 노드가 있는 트리</li>
-<li>선택지 중 하나만 고르는 분기</li>
+<li><strong>구매 취소·재분배 없음.</strong> 산 것은 확정이다. 선형 목록이라 되돌릴 필요가 적고, 환불 비용이라는 밸런싱 축을 하나 더 만들지 않는다.</li>
+<li><strong>종족 하나 완주 = 51옥새 ≈ 6~7런</strong>, 6종족 전부 ≈ 38런.</li>
+<li><strong>종족별 최대 레벨 차이를 허용한다.</strong> 공용 재화를 어디에 넣을지가 곧 메타 선택이다.</li>
+<li><strong>새 종족은 전원 0레벨로 시작한다.</strong> 저장에 그 종족 항목이 없으면 조회가 0을 돌려주므로 마이그레이션이 필요 없다.</li>
 </ul>
-<p>형태에 따라 UI 레이아웃과 초기화/재분배 규칙이 달라진다. 현재 스키마는 선형과 선행 노드를 모두 담을 수 있지만, 화면 좌표는 트리형 확정 전까지 넣지 않는다.</p>
-<h3 id="m-3-영구-재화와-획득-경로-구현-전-필수">M-3. 영구 재화와 획득 경로 — <strong>구현 전 필수</strong><a class="heading-anchor" href="#m-3-영구-재화와-획득-경로-구현-전-필수" aria-label="Section link">#</a></h3>
-<p>재화명, 단일 공용 재화인지 종족별 재화인지, 런 종료/왕 처치/업적 중 어디서 얻는지, 패배 시에도 얻는지가 전부 미기재다. <code>eCurrencyType</code>은 현재 <code>None/Max</code>뿐이며 임의 값을 추가하지 않는다.</p>
-<h3 id="m-4-종족별-실제-노드-효과와-수치-구현-전-필수">M-4. 종족별 실제 노드 효과와 수치 — <strong>구현 전 필수</strong><a class="heading-anchor" href="#m-4-종족별-실제-노드-효과와-수치-구현-전-필수" aria-label="Section link">#</a></h3>
-<p>“종족마다 따로”라는 구조만 확정됐고 각 종족의 정체성을 강화할 노드 목록은 없다. 최소한 종족별로 다음을 작성해야 한다.</p>
-<ul>
-<li>노드 이름/설명</li>
-<li>대상 시스템과 <code>EffectType</code></li>
-<li>레벨 수</li>
-<li>단계별 값</li>
-<li>선행 조건</li>
-<li>비용</li>
-</ul>
-<p>공격력 같은 공용 스탯만 여섯 번 복제하면 종족별 분리의 의미가 약해진다. 반대로 판정 확률·홀드·배팅처럼 종족 고유 기구를 영구 강화하면 GDD의 종족 밸런스를 직접 바꾸므로 시뮬레이션이 필요하다.</p>
-<h3 id="m-5-초기화-재분배-최대-진행">M-5. 초기화·재분배·최대 진행<a class="heading-anchor" href="#m-5-초기화-재분배-최대-진행" aria-label="Section link">#</a></h3>
-<ul>
-<li>구매 취소/재분배 가능 여부와 비용</li>
-<li>종족 하나를 완주하는 데 필요한 런 수</li>
-<li>종족별 최대 레벨 차이를 허용할지</li>
-<li>새 종족 추가 시 기존 저장의 기본값</li>
-</ul>
-<h3 id="m-6-혼혈-유닛에-어떤-종족-메타를-적용하는가">M-6. 혼혈 유닛에 어떤 종족 메타를 적용하는가<a class="heading-anchor" href="#m-6-혼혈-유닛에-어떤-종족-메타를-적용하는가" aria-label="Section link">#</a></h3>
-<p>전리품으로 다른 종족 심볼/유닛이 들어왔을 때 다음 중 어느 진행을 쓰는지 미기재다.</p>
-<ul>
-<li>유닛 원래 <code>HouseKey</code>의 메타 진행</li>
-<li>현재 플레이 종족의 메타 진행</li>
-<li>영구 메타 미적용</li>
-</ul>
-<p>첫 번째는 여러 종족을 키운 계정이 혼혈에서 더 강해지고, 두 번째는 선택 종족 빌드로 단순화되며, 세 번째는 순혈 보상으로 작동한다. 핵심 밸런스 결정이므로 구현에서 추측하지 않는다.</p>
+<h3 id="m-6-혼혈-유닛에-어떤-종족-메타를-적용하는가">M-6. 혼혈 유닛에 어떤 종족 메타를 적용하는가 — <strong>확정 (2026-08-29)</strong><a class="heading-anchor" href="#m-6-혼혈-유닛에-어떤-종족-메타를-적용하는가" aria-label="Section link">#</a></h3>
+<p><strong>현재 플레이 종족의 메타 진행</strong>을 쓴다.</p>
+<p>이번 범위에서는 사실상 선택지가 하나뿐이었다 — 효과가 유닛이 아니라 <strong>런</strong>에 붙기 때문이다(본거지 HP·스핀 코인·스왑·시작 골드). 유닛별 <code>HouseKey</code>를 따질 대상 자체가 없어 “유닛 원래 종족의 진행”은 지금 구현할 수 없다.</p>
+<p>유닛 단위 효과가 생기면 이 항목을 다시 연다. 그때는 “여러 종족을 키운 계정이 혼혈에서 더 강해진다”는 결과를 감수할지가 실제 쟁점이 된다.</p>
 <h3 id="u-2-흡수-승급이-자동인가-플레이어-선택인가-구현-전-필수">U-2. 흡수 승급이 자동인가, 플레이어 선택인가 — <strong>구현 전 필수</strong><a class="heading-anchor" href="#u-2-흡수-승급이-자동인가-플레이어-선택인가-구현-전-필수" aria-label="Section link">#</a></h3>
 <ul>
 <li>자동: 템포가 빠르고 프로토타입에 적합하지만 어떤 각인·셀을 남길지 규칙이 필요하다.</li>
@@ -932,7 +959,7 @@ value = Random.Range(MinValue, MaxValue)
 <h2 id="구현-승인-게이트">구현 승인 게이트<a class="heading-anchor" href="#구현-승인-게이트" aria-label="Section link">#</a></h2>
 <ol>
 <li><strong>종족별 메타 골격</strong>: U-1 영구 메타가 확정됐으므로 <code>HouseUpgradeTable</code>/저장 모델/읽기 전용 <code>UIHouseUpgrade</code> 골격까지 진행 가능하다.</li>
-<li><strong>메타 구매·효과 적용 전 필요</strong>: M-2(형태), M-3(재화/획득), M-4(노드/수치), M-5(재분배), M-6(혼혈 적용).</li>
+<li><strong>메타 구매·효과 적용</strong>: M-2~M-6이 2026-08-29에 전부 확정되어 <strong>게이트가 해소됐다.</strong> 노드 데이터·옥새·구매·<code>RunData</code> 스냅샷까지 구현·검증 완료. 남은 것은 사람 눈 확인과, 유닛 시스템 이후의 M-4 2차(종족 고유 노드)다.</li>
 <li><strong>런 승급 지금 진행 가능</strong>: Phase 0 구조 설계, <code>UnitTable</code>/런타임 모델 골격, 체스 1~3성 흡수 프로토타입. 단 U-2/U-3/U-7/U-8을 먼저 결정해야 실제 결과 규칙을 고정할 수 있다.</li>
 <li><strong>각인 전 필요</strong>: U-3/U-5/U-6.</li>
 <li><strong>프리즘 전 필요</strong>: U-4/U-7/U-8 및 전장 2칸 점유 설계.</li>

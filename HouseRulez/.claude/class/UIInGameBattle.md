@@ -36,8 +36,12 @@ SafeRoot
 `목표전력 / 적1기전력`으로 계산한다(최소 1). 마릿수를 CSV에 따로 적으면 `PowerCoef`와 이중 소스가 되어
 한쪽만 고쳤을 때 밸런스가 조용히 어긋난다.
 
-### 적 아트가 아직 없다
-`Setup(..., sprite: null, ...)`로 세워 실루엣만 보인다. 아트가 생기면 `SpawnEnemies`의 그 자리에 물린다.
+### 적 스프라이트 (2026-08-30-1 연결)
+`ResUtil.Load<Sprite>(enemy.SpritePath)`를 **루프 밖에서 1회만** 읽어 넘긴다 —
+같은 종류를 여러 마리 세우는데 마리마다 읽으면 같은 파일을 마릿수만큼 조회하게 된다.
+
+★ 로드에 실패하면 [[BattleUnit]]이 `m_SymbolImage.enabled = (_sprite != null)`로 Image를 끄고,
+`UnitTemplate` 루트엔 Image가 없어 **화면에 HP 바만 뜬다.** 조용히 사라지므로 실패 시 로그를 남긴다.
 파일명 규칙은 `Image/InGame/Enemy/enemy_*`.
 
 ### 승패 판정

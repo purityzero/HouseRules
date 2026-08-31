@@ -90,7 +90,8 @@ public class UIInGameBattle : MonoBehaviour
             if (summon.Cell < 0 || summon.Cell >= _grid.Length)
                 continue;
 
-            int symbolType = _grid[summon.Cell];
+            // 판정기가 심볼을 직접 정했으면 그걸 쓴다(윷). 아니면 그 칸에 나온 심볼을 쓴다.
+            int symbolType = (summon.SymbolType >= 0) ? summon.SymbolType : _grid[summon.Cell];
             if (symbolType < 0 || symbolType >= _spritePool.Count)
                 continue;
 
@@ -132,14 +133,30 @@ public class UIInGameBattle : MonoBehaviour
         int basePower = config.GetValue(GameConfigTable.KEY_WAVE_BASE_POWER, 6);
         int count = WaveTable.GetSpawnCount(_wave, enemy, basePower);
 
-        // 적 아트가 아직 없다. 스프라이트 없이 세워 실루엣만 보이게 하고, 아트가 생기면 여기서 물린다.
+        // 풀은 루프 밖에서 한 번만 읽는다. 마리마다 Resources를 두드리면 같은 폴더를 count번 조회하게 된다.
+        // 로드에 실패하면 BattleUnit이 Symbol Image를 꺼서 HP 바만 뜬다 — 조용히 사라지지 않게 로그를 남긴다.
+        List<Sprite> enemyPool = EnemyHouseResolver.LoadPool(_wave, enemy);
+        if (enemyPool.Count <= 0)
+            Logger.Error($"[UIInGameBattle] SpawnEnemies - 적 스프라이트 풀이 비었다: {_wave.EnemyHouse}/{enemy.Key} (기대: Resources 아래 해당 폴더에 png)");
+
+        // 보스 웨이브는 그 종족의 최상위 말 하나로 세운다. 일반 웨이브는 풀에서 무작위로 섞는다 —
+        // 한 종류로만 줄을 세우면 "다른 종족이 쳐들어왔다"가 아니라 "같은 적 복제"로 보인다.
+        int bossIndex = EnemyHouseResolver.GetBossSymbolIndex(_wave);
+
         for (int i = 0; i < count; ++i)
         {
             int lane = i % LANE_COUNT;
             int rank = i / LANE_COUNT;
 
+            Sprite enemySprite = null;
+            if (enemyPool.Count > 0)
+            {
+                int symbolIndex = (bossIndex >= 0) ? bossIndex : Random.Range(0, enemyPool.Count);
+                enemySprite = enemyPool[Mathf.Clamp(symbolIndex, 0, enemyPool.Count - 1)];
+            }
+
             BattleUnit unit = Instantiate(m_UnitTemplate, m_UnitRoot);
-            unit.Setup(eBattleSide.Enemy, lane, null, 1,
+            unit.Setup(eBattleSide.Enemy, lane, enemySprite, 1,
                 enemy.Hp, enemy.Atk, enemy.AtkSpeed, enemy.Range, enemy.MoveSpeed,
                 GetLanePosition(lane, m_EnemySpawnX + rank * 108f));
             m_ListUnit.Add(unit);

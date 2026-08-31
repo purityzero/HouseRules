@@ -27,6 +27,10 @@ public class HouseRecord : Record
     // 홀드(재굴림 전 보류) 가능 칸 수 상한. 기본값 4, 슬롯만 2(GDD 밖 종족 전용 밸런스 조정, 2026-08-27 승인).
     // 현재 이 값을 소비하는 홀드 로직은 없다(슬롯 판정기 미구현) — 컬럼/필드만 선반영.
     public int HoldMax;
+
+    // 이 종족이 적으로 나올 때 보스가 쓸 심볼의 풀 인덱스(이름 오름차순 로드 순서).
+    // 각 종족의 최상위 말이다 — 체스 king, 장기 wang, 포커 K, 화투 비광, 마작 9통, 슬롯 세븐, 윷 모.
+    public int BossSymbolIndex;
 }
 
 public class HouseTable : Table<HouseRecord>
@@ -49,14 +53,30 @@ public static class HouseSpriteLoader
 
     public static List<Sprite> Load(HouseRecord _record)
     {
-        List<Sprite> listSprite = new List<Sprite>();
         if (_record == null)
+            return new List<Sprite>();
+
+        return LoadFolder($"Image/InGame/Actor/{_record.SpriteFolder}");
+    }
+
+    // 적으로 나올 때 쓸 사본. 같은 그림을 적 팔레트로 치환한 것이라(GDD 10장 "검정은 적군 전용")
+    // 폴더 구조와 파일 이름이 Actor와 같고, 그래서 **인덱스가 1:1로 대응한다.**
+    // 아군 3번 말과 적 3번 말이 같은 그림이라는 뜻이다.
+    public static List<Sprite> LoadEnemy(HouseRecord _record)
+    {
+        if (_record == null)
+            return new List<Sprite>();
+
+        return LoadFolder($"Image/InGame/Enemy/{_record.SpriteFolder}");
+    }
+
+    private static List<Sprite> LoadFolder(string _path)
+    {
+        List<Sprite> listSprite = new List<Sprite>();
+        if (string.IsNullOrEmpty(_path) == true)
             return listSprite;
 
-        if (string.IsNullOrEmpty(_record.SpriteFolder) == true)
-            return listSprite;
-
-        Sprite[] loaded = Resources.LoadAll<Sprite>($"Image/InGame/Actor/{_record.SpriteFolder}");
+        Sprite[] loaded = Resources.LoadAll<Sprite>(_path);
         for (int i = 0; i < loaded.Length; ++i)
         {
             bool shouldExclude = false;

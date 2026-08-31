@@ -3,13 +3,29 @@ using System.Collections.Generic;
 // 소환 한 칸. 어느 칸에 몇 성 유닛이 서는지를 함께 들고 다닌다.
 public struct SummonSlot
 {
+    // 이 칸이 어느 심볼로 보일지 판정기가 직접 정하지 않았다는 뜻.
+    // 이 경우 표시하는 쪽이 스핀 결과 grid[Cell]의 심볼을 쓴다(여섯 종족 공통).
+    public const int SYMBOL_FROM_GRID = -1;
+
     public int Cell;
     public int Grade;
+
+    // 윷만 이 값을 쓴다. 윷은 "가로줄을 오른쪽부터 훑어 처음 만나는 빽도 아닌 심볼"이 말의 종류가 되는데,
+    // 그 심볼이 서는 칸(도착점 트랙)과 아무 관계가 없어서 grid[Cell]로는 복원할 수 없다.
+    public int SymbolType;
 
     public SummonSlot(int _cell, int _grade)
     {
         Cell = _cell;
         Grade = _grade;
+        SymbolType = SYMBOL_FROM_GRID;
+    }
+
+    public SummonSlot(int _cell, int _grade, int _symbolType)
+    {
+        Cell = _cell;
+        Grade = _grade;
+        SymbolType = _symbolType;
     }
 }
 

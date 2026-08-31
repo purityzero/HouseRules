@@ -23,6 +23,14 @@ public static class Judge
         new[] { 0, 4, 8 }, new[] { 2, 4, 6 },
     };
 
+    // 슬롯의 페이라인은 5개다 — 가로 3 · 대각 2. 세로는 쓰지 않는다.
+    // 릴이 세로로 도는 기계라 세로줄은 "한 릴 안의 연속된 칸"이지 슬롯머신의 라인이 아니다.
+    private static readonly int[][] SLOT_PAYLINES =
+    {
+        new[] { 0, 1, 2 }, new[] { 3, 4, 5 }, new[] { 6, 7, 8 },
+        new[] { 0, 4, 8 }, new[] { 2, 4, 6 },
+    };
+
     // 섯다는 세로 3열이 각각 한 손이다.
     private static readonly int[][] COLUMNS =
     {
@@ -32,6 +40,22 @@ public static class Judge
     // 장기 包의 심볼 인덱스. 스프라이트가 이름 오름차순으로 로드되므로
     // cha·jol·ma·po·sa·sang·wang 순서에서 3번이다(실제 폴더로 확인함).
     private const int JANGGI_PO_INDEX = 3;
+
+    // 마작은 통수패 1~9의 9종 풀이고, 9칸이 정확히 3면자로 떨어진다.
+    // 머리(자또)를 쓰지 않는 이유가 여기 있다 — 실제 마작의 14장 = 4면자 + 머리와 달리
+    // 릴 9칸은 3면자로 딱 나뉜다.
+    private const int MAHJONG_RANK_COUNT = 9;
+    private const int MAHJONG_MELD_MAX = 3;
+
+    // 윷 — 심볼 인덱스 순서가 곧 이동값이다(파일명 yut_00_backdo ~ yut_05_mo, 이름 오름차순 로드).
+    // 빽도만 음수다. 단순 실패 심볼이 아니라 합계를 뒤로 당기는 조절기다.
+    private static readonly int[] YUT_MOVE = { -1, 1, 2, 3, 4, 5 };
+    private const int YUT_BACKDO_INDEX = 0;
+
+    // 3×3을 윷판 한 바퀴로 쓴다.
+    private const int YUT_TRACK_SIZE = 9;
+
+    private const int COLUMN_COUNT = 3;
 
     public static JudgeResult Evaluate(string _houseKey, int[] _grid)
     {
@@ -64,12 +88,26 @@ public static class Judge
             case "hwatu":
                 EvaluateHwatu(judgeTable, _grid, result);
                 break;
+            case "slot":
+                EvaluateSlot(judgeTable, _grid, result);
+                break;
+            case "mahjong":
+                EvaluateMahjong(judgeTable, _grid, result);
+                break;
+            case "yut":
+                EvaluateYut(judgeTable, _grid, result);
+                break;
             default:
-                Logger.Error($"[Judge] Evaluate Failed! 판정기 없는 종족 - {_houseKey} (기대: chess/janggi/poker/hwatu 중 하나)");
+                Logger.Error($"[Judge] Evaluate Failed! 판정기 없는 종족 - {_houseKey} (기대: chess/janggi/poker/hwatu/slot/mahjong/yut 중 하나)");
                 return result;
         }
 
-        BuildSummon(result);
+        // 윷은 배치를 자기가 만든다 — 심볼·칸·등급이 전부 줄 단위 규칙에서 나와서
+        // "전력만큼 빈 칸을 채운다"는 공통 규칙으로는 셋 다 복원할 수 없다.
+        // 이미 채워져 있으면 덮어쓰지 않는다.
+        if (result.ListSummon.Count <= 0)
+            BuildSummon(result);
+
         return result;
     }
 
@@ -157,6 +195,405 @@ public static class Judge
             _result.ListSummon.Add(new SummonSlot(listCell[i], grades[i]));
             _result.placedPower += gradeTable.GetMultiplier(grades[i]);
         }
+    }
+
+    // 슬롯 — PAYLINE_RANK. 5개 페이라인에서 3칸이 같으면 그 심볼의 3매치 배당,
+    // 정확히 2칸이 같으면 그 심볼의 2매치 배당. 전부 다르면 0.
+    //
+    // 다른 다섯 종족에 없는 축이 여기 있다: **어느 심볼이 맞았는지가 배당을 정한다.**
+    // 체스는 어느 말이든 정렬 8.0으로 같지만, 슬롯은 체리 3매치 3.0과 세븐 3매치 33.0이 11배 갈린다.
+    // 그래서 계수 조회가 심볼 인덱스별로 나뉜다.
+    //
+    // 1매치 배당은 두지 않는다 — 넣으면 무소환률이 4.96%에서 0.6%로 무너져 체스와 같아진다.
+    private static void EvaluateSlot(JudgeTable _table, int[] _grid, JudgeResult _result)
+    {
+        int match3 = 0;
+        int match2 = 0;
+        float power = 0f;
+        int bestSymbol = -1;
+
+        for (int i = 0; i < SLOT_PAYLINES.Length; ++i)
+        {
+            int a = _grid[SLOT_PAYLINES[i][0]];
+            int b = _grid[SLOT_PAYLINES[i][1]];
+            int c = _grid[SLOT_PAYLINES[i][2]];
+
+            if (a == b && b == c)
+            {
+                match3++;
+                power += _table.GetCoef("slot", JudgeTable.SLOT_MATCH3_PREFIX + a);
+                AddHit(_result, SLOT_PAYLINES[i]);
+
+                if (a > bestSymbol)
+                    bestSymbol = a;
+
+                continue;
+            }
+
+            // 정확히 2개가 같은 경우. 어느 심볼이 짝인지에 따라 배당이 다르므로 그 심볼을 집어낸다.
+            int paired = -1;
+            if (a == b)
+                paired = a;
+            else if (b == c)
+                paired = b;
+            else if (a == c)
+                paired = a;
+
+            if (paired < 0)
+                continue;
+
+            match2++;
+            power += _table.GetCoef("slot", JudgeTable.SLOT_MATCH2_PREFIX + paired);
+        }
+
+        _result.Power = power;
+        _result.PatternName = (match3 > 0)
+            ? $"{GetSlotSymbolName(bestSymbol)} {match3}줄"
+            : ((match2 > 0) ? $"짝 {match2}줄" : "무판정");
+    }
+
+    // 배당 등급 순 = 스프라이트 로드 순서(slot_01_cherry ~ slot_06_seven)라 인덱스가 곧 등급이다.
+    private static string GetSlotSymbolName(int _symbolIndex)
+    {
+        switch (_symbolIndex)
+        {
+            case 0: return "체리";
+            case 1: return "레몬";
+            case 2: return "벨";
+            case 3: return "BAR";
+            case 4: return "2BAR";
+            case 5: return "세븐";
+        }
+
+        return "무판정";
+    }
+
+    // 마작 — 면자 완전분할(MeldPartition). 9칸을 3장씩 세 묶음으로 나눠
+    // 같은 숫자 3장(커쯔) 또는 연속 세 숫자(슌쯔)면 면자로 친다.
+    //
+    // **위치를 보지 않는 유일한 종족이다.** 9칸이 숫자별 개수 배열로 환원되므로 라인 순회가 아예 없다.
+    private static void EvaluateMahjong(JudgeTable _table, int[] _grid, JudgeResult _result)
+    {
+        int[] counts = new int[MAHJONG_RANK_COUNT];
+        for (int i = 0; i < _grid.Length; ++i)
+        {
+            if (_grid[i] < 0 || _grid[i] >= MAHJONG_RANK_COUNT)
+                continue;
+
+            counts[_grid[i]]++;
+        }
+
+        int meld = 0;
+        int kotsu = 0;
+        Decompose(counts, ref meld, ref kotsu);
+
+        float power = _table.GetCoef("mahjong", JudgeTable.MAHJONG_MELD) * meld;
+        bool isWin = (meld >= MAHJONG_MELD_MAX);
+        bool isIkkitsukan = false;
+
+        if (isWin == true)
+        {
+            isIkkitsukan = IsIkkitsukan(counts);
+
+            power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_WIN);
+
+            // 커쯔 프리미엄은 화료라는 문턱을 넘은 뒤에만 열린다.
+            // 부분 성립에도 주면 마작이 "같은 것 3개 모으기"가 되어 체스 정렬·포커 트리플과 체감이 겹친다.
+            power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_KOTSU) * kotsu;
+
+            if (isIkkitsukan == true)
+                power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_IKKITSUKAN);
+
+            // 화료는 9칸을 전부 쓴 것이라 판정에 걸린 칸도 9칸 전체다.
+            for (int i = 0; i < _grid.Length; ++i)
+            {
+                if (_result.ListHitCell.Contains(i) == true)
+                    continue;
+
+                _result.ListHitCell.Add(i);
+            }
+        }
+        else if (IsTenpai(counts) == true)
+        {
+            // 텐파이 보너스는 화료를 못 한 상태에서만 붙는다(유국텐파이료).
+            power += _table.GetCoef("mahjong", JudgeTable.MAHJONG_TENPAI);
+        }
+
+        _result.Power = power;
+
+        if (isWin == true)
+        {
+            _result.PatternName = (isIkkitsukan == true)
+                ? "일기통관"
+                : ((kotsu > 0) ? $"화료 · 커쯔 {kotsu}" : "화료");
+        }
+        else
+        {
+            _result.PatternName = (meld > 0) ? $"{meld}면자" : "무판정";
+        }
+    }
+
+    // 개수 배열을 재귀 분해해 (최대 면자 수, 그 최대를 낼 때의 최대 커쯔 수)를 구한다.
+    // 비교는 (면자 수, 커쯔 수) 사전식 — 면자를 먼저 최대화하고 동률이면 커쯔를 최대화한다(커쯔가 점수가 높다).
+    //
+    // 브리프가 제안한 "280가지 3분할 완전탐색"은 불필요하다. 위치 무관이라 개수 배열로 환원되고,
+    // 최대 깊이 9 · 분기 3이라 메모이제이션 없이도 스핀당 마이크로초 단위다.
+    private static void Decompose(int[] _counts, ref int _meld, ref int _kotsu)
+    {
+        int low = -1;
+        for (int i = 0; i < _counts.Length; ++i)
+        {
+            if (_counts[i] <= 0)
+                continue;
+
+            low = i;
+            break;
+        }
+
+        if (low < 0)
+        {
+            _meld = 0;
+            _kotsu = 0;
+            return;
+        }
+
+        int bestMeld = 0;
+        int bestKotsu = 0;
+
+        // 1) 커쯔로 뗀다
+        if (_counts[low] >= 3)
+        {
+            _counts[low] -= 3;
+            int subMeld = 0;
+            int subKotsu = 0;
+            Decompose(_counts, ref subMeld, ref subKotsu);
+            _counts[low] += 3;
+
+            TakeBetter(subMeld + 1, subKotsu + 1, ref bestMeld, ref bestKotsu);
+        }
+
+        // 2) 슌쯔로 뗀다
+        if (low + 2 < _counts.Length && _counts[low + 1] > 0 && _counts[low + 2] > 0)
+        {
+            _counts[low]--;
+            _counts[low + 1]--;
+            _counts[low + 2]--;
+            int subMeld = 0;
+            int subKotsu = 0;
+            Decompose(_counts, ref subMeld, ref subKotsu);
+            _counts[low]++;
+            _counts[low + 1]++;
+            _counts[low + 2]++;
+
+            TakeBetter(subMeld + 1, subKotsu, ref bestMeld, ref bestKotsu);
+        }
+
+        // 3) 이 패 1장을 버린다. 면자를 못 만드는 패가 섞여 있어도 나머지로 분해가 이어져야 한다.
+        _counts[low]--;
+        int dropMeld = 0;
+        int dropKotsu = 0;
+        Decompose(_counts, ref dropMeld, ref dropKotsu);
+        _counts[low]++;
+
+        TakeBetter(dropMeld, dropKotsu, ref bestMeld, ref bestKotsu);
+
+        _meld = bestMeld;
+        _kotsu = bestKotsu;
+    }
+
+    private static void TakeBetter(int _meld, int _kotsu, ref int _bestMeld, ref int _bestKotsu)
+    {
+        if (_meld < _bestMeld)
+            return;
+
+        if (_meld <= _bestMeld && _kotsu <= _bestKotsu)
+            return;
+
+        _bestMeld = _meld;
+        _bestKotsu = _kotsu;
+    }
+
+    // 한 장을 더 받으면 3면자가 되는 상태. 화료가 아닐 때만 조회한다.
+    private static bool IsTenpai(int[] _counts)
+    {
+        for (int rank = 0; rank < _counts.Length; ++rank)
+        {
+            _counts[rank]++;
+            int meld = 0;
+            int kotsu = 0;
+            Decompose(_counts, ref meld, ref kotsu);
+            _counts[rank]--;
+
+            if (meld >= MAHJONG_MELD_MAX)
+                return true;
+        }
+
+        return false;
+    }
+
+    // 1~9가 각 1장씩. 9칸뿐이라 이 조건은 곧 123·456·789 세 슌쯔다.
+    private static bool IsIkkitsukan(int[] _counts)
+    {
+        for (int i = 0; i < _counts.Length; ++i)
+        {
+            if (_counts[i] < 1 || _counts[i] > 1)
+                return false;
+        }
+
+        return true;
+    }
+
+    // 윷 — 가로줄 3개를 각각 말 하나로 읽는다. 이동값의 합(도착점)이 그 말의 모든 것을 정한다.
+    //
+    // 다른 여섯 종족과 구조가 다르다: 전력을 먼저 구하고 칸을 채우는 게 아니라,
+    // 줄마다 칸·심볼·등급이 먼저 정해지고 전력은 그 결과다. 그래서 BuildSummon을 타지 않는다.
+    private static void EvaluateYut(JudgeTable _table, int[] _grid, JudgeResult _result)
+    {
+        UnitGradeTable gradeTable = TableManager.instance.GetTable<UnitGradeTable>();
+        if (gradeTable == null)
+        {
+            Logger.Error("[Judge] EvaluateYut Failed! UnitGradeTable not found (기대: TableManager에 등록됨)");
+            return;
+        }
+
+        int grade2Landing = Mathf.RoundToInt(_table.GetCoef("yut", JudgeTable.YUT_GRADE2_LANDING));
+
+        // 줄마다 도착점과 말의 종류를 먼저 구한다.
+        int[] landings = new int[COLUMN_COUNT];
+        int[] symbols = new int[COLUMN_COUNT];
+        for (int row = 0; row < COLUMN_COUNT; ++row)
+        {
+            landings[row] = GetYutLanding(_grid, row);
+            symbols[row] = GetYutSymbol(_grid, row);
+        }
+
+        int summonCount = 0;
+        int backdoCount = 0;
+        int lapCount = 0;
+
+        for (int row = 0; row < COLUMN_COUNT; ++row)
+        {
+            int landing = landings[row];
+
+            // 음수는 뒤로 밀려 판을 벗어난 것이다 — 그 줄은 소환하지 않는다.
+            if (landing < 0)
+                continue;
+
+            int cell = GetYutCell(landing);
+
+            // 업기 — 같은 칸에 도착한 줄은 겹쳐서 한 말이 되고 등급이 오른다.
+            // 윷놀이의 업기(말을 포개 하나로 움직이는 것)를 그대로 등급으로 옮긴 것이다.
+            //
+            // 판정 기준을 도착점이 아니라 **칸**으로 잡는다. 트랙이 9칸에서 감기므로
+            // 도착점 1과 10처럼 서로 다른 값도 같은 칸이 된다 — 도착점으로 비교하면
+            // 그 경우를 못 잡아 한 칸에 두 기가 겹쳐 선다.
+            if (_result.ListHitCell.Contains(cell) == true)
+            {
+                RaiseYutStack(_result, cell, gradeTable.maxGrade);
+                continue;
+            }
+
+            int grade = 1;
+            if (landing >= grade2Landing)
+                grade++;
+
+            // 완주 — 트랙 한 바퀴(9칸)를 넘겼다. 윷놀이의 "나기"에 해당해 한 단계 더 올린다.
+            bool isLap = (landing > YUT_TRACK_SIZE);
+            if (isLap == true)
+            {
+                grade++;
+                lapCount++;
+            }
+
+            if (landing <= 0)
+                backdoCount++;
+
+            grade = Mathf.Clamp(grade, 1, gradeTable.maxGrade);
+
+            _result.ListSummon.Add(new SummonSlot(cell, grade, symbols[row]));
+            if (_result.ListHitCell.Contains(cell) == false)
+                _result.ListHitCell.Add(cell);
+
+            summonCount++;
+        }
+
+        // 전력은 배치 결과에서 나온다. 다른 종족은 전력이 배치를 정하지만 윷은 반대다.
+        float power = 0f;
+        for (int i = 0; i < _result.ListSummon.Count; ++i)
+        {
+            power += gradeTable.GetMultiplier(_result.ListSummon[i].Grade);
+        }
+
+        _result.Power = power;
+        _result.placedPower = power;
+
+        if (summonCount <= 0)
+            _result.PatternName = "낙";
+        else if (lapCount > 0)
+            _result.PatternName = $"완주 {lapCount}";
+        else if (backdoCount > 0)
+            _result.PatternName = $"빽도 {backdoCount}";
+        else
+            _result.PatternName = $"말 {summonCount}";
+    }
+
+    // 이미 같은 칸에 선 말의 등급을 한 단계 올린다(업기).
+    private static void RaiseYutStack(JudgeResult _result, int _cell, int _maxGrade)
+    {
+        for (int i = 0; i < _result.ListSummon.Count; ++i)
+        {
+            SummonSlot slot = _result.ListSummon[i];
+            if (slot.Cell < _cell || slot.Cell > _cell)
+                continue;
+
+            slot.Grade = Mathf.Clamp(slot.Grade + 1, 1, _maxGrade);
+            _result.ListSummon[i] = slot;
+            return;
+        }
+    }
+
+    private static int GetYutLanding(int[] _grid, int _row)
+    {
+        int landing = 0;
+        for (int column = 0; column < COLUMN_COUNT; ++column)
+        {
+            int symbol = _grid[_row * COLUMN_COUNT + column];
+            if (symbol < 0 || symbol >= YUT_MOVE.Length)
+                continue;
+
+            landing += YUT_MOVE[symbol];
+        }
+
+        return landing;
+    }
+
+    // 말의 종류는 가로줄을 **오른쪽부터** 훑어 처음 만나는 빽도가 아닌 심볼이다.
+    // 마지막 윷 결과가 말의 형태를 정한다는 직관이고, 빽도가 독립 유닛으로 과다 소환되는 것도 막는다.
+    // 전부 빽도면 어쩔 수 없이 빽도가 말이 된다(합계 -3이라 실제로는 소환되지 않는다).
+    private static int GetYutSymbol(int[] _grid, int _row)
+    {
+        for (int column = COLUMN_COUNT - 1; column >= 0; --column)
+        {
+            int symbol = _grid[_row * COLUMN_COUNT + column];
+            if (symbol <= YUT_BACKDO_INDEX)
+                continue;
+
+            return symbol;
+        }
+
+        return YUT_BACKDO_INDEX;
+    }
+
+    // 3×3을 윷판 한 바퀴(9칸)로 쓴다. 트랙 순서는 후열 → 중열 → 전열이라
+    // 멀리 간 말일수록 적 쪽으로 나가 선다. 한 바퀴를 넘기면 다시 후열부터 돈다.
+    private static int GetYutCell(int _landing)
+    {
+        // 도착점 0(빽도 전용 유닛)은 출발점에 세운다.
+        if (_landing <= 0)
+            return 0;
+
+        int track = (_landing - 1) % YUT_TRACK_SIZE;
+        return (track % COLUMN_COUNT) * COLUMN_COUNT + (track / COLUMN_COUNT);
     }
 
     private static void AddHit(JudgeResult _result, int[] _line)

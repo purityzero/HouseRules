@@ -90,3 +90,19 @@ public int HoldMax;
 
 ### 검증
 Unity MCP 연결 확인됨 — `refresh_unity(compile=request)` 후 `read_console(types=[error])` 0건. 컴파일 에러 없음.
+
+## 2026-08-31-0 — `BossSymbolIndex` 컬럼 추가
+
+이 종족이 **적으로 나올 때** 보스가 쓸 심볼의 풀 인덱스(이름 오름차순 로드 순서).
+각 종족의 최상위 말이다 — chess king(1) / janggi wang(6) / poker 13_K(12) /
+hwatu 12_rain 비광(11) / mahjong 09_pin(8) / slot 06_seven(5) / yut 05_mo(5).
+
+`WaveType`이 `Judgement`/`Final`일 때만 쓴다. 상세는 [[EnemyHouseResolver]].
+
+### `HouseSpriteLoader.LoadEnemy()` 추가
+같은 그림의 적 팔레트 사본을 `Image/InGame/Enemy/{SpriteFolder}`에서 읽는다.
+Actor와 폴더·파일명이 같아 **인덱스가 1:1 대응한다** — 아군 3번 말과 적 3번 말이 같은 그림이다.
+`Load()`와 공통 부분은 `LoadFolder()`로 뽑았다.
+
+### 검증 — Codex QA 통과 (2026-08-31)
+4연차 `Judgement` → poker `poker_13_K_0`, 12연차 `Final` → hwatu `hwatu_12_rain_0` 실제 표시 확인.

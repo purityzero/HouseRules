@@ -11,11 +11,22 @@ public class WaveRecord : Record
     public const string TYPE_JUDGEMENT = "Judgement";
     public const string TYPE_FINAL = "Final";
 
+    public const string HOUSE_NEUTRAL = "neutral";
+
     public int Year;
     public int WaveIndex;
     public string WaveType;
     public float PowerCoef;
     public string EnemyKey;
+
+    // 이 웨이브의 적이 어느 종족인가(GDD 06장 — 고유 덱을 가진 세력끼리 침공한다).
+    // 스탯은 EnemyKey가 계속 담당하고 이 값은 **겉모습만** 정한다 —
+    // GDD가 "종족 = 유닛 성능이 아니라 3×3을 읽는 문법"이라 못 박았으므로 적 종족도 성능이 아니다.
+    //
+    // 1연차는 `neutral`이다. 아직 어느 종족과도 전쟁하지 않은 시점이라 종족색 없는 무리가 나온다.
+    // 연차 안에서는 세 웨이브가 같은 종족이다 — 침공 예고가 "올해 상대는 누구"를 보여주는 화면이라
+    // 연차 도중에 상대가 바뀌면 예고가 성립하지 않는다.
+    public string EnemyHouse;
 }
 
 public class WaveTable : Table<WaveRecord>

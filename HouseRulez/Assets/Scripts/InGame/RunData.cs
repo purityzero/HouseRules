@@ -1,3 +1,5 @@
+using UnityEngine;
+
 // 런(run) 한 판 동안만 사는 상태. 저장하지 않는다 —
 // PlayerData가 못 박아둔 대로 재화/코어/각인은 런 밖으로 나가지 않으므로 저장 계층에 넣지 않는다.
 // 초기값은 전부 GameConfigTable에서 온다. 여기에 숫자를 박으면 CSV만으로 튜닝할 수 없게 된다.
@@ -76,6 +78,32 @@ public class RunData
 
         m_SpinCoin -= 1;
         return true;
+    }
+
+    // 판정 전력에 비례한 배당을 골드로 지급하고, 지급액을 돌려준다(화면 연출용).
+    // 전력이 소환 1기에 못 미쳐도 골드는 나온다 — 맞았는데 아무것도 안 남는 스핀을 없애는 통로다.
+    public int AwardGoldByPower(float _power)
+    {
+        if (_power <= 0f)
+            return 0;
+
+        GameConfigTable configTable = TableManager.instance.GetTable<GameConfigTable>();
+        if (configTable == null)
+        {
+            Logger.Error("[RunData] AwardGoldByPower Failed! GameConfigTable not found (기대: TableManager에 등록됨)");
+            return 0;
+        }
+
+        int goldPerPower = configTable.GetValue(GameConfigTable.KEY_GOLD_PER_POWER, 2);
+        int gold = Mathf.RoundToInt(_power * goldPerPower);
+
+        // 전력이 조금이라도 있으면 최소 1골드는 준다. 반올림으로 0이 되면
+        // "맞았는데 빈손"이 골드 쪽에서 다시 생긴다.
+        if (gold <= 0)
+            gold = 1;
+
+        m_Gold += gold;
+        return gold;
     }
 
     // 웨이브를 하나 끝냈다. 3개를 다 치르면 다음 연차로 넘어간다.

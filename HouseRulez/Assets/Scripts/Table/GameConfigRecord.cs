@@ -26,6 +26,11 @@ public class GameConfigTable : Table<GameConfigRecord>
     // 이 값이 1연차 1웨이브의 난이도를 정하고, 나머지는 WaveTable의 계수가 배수로 올린다.
     public const string KEY_WAVE_BASE_POWER = "WaveBasePower";
 
+    // 당첨 배당. 판정 전력에 비례해 골드를 준다 — 슬롯머신인데 맞아도 돈이 안 나오면 안 된다.
+    // 전력과 분리한 축이라 이미 맞춰둔 종족별 평균 6.1~6.3을 다시 잡을 필요가 없고,
+    // 전력이 0.5 미만이라 소환이 0기인 스핀도 빈손으로 끝나지 않는다.
+    public const string KEY_GOLD_PER_POWER = "GoldPerPower";
+
     public GameConfigTable(List<GameConfigRecord> _listRecord) : base(_listRecord) { }
 
     // 키가 없으면 기본값으로 조용히 흘러가지 않도록 에러를 남긴다 —
