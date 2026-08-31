@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>윷 종족 기획 — HouseRulez</title>
+  <style>
+    :root{--bg:#11151a;--panel:#1a2028;--line:#303a46;--text:#e8edf2;--muted:#aab5c0;--accent:#d99a4e;--ok:#69bd8b;--open:#e1b85b;--bad:#db7777;--code:#0c1015}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,-apple-system,"Noto Sans KR",sans-serif}.wrap{max-width:1080px;margin:auto;padding:42px 22px 80px}h1{font-size:34px;margin:.2em 0}h2{margin-top:42px;border-bottom:1px solid var(--line);padding-bottom:8px}h3{margin-top:26px}p,li{max-width:82ch}.lead,.muted{color:var(--muted)}nav,.card,.callout{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:16px 0}.callout{border-left:4px solid var(--open)}.confirmed{border-left-color:var(--ok)}.risk{border-left-color:var(--bad)}a{color:#8fc7ff}code{background:var(--code);padding:2px 6px;border-radius:4px}table{width:100%;border-collapse:collapse;background:var(--panel);margin:14px 0 24px}th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}th{background:#222a34}.tag{display:inline-block;border-radius:99px;padding:2px 8px;font-size:12px;font-weight:700}.yes{color:var(--ok);background:#173025}.proposal{color:var(--open);background:#332a17}.unknown{color:#ffaaaa;background:#351d1d}.flow{font-family:ui-monospace,Consolas,monospace;background:var(--code);padding:15px;border-radius:8px;overflow:auto}caption{text-align:left;color:var(--muted);padding:0 0 7px;font-weight:600}.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  </style>
+</head>
+<body><main class="wrap">
+  <p class="muted">HOUSE RULEZ / DESIGN / 2026-08-29</p>
+  <h1>윷 종족 기획</h1>
+  <p class="lead">3×3 릴의 각 가로줄을 세 번의 윷 결과로 읽고, 이동값의 합으로 소환 결과를 만드는 일곱 번째 종족. 이 문서는 합의된 규칙과 아직 승인이 필요한 선택지를 분리한 구현 전 설계 정본이다.</p>
+
+  <nav aria-label="목차"><strong>목차</strong> · <a href="#status">결정 상태</a> · <a href="#identity">정체성</a> · <a href="#schema">데이터</a> · <a href="#judge">판정</a> · <a href="#balance">확률·전력</a> · <a href="#flow">흐름</a> · <a href="#touch">구현 접점</a> · <a href="#issues">미결정</a> · <a href="#sources">출처</a></nav>
+
+  <section id="status"><h2>1. 결정 상태</h2>
+    <table><thead><tr><th>항목</th><th>상태</th><th>내용</th></tr></thead><tbody>
+      <tr><td>심볼 풀</td><td><span class="tag yes">확정</span></td><td>빽도, 도, 개, 걸, 윷, 모의 6종</td></tr>
+      <tr><td>이동값</td><td><span class="tag yes">확정</span></td><td>빽도 −1 / 도 1 / 개 2 / 걸 3 / 윷 4 / 모 5</td></tr>
+      <tr><td>읽는 단위</td><td><span class="tag yes">확정</span></td><td>3×3의 가로줄 3개. 각 줄은 왼쪽부터 세 번의 결과다.</td></tr>
+      <tr><td>특수안</td><td><span class="tag yes">확정</span></td><td>합계가 정확히 0이면 빽도 전용 유닛을 소환한다.</td></tr>
+      <tr><td>일반 유닛 결정</td><td><span class="tag proposal">제안</span></td><td>오른쪽부터 처음 만나는 빽도가 아닌 심볼을 소환한다. 빽도는 이동 보정 역할만 한다.</td></tr>
+      <tr><td>업기</td><td><span class="tag proposal">제안</span></td><td>같은 스핀에서 둘 이상의 가로줄 합계가 같으면 같은 칸에 업힌다.</td></tr>
+      <tr><td>윷·모 추가 진행</td><td><span class="tag unknown">미결정</span></td><td>실제 추가 스핀 대신 전력/연속 이동 보너스로 표현할지 승인 필요.</td></tr>
+      <tr><td>전장 배치 좌표</td><td><span class="tag unknown">필수 결정</span></td><td>가로줄 결과 하나를 기존 3×3 전장의 어느 칸에 놓을지 정해야 한다.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="identity"><h2>2. 종족 정체성</h2>
+    <div class="card"><strong>한 줄 설명</strong><p>낮은 실패율로 꾸준히 전진하지만, 같은 도착점을 맞춰 업기를 만들고 희귀한 역행 조합으로 빽도 전용 유닛을 부르는 종족.</p></div>
+    <ul>
+      <li><strong>판정 문법:</strong> 동일성이나 족보가 아니라 부호가 있는 수의 합과 도착점 중복을 읽는다.</li>
+      <li><strong>플레이 감각:</strong> 개별 심볼보다 세 칸의 조합 순서, 합계, 업기 가능성을 본다.</li>
+      <li><strong>시각 방향:</strong> 장기의 왕조·성곽과 겹치지 않도록 민속 마을, 흙길, 장터, 잔치의 분위기를 사용한다. 색상과 시대 고증은 미정이다.</li>
+      <li><strong>핵심 차별점:</strong> 빽도는 단순 실패 심볼이 아니라 음수 조절기이자 전용 유닛의 열쇠다.</li>
+    </ul>
+  </section>
+
+  <section id="schema"><h2>3. 데이터 스키마 제안</h2>
+    <h3>3.1 윷 심볼</h3>
+    <table><thead><tr><th>Key 제안</th><th>표시명</th><th class="num">MoveValue</th><th>역할</th></tr></thead><tbody>
+      <tr><td><code>yut_backdo</code></td><td>빽도</td><td class="num">−1</td><td>역행·합계 조절·0 특수식 재료</td></tr>
+      <tr><td><code>yut_do</code></td><td>도</td><td class="num">1</td><td>1칸 전진</td></tr><tr><td><code>yut_gae</code></td><td>개</td><td class="num">2</td><td>2칸 전진</td></tr><tr><td><code>yut_geol</code></td><td>걸</td><td class="num">3</td><td>3칸 전진</td></tr><tr><td><code>yut_yut</code></td><td>윷</td><td class="num">4</td><td>4칸 전진·연속 진행 후보</td></tr><tr><td><code>yut_mo</code></td><td>모</td><td class="num">5</td><td>5칸 전진·연속 진행 후보</td></tr>
+    </tbody></table>
+    <p>이동값은 종족 전용 심볼 데이터에 두어야 한다. 현재 프로젝트에서 판정용 <code>SymbolTable</code>/<code>JudgeTable</code> 구현은 발견되지 않았으므로 구체적인 레코드 분리는 구현 설계 단계에서 결정한다.</p>
+    <h3>3.2 HouseTable 추가 행</h3>
+    <table><thead><tr><th>필드</th><th>값/상태</th></tr></thead><tbody>
+      <tr><td><code>Key</code></td><td><code>yut</code> 적용</td></tr><tr><td><code>NameKey</code></td><td><code>HouseYut</code> 적용</td></tr><tr><td><code>PoolCount</code></td><td>6 확정</td></tr><tr><td><code>Id / AccentColor / Axis* / SpriteFolder / BackgroundPath / isUnlocked / HoldMax</code></td><td>2026-08-29 런타임 연결용 임시값: <code>7 / C58B57 / 62·55·75·30 / yut / Image/Title/bg_yut_folkvillage / 1 / 4</code>. 판정 시뮬레이션 전 표시용 값이며 밸런스 확정값이 아니다.</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="judge"><h2>4. 판정 규칙</h2>
+    <h3>4.1 기본 판정</h3><div class="flow">각 가로줄 [A, B, C]
+→ 세 심볼을 이동값으로 변환
+→ Landing = A + B + C
+→ Landing &gt; 0 : 일반 소환
+→ Landing = 0 : 빽도 전용 유닛 소환
+→ Landing &lt; 0 : 해당 줄 소환 실패</div>
+    <p>세 가로줄은 각각 독립된 말 한 개로 취급한다. 결과 순서는 합계에는 영향을 주지 않지만 일반 유닛 종류를 고르는 제안 규칙에는 영향을 준다.</p>
+    <h3>4.2 일반 유닛 선택 <span class="tag proposal">제안</span></h3>
+    <p>가로줄을 오른쪽에서 왼쪽으로 훑어 처음 만나는 빽도가 아닌 심볼을 그 줄의 소환 유닛으로 삼는다. 예: <code>[모, 빽도, 개]</code>는 합 6에 도착하고 개 유닛을 소환한다. 이 규칙은 마지막 윷 결과가 말의 형태를 정한다는 직관을 주며, 빽도를 독립 일반 유닛으로 과다 소환하지 않는다.</p>
+    <h3>4.3 빽도 전용 유닛 <span class="tag yes">존재 확정</span></h3>
+    <p><code>Landing == 0</code>이면 일반 선택 규칙을 무시하고 빽도 전용 유닛을 소환한다. 균등 6종 풀에서 가능한 조합은 <code>빽도 + 빽도 + 개</code>의 순열 세 가지뿐이다.</p>
+    <div class="callout"><strong>전용 유닛의 전투 효과는 미정.</strong> 현재 후보는 “소환된 배치 단계의 무료 스왑 +1”이다. 역행을 재배치 기회로 바꾸며 기존 무료 스왑 시스템을 재사용하지만, 사용자 승인 전에는 확정하지 않는다.</div>
+    <h3>4.4 업기 <span class="tag proposal">제안</span></h3>
+    <p>같은 스핀에서 양수 도착점이 같은 줄들은 한 위치에 업힌다. 최소 구현은 유닛을 모두 유지하되 같은 칸의 업기 표시와 업기 보너스를 부여하는 방식이다. 보너스 수치 및 전투 중 분리 규칙은 미정이다. 0이 여러 번 나온 경우 빽도 전용 유닛도 업을 수 있는지는 별도 승인 항목이다.</p>
+    <h3>4.5 잡기와 외부 심볼</h3>
+    <ul><li><strong>잡기:</strong> 적 말의 이전 위치 상태가 필요한 규칙이다. 현재의 스핀 단발 판정에는 넣지 않고, 향후 침공과 연결된 영속 윷판 레이어로 보류한다.</li><li><strong>전리품 심볼:</strong> 기존 GDD 계약대로 이질 심볼이 하나라도 포함된 가로줄은 윷 주판정에서 제외한다. 이질 심볼은 공통 부판정인 짝 판정으로 처리한다.</li></ul>
+  </section>
+
+  <section id="balance"><h2>5. 확률과 전력 설계</h2>
+    <p>아래 값은 여섯 심볼이 독립·균등하게 나오는 순혈 풀의 정확 계산값이다. 전력 계수나 최종 밸런스 값이 아니다.</p>
+    <table><caption>가로줄 하나 — 216개 조합</caption><thead><tr><th>결과</th><th class="num">조합</th><th class="num">확률</th></tr></thead><tbody><tr><td>양수 / 일반 소환</td><td class="num">209</td><td class="num">96.7593%</td></tr><tr><td>0 / 빽도 전용</td><td class="num">3</td><td class="num">1.3889%</td></tr><tr><td>음수 / 실패</td><td class="num">4</td><td class="num">1.8519%</td></tr></tbody></table>
+    <table><caption>스핀 하나 — 독립 가로줄 3개</caption><thead><tr><th>사건</th><th class="num">확률</th></tr></thead><tbody><tr><td>빽도 전용 유닛을 하나 이상 소환</td><td class="num">4.1091%</td></tr><tr><td>실패 줄이 하나 이상 존재</td><td class="num">5.4533%</td></tr><tr><td>같은 합계가 둘 이상 존재(0 포함 단순 중복)</td><td class="num">22.8512%</td></tr><tr><td>세 줄의 합계가 모두 같음</td><td class="num">0.7465%</td></tr></tbody></table>
+    <details><summary>가로줄 합계 분포 보기</summary><p><code>−3:1, −1:3, 0:3, 1:6, 2:9, 3:13, 4:15, 5:21, 6:22, 7:24, 8:24, 9:22, 10:18, 11:15, 12:10, 13:6, 14:3, 15:1</code> (각 수는 216개 중 조합 수)</p></details>
+    <h3>전력 공식 초안</h3><div class="flow">SpinPower = Σ RowPower + UpgiBonus + ContinuationBonus + BackDoSpecialPower
+RowPower = f(Landing, SummonedUnit)
+
+목표: 기존 종족과 동일하게 스핀 평균 전력 6.1~6.3 부근
+미정: f 계수, 업기 배율, 윷·모 보너스, 빽도 전용 유닛 가치</div>
+    <p>실제 계수는 일반 유닛 선택과 배치 좌표를 확정한 뒤 몬테카를로 시뮬레이션으로 역산한다. 현재 수치를 임의로 HouseTable 축에 넣지 않는다.</p>
+  </section>
+
+  <section id="flow"><h2>6. 트리거 흐름</h2><ol><li>스핀 종료 후 3×3 결과를 확정한다.</li><li>각 가로줄에 이질 심볼이 있는지 검사한다. 있으면 윷 주판정을 건너뛴다.</li><li>순혈 가로줄의 이동값 합을 계산한다.</li><li>음수·0·양수 분기로 실패, 빽도 전용, 일반 소환을 결정한다.</li><li>세 줄의 도착점을 비교해 업기를 판정한다.</li><li>윷·모 연속 진행 보너스를 적용한다(규칙 승인 후).</li><li>소환 결과를 전장 좌표로 변환하고 배치 단계로 넘긴다.</li><li>이질 심볼은 공통 짝 부판정으로 별도 계산한다.</li></ol></section>
+
+  <section id="touch"><h2>7. 기존 구현 접점과 필요한 작업</h2>
+    <table><thead><tr><th>대상</th><th>현재 상태</th><th>윷 추가 시 작업</th></tr></thead><tbody>
+      <tr><td><code>HouseRecord.cs</code></td><td>종족 표시·풀·능력치·리소스 경로 보유. Id가 해금/표시 순서.</td><td>구조 변경 없이 HouseTable 행 추가 가능성이 높다.</td></tr>
+      <tr><td><code>HouseTable.csv</code></td><td>2026-08-29 윷 행을 추가해 7종으로 연결.</td><td>능력치 축은 표시용 임시값이며 판정기 완성 후 시뮬레이션 값으로 교체한다.</td></tr>
+      <tr><td>판정 계층</td><td>검색 범위에서 Judge 구현 파일을 찾지 못함.</td><td>가로줄 합, 특수 소환, 업기를 담당할 윷 판정기와 결과 DTO 필요.</td></tr>
+      <tr><td>종족 선택 UI</td><td>HouseTable 기반 동적 표시.</td><td>7개 탭/카드에서 폭·스크롤·텍스트 잘림 시각 QA 필요.</td></tr>
+      <tr><td>StringTable / 리소스</td><td>기존 종족 키와 폴더 규칙 사용.</td><td>종족명·심볼명·규칙 설명·빽도 전용 유닛 이름 및 스프라이트/배경 추가.</td></tr>
+      <tr><td>GDD / 타이틀 문서</td><td>여전히 “네 가문/네 종족” 문구가 남아 있음.</td><td>윷 포함 7종 기준으로 명칭, 전쟁 상대 수, 풀 목록을 재정리.</td></tr>
+    </tbody></table>
+    <p>메타 업그레이드는 기존의 종족별 4축 구조에 윷 행이 필요하다. 어떤 3개 축을 쓰는지는 판정 계수 확정 후 결정하며, 현재 업그레이드 테이블에 임의 행을 만들지 않는다.</p>
+  </section>
+
+  <section id="issues"><h2>8. 구현 전 승인해야 할 사항</h2>
+    <div class="callout risk"><strong>최우선 — 전장 좌표 충돌</strong><p>기존 GDD는 릴 9칸과 전장 9칸을 1:1로 연결하지만 윷은 가로줄 하나에서 유닛 하나를 만든다. 후보는 ① 줄의 오른쪽 칸, ② 줄의 가운데 칸, ③ 도착값을 3×3 좌표로 환산, ④ 세 심볼 유닛을 모두 놓고 대표 유닛에만 판정 보너스 적용이다. 종족의 실제 플레이를 크게 바꾸므로 승인 없이 선택하지 않는다.</p></div>
+    <ol><li>일반 유닛을 “오른쪽부터 마지막 비빽도”로 정할 것인가?</li><li>윷·모를 실제 추가 스핀 대신 전력/연속 이동 보너스로 표현할 것인가?</li><li>빽도 전용 유닛 효과를 무료 스왑 +1로 할 것인가?</li><li>업기 보너스와 0 결과끼리의 업기 허용 여부는 무엇인가?</li><li>해금 순서, 종족 색, 능력치 축, 아트 시대상은 무엇인가?</li><li>잡기를 향후 영속 윷판으로 확장할 것인가?</li></ol>
+  </section>
+
+  <section id="sources"><h2>9. 검토 출처</h2><ul>
+    <li><code>Assets/Design/reel_of_four_houses_GDD.html</code> — 3×3 판정 문법, 릴-전장 좌표, 평균 전력 목표, 전리품 부판정</li>
+    <li><code>Assets/Design/title_screen_design.html</code> — 종족 배경·표시 구조와 오래된 4종 문구</li>
+    <li><code>Assets/Scripts/Table/HouseRecord.cs</code>, <code>Assets/Resources/Table/HouseTable.csv</code> — 현재 종족 데이터 구조</li>
+    <li><code>D:/Orca/agents/design-planner.md</code> — 설계 산출물 구성 규칙</li>
+    <li><code>D:/Orca/agents/design-issue-resolver.md</code> — 관찰/확정 분리 원칙. 이번 작업에는 연결된 QA design issue가 없어 테이블 자동 수정은 하지 않음.</li>
+  </ul></section>
+  <section id="art"><h2>10. 아트 초안 제작 기록</h2>
+    <p>2026-08-29에 기존 HouseRulez의 32px 모노크롬 규칙을 기준으로 윷 종족 게임 에셋을 생성·분리했다. 최초 컬러 시안은 규칙 불일치로 기각하고 <code>Assets/ArtSource/Yut/first-pass-runtime-backup/</code>에 이동했다. 생성 원화와 특수 빽도 후보는 <code>Assets/ArtSource/Yut/</code>에 보존한다.</p>
+    <table><thead><tr><th>에셋</th><th>경로</th><th>규격·상태</th></tr></thead><tbody>
+      <tr><td>말 겸 정지 심볼</td><td><code>Assets/Resources/Image/InGame/Actor/yut/yut_*.png</code></td><td>32×32, 빽도·도·개·걸·윷·모 6종. 투명/<code>#F6F5F0</code>/<code>#2A2C33</code>/<code>#ADACA4</code> 정확히 4색</td></tr>
+      <tr><td>회전 블러</td><td><code>Assets/Resources/Image/InGame/Actor/yut/*_blur.png</code></td><td>32×32, 세로 모션 블러 6종</td></tr>
+      <tr><td>프리뷰</td><td><code>Assets/Resources/Image/InGame/Actor/yut/*_x8.png</code></td><td>256×256, 정지 심볼의 니어리스트 8배 확대 6종</td></tr>
+      <tr><td>빽도 특수 말 후보</td><td><code>Assets/ArtSource/Yut/yut_backdo_special_preview.png</code></td><td>아직 전용 로더가 없어 6종 런타임 풀 밖에 보관</td></tr>
+      <tr><td>민속촌 배경</td><td><code>Assets/Resources/Image/Title/bg_yut_folkvillage.png</code></td><td>640×288, 가을 민속 마을·장승·윷판</td></tr>
+      <tr><td>윷 슬롯머신</td><td><code>Assets/Resources/Image/InGame/Reel/frame_yut.png</code></td><td>136×260 전면 불투명, 환경/UI 6색 + 액센트 <code>#C58B57</code>. 릴 창은 <code>#393E4E</code> 평면 96×96(x20–115 / y54–149). <strong>2026-08-31 정정</strong>: 최초 제작본은 여기 적혀 있던 "외곽과 릴 창 투명"을 그대로 따라 만들어져 릴 창이 심볼 3×3 격자와 어긋났다. 규격은 <code>.claude/asset/reel-frames.md</code>, 수정 기록은 <code>.claude/asset/yut-reel-frame.md</code></td></tr>
+    </tbody></table>
+    <div class="callout"><strong>아트 QA 메모</strong><p>런타임 폴더는 <strong>기본 6 + 블러 6 + x8 6</strong>만 둔다. 기본 6종은 자동 검사에서 각각 정확히 4색을 통과했다. 심볼의 점/표식이 실제 윷의 앞·뒷면 표현과 기획상의 이동값을 충분히 구분하는지는 플레이 화면에서 추가 확인한다.</p></div>
+  </section>
+</main></body></html>
