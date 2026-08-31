@@ -33,6 +33,7 @@ public class BattleUnit : MonoBehaviour
     public bool isAlive => m_Hp > 0;
     public int lane { get; private set; }
     public float positionX => m_RectTransform.anchoredPosition.x;
+    public Vector2 position => m_RectTransform.anchoredPosition;
 
     // 사거리와 이동 속도는 칸 단위로 적는다. 화면 픽셀로 적으면 레이아웃이 바뀔 때마다 밸런스가 흔들린다.
     private const float CELL_TO_PIXEL = 108f;
@@ -71,7 +72,8 @@ public class BattleUnit : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    // 사거리 안에 목표가 있으면 때리고, 없으면 적진 쪽으로 나아간다.
+    // 사거리 안에 목표가 있으면 때리고, 없으면 **목표 쪽으로** 나아간다.
+    // 목표가 아예 없으면(반대편이 전멸) 적진 방향으로 계속 전진한다.
     public void Tick(float _deltaTime, BattleUnit _target)
     {
         if (isAlive == false)
@@ -80,22 +82,29 @@ public class BattleUnit : MonoBehaviour
         if (m_AtkCooldown > 0f)
             m_AtkCooldown -= _deltaTime;
 
-        if (_target != null && _target.isAlive == true)
+        if (_target == null || _target.isAlive == false)
         {
-            float distance = Mathf.Abs(_target.positionX - positionX);
-            if (distance <= m_Range)
-            {
-                if (m_AtkCooldown <= 0f)
-                {
-                    _target.TakeDamage(m_Atk);
-                    m_AtkCooldown = 1f / m_AtkSpeed;
-                }
-                return;
-            }
+            // 상대가 없으면 진격 방향으로만 간다. 적은 이 진행으로 본거지 선을 넘는다.
+            float direction = (m_Side == eBattleSide.Ally) ? 1f : -1f;
+            m_RectTransform.anchoredPosition += new Vector2(direction * m_MoveSpeed * _deltaTime, 0f);
+            return;
         }
 
-        float direction = (m_Side == eBattleSide.Ally) ? 1f : -1f;
-        m_RectTransform.anchoredPosition += new Vector2(direction * m_MoveSpeed * _deltaTime, 0f);
+        // 거리는 2D로 잰다. x만 재면 바로 위 칸의 적을 "사거리 안"으로 오판해 제자리에서 허공을 친다.
+        Vector2 toTarget = _target.position - position;
+        if (toTarget.sqrMagnitude <= m_Range * m_Range)
+        {
+            if (m_AtkCooldown <= 0f)
+            {
+                _target.TakeDamage(m_Atk);
+                m_AtkCooldown = 1f / m_AtkSpeed;
+            }
+
+            return;
+        }
+
+        // 목표를 향해 비스듬히 간다. 레인이 비면 옆 레인으로 넘어가 맞붙는다.
+        m_RectTransform.anchoredPosition += toTarget.normalized * (m_MoveSpeed * _deltaTime);
     }
 
     public void TakeDamage(int _amount)

@@ -27,6 +27,10 @@ public class UIInGameBattle : MonoBehaviour
     private const float LANE_STEP_X = 30f;
 
     private List<BattleUnit> m_ListUnit = new List<BattleUnit>();
+
+    // 그리기 순서 계산용 버퍼. 매 프레임 새 리스트를 만들면 그만큼 GC가 돈다.
+    private List<BattleUnit> m_ListDepthOrder = new List<BattleUnit>();
+    private List<BattleUnit> m_LastDepthOrder = new List<BattleUnit>();
     private eBattleResult m_Result = eBattleResult.Running;
     private int m_HomeHit;
 
@@ -43,6 +47,11 @@ public class UIInGameBattle : MonoBehaviour
         }
 
         m_ListUnit.Clear();
+
+        // 파괴된 유닛이 남아 있으면 다음 웨이브의 "순서가 바뀌었나" 비교가 어긋난다.
+        m_ListDepthOrder.Clear();
+        m_LastDepthOrder.Clear();
+
         m_Result = eBattleResult.Running;
         m_HomeHit = 0;
     }
@@ -178,15 +187,68 @@ public class UIInGameBattle : MonoBehaviour
             unit.Tick(_deltaTime, FindTarget(unit));
         }
 
+        RefreshDepthOrder();
         CheckHomeLine();
         CheckResult();
     }
 
-    // 같은 레인의 반대편 중 가장 가까운 하나를 고른다.
+    // 앞(아래)에 선 유닛이 뒤(위)를 가리도록 그리기 순서를 y로 맞춘다.
+    //
+    // 배치할 때 한 번 정해두는 걸로는 부족하다 — 유닛이 목표를 따라 레인을 넘나들면
+    // 스폰 당시 순서가 그대로 남아 뒤에 있는 유닛이 앞을 덮는다.
+    //
+    // 매 프레임 SetSiblingIndex를 부르면 그때마다 캔버스가 다시 그려진다.
+    // 그래서 **순서가 실제로 바뀐 프레임에만** 적용한다.
+    private void RefreshDepthOrder()
+    {
+        m_ListDepthOrder.Clear();
+        for (int i = 0; i < m_ListUnit.Count; ++i)
+        {
+            if (m_ListUnit[i] == null)
+                continue;
+
+            m_ListDepthOrder.Add(m_ListUnit[i]);
+        }
+
+        // y가 큰(뒤에 있는) 유닛이 먼저 그려져야 앞 유닛에 가려진다.
+        m_ListDepthOrder.Sort((left, right) => right.position.y.CompareTo(left.position.y));
+
+        bool isChanged = (m_ListDepthOrder.Count != m_LastDepthOrder.Count);
+        if (isChanged == false)
+        {
+            for (int i = 0; i < m_ListDepthOrder.Count; ++i)
+            {
+                if (m_ListDepthOrder[i] == m_LastDepthOrder[i])
+                    continue;
+
+                isChanged = true;
+                break;
+            }
+        }
+
+        if (isChanged == false)
+            return;
+
+        for (int i = 0; i < m_ListDepthOrder.Count; ++i)
+        {
+            m_ListDepthOrder[i].transform.SetSiblingIndex(i);
+        }
+
+        m_LastDepthOrder.Clear();
+        m_LastDepthOrder.AddRange(m_ListDepthOrder);
+    }
+
+    // 반대편 중 **가장 가까운** 하나. 레인을 가리지 않는다.
+    //
+    // 예전엔 같은 레인만 봤다. 그래서 한 레인이 비면 그쪽 적은 아무 저항 없이 본거지까지 걸어갔고,
+    // 옆 레인에 아군이 놀고 있어도 손을 못 댔다. 특히 윷은 평균 2.63기만 소환해서
+    // 레인이 자주 비는데(2026-08-31-0 기록), 그 종족만 전력 대비 훨씬 약해지는 원인이었다.
+    //
+    // 거리는 2D로 잰다. x만 재면 다른 레인의 바로 위 적이 "가깝다"고 잡혀 엉뚱하게 달려간다.
     private BattleUnit FindTarget(BattleUnit _unit)
     {
         BattleUnit nearest = null;
-        float nearestDistance = float.MaxValue;
+        float nearestSqrDistance = float.MaxValue;
 
         for (int i = 0; i < m_ListUnit.Count; ++i)
         {
@@ -197,13 +259,11 @@ public class UIInGameBattle : MonoBehaviour
             if (other.side == _unit.side)
                 continue;
 
-            if (other.lane != _unit.lane)
-                continue;
-
-            float distance = Mathf.Abs(other.positionX - _unit.positionX);
-            if (distance < nearestDistance)
+            // 제곱 거리로 비교한다. 크기 순서만 필요해서 제곱근을 뽑을 이유가 없다.
+            float sqrDistance = (other.position - _unit.position).sqrMagnitude;
+            if (sqrDistance < nearestSqrDistance)
             {
-                nearestDistance = distance;
+                nearestSqrDistance = sqrDistance;
                 nearest = other;
             }
         }
