@@ -5,12 +5,6 @@ TextureImporter:
   - first:
       213: 3793964515876101687
     second: hwatu_07_redclover_blur_0
-  - first:
-      213: 2931692404796465025
-    second: hwatu_07_redclover_blur_1
-  - first:
-      213: 5412052244157285895
-    second: hwatu_07_redclover_blur_2
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -136,9 +130,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 3
-        y: 9
-        width: 11
-        height: 23
+        y: 0
+        width: 27
+        height: 32
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -149,50 +143,6 @@ TextureImporter:
       bones: []
       spriteID: 73e5b3b30aed6a430800000000000000
       internalID: 3793964515876101687
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: hwatu_07_redclover_blur_1
-      rect:
-        serializedVersion: 2
-        x: 3
-        y: 0
-        width: 26
-        height: 30
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 18f9a9a95b67fa820800000000000000
-      internalID: 2931692404796465025
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: hwatu_07_redclover_blur_2
-      rect:
-        serializedVersion: 2
-        x: 19
-        y: 9
-        width: 11
-        height: 23
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 706c9de77d87b1b40800000000000000
-      internalID: 5412052244157285895
       vertices: []
       indices: 
       edges: []
@@ -212,8 +162,6 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       hwatu_07_redclover_blur_0: 3793964515876101687
-      hwatu_07_redclover_blur_1: 2931692404796465025
-      hwatu_07_redclover_blur_2: 5412052244157285895
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

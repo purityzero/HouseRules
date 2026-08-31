@@ -5,9 +5,6 @@ TextureImporter:
   - first:
       213: -3486279271575149390
     second: hwatu_08_moon_0
-  - first:
-      213: -8613822593825655996
-    second: hwatu_08_moon_1
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -135,7 +132,7 @@ TextureImporter:
         x: 3
         y: 0
         width: 26
-        height: 15
+        height: 30
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -146,28 +143,6 @@ TextureImporter:
       bones: []
       spriteID: 2b4a4fd397f3e9fc0800000000000000
       internalID: -3486279271575149390
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: hwatu_08_moon_1
-      rect:
-        serializedVersion: 2
-        x: 9
-        y: 15
-        width: 15
-        height: 15
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 443b9c82dfd857880800000000000000
-      internalID: -8613822593825655996
       vertices: []
       indices: 
       edges: []
@@ -187,7 +162,6 @@ TextureImporter:
       entries: []
     nameFileIdTable:
       hwatu_08_moon_0: -3486279271575149390
-      hwatu_08_moon_1: -8613822593825655996
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
