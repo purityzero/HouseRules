@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -28,6 +29,30 @@ public class UIInGameHud : MonoBehaviour
     private List<Image> m_ListSpinCoinPip = new List<Image>();
     private RunData m_RunData;
     private HouseRecord m_HouseRecord;
+
+    // 무료 스핀으로 코인이 돌아왔을 때 그 칸을 튀겨 눈이 가게 한다.
+    // 숫자만 바뀌면 화면 위쪽 작은 칸이라 그냥 지나친다.
+    private const float BONUS_PUNCH_SCALE = 0.6f;
+    private const float BONUS_PUNCH_DURATION = 0.45f;
+
+    // 되돌아온 칸을 강조한다. Refresh()로 색을 이미 채운 뒤에 부른다.
+    public void PlaySpinCoinBonus()
+    {
+        if (m_RunData == null)
+            return;
+
+        // 방금 채워진 칸 = 현재 코인 수의 마지막 칸.
+        int index = m_RunData.spinCoin - 1;
+        if (index < 0 || index >= m_ListSpinCoinPip.Count)
+            return;
+
+        RectTransform rectTransform = m_ListSpinCoinPip[index].rectTransform;
+
+        // 이전 연출이 남아 있으면 스케일이 어중간한 값에서 시작한다 — 죽이고 원점부터.
+        rectTransform.DOKill();
+        rectTransform.localScale = Vector3.one;
+        rectTransform.DOPunchScale(Vector3.one * BONUS_PUNCH_SCALE, BONUS_PUNCH_DURATION);
+    }
 
     // 인게임 진입 시 한 번. 핍 개수가 테이블 값이라 씬에 박지 않고 여기서 템플릿을 복제해 만든다.
     public void Apply(RunData _runData, HouseRecord _houseRecord)

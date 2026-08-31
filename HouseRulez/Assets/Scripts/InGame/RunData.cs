@@ -80,6 +80,21 @@ public class RunData
         return true;
     }
 
+    // 무료 스핀. 실제로 채운 개수를 돌려준다(0이면 이미 가득 차 연출할 게 없다는 뜻).
+    //
+    // 최대치를 넘기지 않는다. 넘기면 HUD 핍이 spinCoinMax 개수만 만들어져 있어서
+    // 초과분이 화면에서 그냥 사라진다 — 본거지 HP·스왑 칸에서 두 번 겪은 그 결함과 같은 함정이다.
+    // 스핀은 항상 코인을 먼저 쓰므로 지급 시점엔 최대치 미만이라 실제로 상한이 걸릴 일은 드물다.
+    public int AddSpinCoin(int _amount)
+    {
+        if (_amount <= 0)
+            return 0;
+
+        int before = m_SpinCoin;
+        m_SpinCoin = Mathf.Min(m_SpinCoin + _amount, m_SpinCoinMax);
+        return m_SpinCoin - before;
+    }
+
     // 판정 전력에 비례한 배당을 골드로 지급하고, 지급액을 돌려준다(화면 연출용).
     // 전력이 소환 1기에 못 미쳐도 골드는 나온다 — 맞았는데 아무것도 안 남는 스핀을 없애는 통로다.
     public int AwardGoldByPower(float _power)

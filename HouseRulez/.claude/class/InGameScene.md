@@ -256,3 +256,24 @@ Update() → Battle.Tick(Time.deltaTime * RunData.battleSpeed)
 ### 검증 상태 — Codex QA 통과 (2026-08-30)
 `SpinButton`/`BattleStartButton`의 `onClick.Invoke()`로 프로덕션 경로를 타서 확인.
 Unity MCP 검증은 Codex가 수행했다(AGENT.MD 라우팅).
+
+## 2026-08-31-0 — 당첨 배당(골드)과 무료 스핀 연출
+
+`CoSpinAndStop`의 판정 직후에 두 가지가 붙었다.
+
+```
+judgeResult 확정
+  └ RunData.AwardGoldByPower(Power)      전력 비례 골드 (최소 1)
+  └ RunData.AddSpinCoin(bonusSpin)       윷·모 무료 스핀
+  └ m_Hud.Refresh()                      ← 코인을 채운 뒤에 그린다
+  └ 지급됐으면 ShowBonusSpin()
+```
+
+★ **코인을 먼저 돌려주고 그다음에 그린다.** 순서가 뒤집히면
+[[UIInGameHud]]`.PlaySpinCoinBonus()`가 아직 비어 있는 칸을 강조한다.
+
+`ShowBonusSpin()`은 HUD 코인 펀치 + [[UIInGameBanner]] 배너 두 가지를 한다.
+문구를 코드에 박지 않는다 — 4개 언어가 `StringTable.csv`의 `InGameBonusSpin`에 있다.
+
+★ 처음엔 `UIManager.ShowToast()`를 썼는데 **토스트 프리팹이 프로젝트에 없어 조용히 아무것도 안 떴다.**
+QA가 활성 토스트 0개로 잡아냈다. 사유와 대안은 [[UIInGameBanner]] 참고.

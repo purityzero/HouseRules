@@ -1,5 +1,73 @@
 # 미완료 작업
 
+## 2026-08-31-2 — 윷·모 무료 스핀 (✅ 검증 완료, 미커밋)
+
+브랜치 `work/2026-08-30-enemy-art`. Git 마무리는 Codex 메인 세션 담당.
+
+### 규칙
+가로줄 하나가 통째로 윷/모(이동값 4 이상)면 스핀 코인 1개를 돌려준다. **스핀당 최대 1회.**
+칸마다 주면 스핀당 기대 3회라 경제가 무너지고, 줄 단위면 줄당 1/27 · 세 줄 중 최소 하나가 10.70%다.
+
+### 구조
+```
+Judge.EvaluateYut  →  JudgeResult.bonusSpin = 1     판정기는 값만 낸다(부작용 없음)
+InGameScene        →  RunData.AddSpinCoin()          경제 소유자는 RunData
+                   →  m_Hud.Refresh()                코인을 채운 뒤에 그린다
+                   →  ShowBonusSpin()                배너 + 코인 칸 펀치
+```
+★ 판정기가 코인을 직접 건드리면 **같은 grid를 두 번 평가하는 것만으로 코인이 늘어난다** —
+QA가 분포를 재려고 20만 번 돌리는 순간 터진다.
+★ `AddSpinCoin`은 `spinCoinMax`에서 막는다. 넘치면 HUD 핍이 max 개수만 있어 초과분이 화면에서 사라진다.
+
+### ★ `UIManager.ShowToast()`는 쓸 수 없었다 — 별도 항목으로 남긴다
+`Resources/Prefabs/UI/UIToastMessage` **프리팹이 프로젝트에 없다.**
+`MemoryPooling.Pop()`이 null을 돌려주고 `ShowToast`가 조용히 반환한다(QA 실측: 활성 토스트 0개).
+그 시스템이 기대는 `TweenEffectPlayer`도 **어떤 씬·프리팹에서도 쓰인 적이 없다** — 실행된 적 없는 뼈대다.
+
+→ 무료 스핀 알림은 전용 [[UIInGameBanner]]로 만들었다.
+**토스트 시스템을 되살리는 건 게임 전체에 필요한 별개 작업이다**(아래 남은 것 참고).
+
+### 검증 (Codex, Play Mode + 실제 `Judge.Evaluate`)
+| 항목 | 결과 |
+|---|---|
+| 발동 확률 20만 회 | **10.6765%** (기대 10.70%, −0.02%p) |
+| `bonusSpin > 1` | **0회** (스핀당 상한 성립) |
+| 조건 6종 | `[4,4,4]`·`[5,5,5]`·`[4,5,4]`→1 / `[4,4,3]`→0 / 세 줄 다 걸려도 1 / 타 종족 0 |
+| 배너 alpha | 0 → 0.75 → 1.0 → 1.0 → 0.25 → 0 |
+| 배너 문자열 | `무료 스핀!` — 한글 4글자 DungGeunMo 글리프, `□` 없음 |
+| 코인 핍 펀치 | 연출 중 scale ≠ 1, 종료 후 `(1,1,1)` 복귀 |
+| 연속 발동 | 최종 alpha 0 / scale `(1,1,1)` — 중간값 잔류 없음 |
+| 전력 회귀 | 평균 6.115 / CV 0.5649 / 무소환 0.0005% — 영향 없음 |
+
+캡처: `QACapture/bonus_spin_banner.png`
+
+### 변경 파일
+`Judge.cs` · `JudgeResult.cs` · `RunData.cs` · `UIInGameHud.cs` · `InGameScene.cs` ·
+`UIInGameBanner.cs`(신규 + meta) · `StringTable.csv` · `InGameScene.unity` · `.claude/class/` 5개
+
+---
+
+## 2026-08-31-3 — 토스트 시스템이 죽어 있다 (진단만, 미수정)
+
+`UIManager.ShowToast()`는 호출해도 **아무 일도 일어나지 않는다.**
+
+| 원인 | 상태 |
+|---|---|
+| `Resources/Prefabs/UI/UIToastMessage` 프리팹 | **없음** (`Prefabs/UI/`엔 UIHouseSelect·UIHouseUpgrade·UISetting 3개뿐) |
+| `TweenEffectPlayer` | 어떤 씬·프리팹에서도 **사용처 0건** |
+| `TweenEffectBase` 파생 7종 | 전부 미사용 |
+
+`MemoryPooling.Pop()`이 null → `ShowToast`가 조용히 반환한다. **에러 로그조차 없다.**
+
+### 고치려면
+프리팹을 만들면서 `TweenEffectPlayer`의 이펙트 배열을 채워야 한다.
+★ **비어 있으면 `Play()`가 에러만 찍고 완료 콜백을 안 부른다** → 토스트가 영원히 안 닫히고 풀이 샌다.
+그래서 만들 때 반드시 "떴다가 실제로 닫히는지"를 실행으로 확인해야 한다.
+
+되살리면 게임 전체가 알림 수단을 갖는다(지금은 [[UIInGameBanner]]가 인게임 전용).
+
+---
+
 ## 2026-08-31-1 — EventSystem이 씬 전환 중 2개가 된다 (진단만, 미수정)
 
 ### 증상

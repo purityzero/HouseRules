@@ -55,6 +55,9 @@ public static class Judge
     // 3×3을 윷판 한 바퀴로 쓴다.
     private const int YUT_TRACK_SIZE = 9;
 
+    // 이동값이 이 값 이상이면 윷(4) 또는 모(5)다 — 한 번 더 던지는 눈.
+    private const int YUT_BONUS_MIN_MOVE = 4;
+
     private const int COLUMN_COUNT = 3;
 
     public static JudgeResult Evaluate(string _houseKey, int[] _grid)
@@ -471,6 +474,19 @@ public static class Judge
         int backdoCount = 0;
         int lapCount = 0;
 
+        // 윷·모가 나오면 한 번 더 던진다는 윷놀이 규칙. 한 줄이 통째로 윷/모일 때만 발동한다.
+        // 칸마다 주면 스핀당 기대 3회가 되어 스핀 경제가 무너진다 —
+        // 줄 단위면 줄당 1/27, 세 줄 중 최소 하나가 10.70%다.
+        // 스핀당 최대 1회로 묶는다. 세 줄이 다 걸리면 3회가 나와 상한이 없으면 같은 문제가 생긴다.
+        for (int row = 0; row < COLUMN_COUNT; ++row)
+        {
+            if (IsYutBonusRow(_grid, row) == false)
+                continue;
+
+            _result.bonusSpin = 1;
+            break;
+        }
+
         for (int row = 0; row < COLUMN_COUNT; ++row)
         {
             int landing = landings[row];
@@ -550,6 +566,23 @@ public static class Judge
             _result.ListSummon[i] = slot;
             return;
         }
+    }
+
+    // 가로줄이 통째로 윷 또는 모인가. 이동값으로 판단한다 —
+    // 심볼 인덱스를 직접 비교하면 나중에 풀 순서가 바뀔 때 조용히 어긋난다.
+    private static bool IsYutBonusRow(int[] _grid, int _row)
+    {
+        for (int column = 0; column < COLUMN_COUNT; ++column)
+        {
+            int symbol = _grid[_row * COLUMN_COUNT + column];
+            if (symbol < 0 || symbol >= YUT_MOVE.Length)
+                return false;
+
+            if (YUT_MOVE[symbol] < YUT_BONUS_MIN_MOVE)
+                return false;
+        }
+
+        return true;
     }
 
     private static int GetYutLanding(int[] _grid, int _row)

@@ -21,6 +21,10 @@ public class InGameScene : BaseScene
     // 릴 3개가 순차 정지를 끝낼 때까지 기다렸다가 소환을 띄운다.
     [SerializeField] private float m_SummonDelay = 0.9f;
 
+    [SerializeField] private UIInGameBanner m_Banner;
+
+    private const string STRING_KEY_BONUS_SPIN = "InGameBonusSpin";
+
     private Coroutine m_SpinRoutine;
 
     // 전투 시작이 마지막 스핀 결과를 쓴다. 스핀을 안 돌렸으면 전투가 성립하지 않는다.
@@ -205,14 +209,48 @@ public class InGameScene : BaseScene
         {
             m_RunData.AwardGoldByPower(judgeResult.Power);
 
+            // 무료 스핀(윷·모). 코인을 먼저 돌려주고 그다음에 화면을 그린다 —
+            // 순서가 뒤집히면 방금 돌아온 칸이 아직 비어 있는 상태로 강조된다.
+            int bonusSpin = m_RunData.AddSpinCoin(judgeResult.bonusSpin);
+
             if (m_Hud != null)
                 m_Hud.Refresh();
+
+            if (bonusSpin > 0)
+                ShowBonusSpin();
         }
 
         if (m_Field != null && judgeResult != null)
             m_Field.ShowSummon(judgeResult, grid, m_SlotMachine.spritePool);
 
         m_SpinRoutine = null;
+    }
+
+    // 무료 스핀을 화면에 알린다. 코인 칸이 하나 돌아오는 게 전부라 그냥 두면 눈에 안 띈다.
+    // 두 겹으로 알린다 — 화면 중앙 배너가 말해주고, 돌아온 칸이 튀어 시선을 HUD로 끈다.
+    //
+    // Glory의 UIManager.ShowToast를 쓰려 했으나 못 쓴다:
+    // 로드 대상 프리팹 Resources/Prefabs/UI/UIToastMessage가 프로젝트에 없어 Pop()이 null을 돌려주고
+    // 조용히 반환한다(2026-08-31 QA에서 활성 토스트 0개로 확인). UNFINISHED에 별도 항목으로 남겼다.
+    private void ShowBonusSpin()
+    {
+        if (m_Hud != null)
+            m_Hud.PlaySpinCoinBonus();
+
+        if (m_Banner == null)
+        {
+            Logger.Error("[InGameScene] ShowBonusSpin Failed! UIInGameBanner 미연결 (기대: 씬에서 직렬화 연결)");
+            return;
+        }
+
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        if (stringTable == null)
+        {
+            Logger.Error("[InGameScene] ShowBonusSpin Failed! StringTable not found (기대: TableManager에 등록됨)");
+            return;
+        }
+
+        m_Banner.Show(stringTable.GetString(STRING_KEY_BONUS_SPIN));
     }
 
     private void ApplyBackground(HouseRecord _record)
