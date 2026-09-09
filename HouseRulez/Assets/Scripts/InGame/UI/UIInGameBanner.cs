@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -23,6 +25,9 @@ public class UIInGameBanner : MonoBehaviour
 
     private Sequence m_Sequence;
 
+    private readonly List<string> m_ListPendingMessage = new List<string>();
+    private Coroutine m_PlayRoutine;
+
     private void Awake()
     {
         // 씬에 켜둔 채로 두면 시작하자마자 문구가 보인다. 항상 투명에서 출발한다.
@@ -30,6 +35,8 @@ public class UIInGameBanner : MonoBehaviour
             m_CanvasGroup.alpha = 0f;
     }
 
+    // 한 스핀에서 족보 이름과 무료 스핀 알림이 잇달아 온다(윷·모).
+    // 덮어쓰면 앞의 것이 뜨자마자 지워져 아예 안 보이므로, 받은 순서대로 한 줄씩 재생한다.
     public void Show(string _message)
     {
         if (m_CanvasGroup == null || m_MessageText == null)
@@ -38,6 +45,29 @@ public class UIInGameBanner : MonoBehaviour
             return;
         }
 
+        m_ListPendingMessage.Add(_message);
+
+        if (m_PlayRoutine == null)
+            m_PlayRoutine = StartCoroutine(CoPlayPendingMessages());
+    }
+
+    private IEnumerator CoPlayPendingMessages()
+    {
+        while (m_ListPendingMessage.Count > 0)
+        {
+            string message = m_ListPendingMessage[0];
+            m_ListPendingMessage.RemoveAt(0);
+
+            PlayMessage(message);
+
+            yield return new WaitForSeconds(m_FadeInDuration + m_HoldDuration + m_FadeOutDuration);
+        }
+
+        m_PlayRoutine = null;
+    }
+
+    private void PlayMessage(string _message)
+    {
         m_MessageText.text = _message;
 
         // 이전 연출이 살아 있으면 알파와 스케일이 중간값에서 시작한다. 죽이고 원점부터.
@@ -68,6 +98,11 @@ public class UIInGameBanner : MonoBehaviour
     {
         // 트윈이 살아 있는 채로 오브젝트가 꺼지면 다음에 켤 때 중간 알파로 남는다.
         KillSequence();
+
+        // 오브젝트가 꺼지면 코루틴은 유니티가 알아서 멈춘다. 그때 m_PlayRoutine을 안 비우면
+        // 다시 켰을 때 "이미 돌고 있다"고 판단해 재생을 영영 시작하지 않는다.
+        m_PlayRoutine = null;
+        m_ListPendingMessage.Clear();
 
         if (m_CanvasGroup != null)
             m_CanvasGroup.alpha = 0f;

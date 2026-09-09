@@ -267,6 +267,14 @@ public class UIHouseSlotMachine : MonoBehaviour
         m_StopRoutine = null;
     }
 
+    // 릴 정지 소요 시간은 프레임레이트에 따라 변한다(감속이 프레임당 이동량 기반이라
+    // 52fps에서 1.0초, 23fps에서 1.7초로 측정됐다). 그래서 바깥에서 고정 시간으로 기다릴 수 없고,
+    // "정말 멈췄는지"를 물어봐야 한다. 스핀 결과를 릴보다 먼저 알리지 않으려면 이걸 봐야 한다.
+    public bool isAllReelIdle
+    {
+        get { return IsAllReelIdle(); }
+    }
+
     private bool IsAllReelIdle()
     {
         for (int index = 0; index < m_ReelList.Length; ++index)
