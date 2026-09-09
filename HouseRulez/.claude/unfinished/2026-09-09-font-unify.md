@@ -72,10 +72,12 @@ GeometryDefender는 씬·프리팹 **115곳 전부 LiberationSans**, DungGeunMo 
    `UIText` 컴포넌트를 붙였다 — **C# 코드는 무변경**(같은 프리팹의 다른 라벨 5곳이 이미 쓰던 방식).
    Play Mode 검증에서 4개 언어 전부 `□` 0건, 비한국어 `DungGeunMo 2자 → 0`,
    닫기 동작 유지를 확인했다. 상세는 [[UISetting]] 2026-09-09-1 · [[StringTable]] 2026-09-09-0
-3. (관찰) 중국어에서 Vonwaon과 PixelMplus를 **한 줄에 섞으면 자간이 겹친다**
+3. ~~(관찰) 중국어에서 Vonwaon과 PixelMplus를 **한 줄에 섞으면 자간이 겹친다**~~
    (`朝鲜象棋`의 `鲜`+`象`). 두 폰트의 advance width가 달라서다. 일본어는 PixelMplus 단독이라 깔끔하다.
-   → ⚠️ **이 항목만 아직 1인 관찰이다.** 재검증은 글리프 누락 기계 판정에 지시가 한정돼
-   녹화를 생략했다. 눈으로만 판단되는 항목이라 아직 교차 확인되지 않았다
+   → ✅ **2026-09-10 교차 확인에서 별도 결함으로 재현되지 않았다.** `朝鲜象棋`의 문자별
+   `origin`/`xAdvance`/`bottomLeft`/`topRight`를 실측했으며, 폰트가 바뀌는 `鲜→象` 경계의
+   0.6px bounds 중첩은 같은 PixelMplus 문자 경계와 동일한 폰트 패딩이었다. 1280×720 화면에서도
+   글자 충돌이나 잘림은 없었다. 따라서 미완료 항목에서 제외한다.
 
 ### ★ 방법론 — `HasCharacter()`는 결손 판정에 쓸 수 없다
 
@@ -131,4 +133,3 @@ GeometryDefender는 씬·프리팹 **115곳 전부 LiberationSans**, DungGeunMo 
    되돌리는 문제가 아니라 GD와 다르게 갈 것인지를 정하는 문제다
 
 ---
-
