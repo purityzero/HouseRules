@@ -88,6 +88,41 @@ Unity **6000.3.16f1**로 `HouseRulez/`를 연다. 확인해둔 것:
 
 ---
 
+## 2026-09-09-1 — 버튼 폰트를 GD 방식으로 통일 (⬜ 미검증)
+
+브랜치 `work/2026-09-09-font-unify` (main에서 분기). **에디터로 한 번도 안 봤다.**
+
+### 무엇을 고쳤나
+`UIHouseUpgrade.prefab`(13곳) · `UISetting.prefab`(8곳)의 TMP 텍스트가
+`DungGeunMo Bitmap`을 **직접 참조**하고 있었다. 프로젝트의 나머지 화면
+(`UIHouseSelect.prefab` · `InGameScene` · `TitleScene`)은 전부
+`LiberationSans SDF` + 폴백 체인 방식이라 두 프리팹만 튀었다.
+
+GeometryDefender는 씬·프리팹 **115곳 전부 LiberationSans**, DungGeunMo 직접 참조 **0곳**이다.
+→ 21곳을 `m_fontAsset` + `m_sharedMaterial` 쌍으로 교체해 60곳 전부 LiberationSans로 통일했다.
+
+상세는 [[UIHouseUpgrade]] · [[UISetting]] 각 2026-09-09-0.
+
+### 왜 이렇게 보였나
+폴백 체인(`LiberationSans SDF.asset`의 `m_FallbackFontAssetTable`)은 **원래부터 GD와 동일**했다.
+**한글은 어느 쪽이든 결국 DungGeunMo로 그려져 같아 보인다. 갈리는 건 영문·숫자다** —
+직접 참조하면 숫자도 DungGeunMo 비트맵 글리프가 되고, 폴백 방식은 LiberationSans가 된다.
+업그레이드 팝업은 비용·레벨 숫자가 많아 특히 눈에 띄었다.
+
+### ⬜ 확인할 것
+1. **숫자 모양이 바뀐다** — 픽셀 아트 테마에 LiberationSans 숫자가 어울리는지는 **취향 판단**이다.
+   어색하면 되돌리는 게 아니라, GD와 다르게 갈 것인지를 정하는 문제다
+2. **`□` 없는지** — 한글이 폴백으로 제대로 넘어가는지
+3. **`UISetting`의 언어 버튼** — 일본어/중국어 선택 시 PixelMplus·Vonwaon으로 폴백되는지.
+   폴백 체인이 실제로 쓰이는 유일한 지점이라 여기가 가장 위험하다
+
+### ✅ 기계로 확인한 것
+- 치환 후 DungGeunMo 직접 참조 잔량 **0건**
+- 프로젝트 전체 `m_fontAsset` 60건 : `m_sharedMaterial(2180264)` 60건 — 짝 일치
+- 변경 파일은 프리팹 2개뿐
+
+---
+
 ## 2026-09-09-0 — 전투 연출(DOTween)이 미검증이라 main에 못 올라갔다
 
 브랜치 `work/2026-08-30-enemy-art`의 커밋 **`80121a0`**. 원격 push 완료.
