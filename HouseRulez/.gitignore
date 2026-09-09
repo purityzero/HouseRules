@@ -76,3 +76,7 @@ QA_Recordings/
 
 # QA 검증용 캡처 (증거일 뿐 저장소에 남기지 않는다)
 QACapture/
+
+# Unity 크래시 복구 씬 백업 - 로컬 보관용, 커밋하지 않는다
+/[Aa]ssets/_Recovery/
+/[Aa]ssets/_Recovery.meta
