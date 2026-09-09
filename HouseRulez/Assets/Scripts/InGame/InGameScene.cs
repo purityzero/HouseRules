@@ -19,13 +19,19 @@ public class InGameScene : BaseScene
     [SerializeField] private UIInGameBattle m_Battle;
 
     // 릴 3개가 순차 정지를 끝낼 때까지 기다렸다가 소환을 띄운다.
-    [SerializeField] private float m_SummonDelay = 0.9f;
 
     [SerializeField] private UIInGameBanner m_Banner;
 
     private const string STRING_KEY_BONUS_SPIN = "InGameBonusSpin";
+    private const string STRING_KEY_BATTLE_VICTORY = "InGameBattleVictory";
+    private const string STRING_KEY_BATTLE_DEFEAT = "InGameBattleDefeat";
 
     private Coroutine m_SpinRoutine;
+
+    // 전투가 실제로 시작됐는지. UIInGameBattle.result는 초기값이 Running이라
+    // 이 플래그 없이 isRunning만 보면 전투 전에도 Tick이 돌고,
+    // CheckResult가 "적이 하나도 없다"를 승리로 읽어 유령 승리가 난다.
+    private bool m_isBattleActive;
 
     // 전투 시작이 마지막 스핀 결과를 쓴다. 스핀을 안 돌렸으면 전투가 성립하지 않는다.
     private JudgeResult m_LastJudgeResult;
@@ -112,6 +118,15 @@ public class InGameScene : BaseScene
         if (m_SlotMachine == null)
             return;
 
+        // 이미 돌고 있거나 전투 중이면 무시한다. 가드가 없던 동안엔 연타할 때마다
+        // 코인이 깎이고(SpendSpinCoin이 먼저 돌았다) 돌던 릴이 리셋됐다.
+        // 가드는 코인 차감보다 앞에 있어야 한다 — 뒤에 두면 무시된 입력에도 코인이 샌다.
+        if (m_SpinRoutine != null)
+            return;
+
+        if (m_isBattleActive == true)
+            return;
+
         // 스핀 1회에 코인 1개(GDD 03장). 코인이 떨어지면 굴리지 않는다 —
         // 추가 스핀 구매(골드 25)는 상점이 생긴 뒤에 여기서 갈라진다.
         if (m_RunData.SpendSpinCoin() == false)
@@ -119,9 +134,6 @@ public class InGameScene : BaseScene
 
         if (m_Hud != null)
             m_Hud.Refresh();
-
-        if (m_SpinRoutine != null)
-            StopCoroutine(m_SpinRoutine);
 
         m_SpinRoutine = StartCoroutine(CoSpinAndStop());
     }
@@ -132,6 +144,18 @@ public class InGameScene : BaseScene
         if (m_Battle == null)
         {
             Logger.Error("[InGameScene] OnBattleStart Failed! UIInGameBattle 미연결 (기대: 씬에서 직렬화 연결)");
+            return;
+        }
+
+        if (m_isBattleActive == true)
+        {
+            Logger.Log("[InGameScene] OnBattleStart - 이미 전투 중이라 무시한다 (기대: 전투 종료 후 재시작)");
+            return;
+        }
+
+        if (m_SpinRoutine != null)
+        {
+            Logger.Log("[InGameScene] OnBattleStart - 릴이 도는 중이라 무시한다 (기대: 스핀 완료 후 전투)");
             return;
         }
 
@@ -160,14 +184,60 @@ public class InGameScene : BaseScene
             m_Field.Clear();
 
         m_Battle.Begin(m_LastJudgeResult, m_LastGrid, m_SlotMachine.spritePool, wave);
+        m_isBattleActive = true;
     }
 
     private void Update()
     {
-        if (m_Battle == null || m_Battle.isRunning == false)
+        if (m_isBattleActive == false)
             return;
 
         m_Battle.Tick(Time.deltaTime * m_RunData.battleSpeed);
+
+        if (m_Battle.isRunning == true)
+            return;
+
+        // 결과가 뒤집힌 그 프레임에 한 번만 마무리한다.
+        m_isBattleActive = false;
+        OnBattleFinished();
+    }
+
+    // 전투가 끝난 프레임에 한 번 불린다.
+    //
+    // ⚠️ 런 종료(본거지 HP 0 / 최종 연차 완주)는 여기서 처리하지 않는다 — 기획 스펙 대기 중이다.
+    //    「패배해도 웨이브를 넘기지 않는다」도 잠정 결정이며 스펙이 나오면 재판정한다.
+    //    RunData.GetRoyalReward()의 호출부가 아직 없는 것도 같은 이유다.
+    private void OnBattleFinished()
+    {
+        if (m_Battle.result == eBattleResult.Victory)
+            m_RunData.AdvanceWave();
+        else
+            m_RunData.TakeHomeDamage(m_Battle.homeHit);
+
+        if (m_Hud != null)
+            m_Hud.Refresh();
+
+        ShowBattleResult();
+
+        // 같은 스핀 결과로 전투를 두 번 시작하지 못하게 비운다.
+        m_LastJudgeResult = null;
+        m_LastGrid = null;
+    }
+
+    private void ShowBattleResult()
+    {
+        if (m_Banner == null)
+            return;
+
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        if (stringTable == null)
+        {
+            Logger.Error("[InGameScene] ShowBattleResult Failed! StringTable not found (기대: TableManager에 등록됨)");
+            return;
+        }
+
+        string messageKey = (m_Battle.result == eBattleResult.Victory) ? STRING_KEY_BATTLE_VICTORY : STRING_KEY_BATTLE_DEFEAT;
+        m_Banner.Show(stringTable.GetString(messageKey));
     }
 
     private void OnBattleSpeed()
@@ -201,15 +271,23 @@ public class InGameScene : BaseScene
 
         m_SlotMachine.StopAll();
 
+        // 릴이 실제로 다 멈출 때까지 기다렸다가 결과를 보여준다 —
+        // 정지 전에 띄우면 아직 돌고 있는 릴의 결과를 미리 알려주는 꼴이 된다.
+        //
+        // ★ 고정 시간으로 기다리면 안 된다. 릴 감속은 프레임당 이동량 기반이라
+        //   (`UISlotMachineReel.GetStopSpeed`) 정지 소요가 프레임레이트를 탄다 —
+        //   52fps에서 1.00초, 23fps에서 1.69초로 측정됐다. 예전엔 여기가 고정 0.9초라
+        //   두 경우 모두 릴보다 배너가 먼저 떴다(2026-09-10 QA 계측).
+        yield return new WaitUntil(() => m_SlotMachine.isAllReelIdle);
+
         // 무엇이 성립했는지 크게 한 번 알린다. 요약 패널은 접혀 있어서 안 열면 안 보이는데,
         // 그러면 "왜 이만큼 소환됐지"를 배울 기회가 매 스핀 그냥 지나간다.
         // 무판정일 때는 띄우지 않는다 — 전력이 0인 스핀이 화면을 덮을 이유가 없다.
+        //
+        // 릴이 멈춘 뒤에 띄운다. 예전엔 StopAll() 직후(위 대기 전)에 띄워서
+        // 아직 돌고 있는 릴의 족보 이름을 먼저 알려주는 스포일러가 됐다.
         if (judgeResult != null && judgeResult.Power > 0f && m_Banner != null)
             m_Banner.Show(judgeResult.PatternName);
-
-        // 릴이 순차 정지를 마치는 동안 기다렸다가 소환을 보여준다 —
-        // 정지 전에 띄우면 아직 돌고 있는 릴의 결과를 미리 알려주는 꼴이 된다.
-        yield return new WaitForSeconds(m_SummonDelay);
 
         m_LastJudgeResult = judgeResult;
         m_LastGrid = grid;

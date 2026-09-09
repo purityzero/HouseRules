@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>런 종료 / 전투 종료 후 흐름 — HouseRulez</title>
+  <style>
+    :root{--bg:#11151a;--panel:#1a2028;--line:#303a46;--text:#e8edf2;--muted:#aab5c0;--accent:#d99a4e;--ok:#69bd8b;--open:#e1b85b;--bad:#db7777;--code:#0c1015}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,-apple-system,"Noto Sans KR",sans-serif}.wrap{max-width:1080px;margin:auto;padding:42px 22px 80px}h1{font-size:34px;margin:.2em 0}h2{margin-top:42px;border-bottom:1px solid var(--line);padding-bottom:8px}h3{margin-top:26px}h4{margin-top:20px;color:var(--accent)}p,li{max-width:82ch}.lead,.muted{color:var(--muted)}nav,.card,.callout{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:16px 0}.callout{border-left:4px solid var(--open)}.confirmed{border-left-color:var(--ok)}.risk{border-left-color:var(--bad)}a{color:#8fc7ff}code{background:var(--code);padding:2px 6px;border-radius:4px}table{width:100%;border-collapse:collapse;background:var(--panel);margin:14px 0 24px}th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}th{background:#222a34}.tag{display:inline-block;border-radius:99px;padding:2px 8px;font-size:12px;font-weight:700;white-space:nowrap}.yes{color:var(--ok);background:#173025}.proposal{color:var(--open);background:#332a17}.unknown{color:#ffaaaa;background:#351d1d}.flow,pre{font-family:ui-monospace,Consolas,monospace;background:var(--code);padding:15px;border-radius:8px;overflow:auto;font-size:13px;line-height:1.55}caption{text-align:left;color:var(--muted);padding:0 0 7px;font-weight:600}.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}blockquote{margin:14px 0;padding:10px 18px;border-left:3px solid var(--line);color:var(--muted)}.scroll{overflow-x:auto}
+  </style>
+</head>
+<body><main class="wrap">
+
+  <p class="muted">HOUSE RULEZ / DESIGN / 2026-09-10</p>
+  <h1>런 종료 / 전투 종료 후 흐름</h1>
+  <p class="lead">전투 결과(<code>UIInGameBattle.result</code>)가 런 상태(<code>RunData</code>)로 흘러가고, 본거지가 무너지거나 최종 연차를 완주했을 때 런을 닫아 옥새를 지급하기까지의 구현 스펙이다. GDD가 이 구간을 비워뒀으므로 <b>기존 코드에서 확정할 수 있는 것</b>과 <b>사용자 결정이 필요한 것</b>을 엄격히 분리했다.</p>
+
+  <nav aria-label="목차"><strong>목차</strong> ·
+    <a href="#sources">1. 출처</a> ·
+    <a href="#overview">2. 개요</a> ·
+    <a href="#defects">3. 실측 결함</a> ·
+    <a href="#trigger">4. 트리거 시점</a> ·
+    <a href="#logic">5. 공식 · 로직</a> ·
+    <a href="#schema">6. 데이터 스키마</a> ·
+    <a href="#touch">7. 기존 구현과의 접점</a> ·
+    <a href="#decisions">8. 결정이 필요한 것</a> ·
+    <a href="#gdd">9. GDD와의 관계</a> ·
+    <a href="#refs">10. 참고</a>
+  </nav>
+
+  <!-- ================================================================ -->
+  <section id="sources"><h2>1. 출처 문서</h2>
+
+    <table>
+      <caption>읽은 것과 거기서 나온 것</caption>
+      <thead><tr><th>출처</th><th>이 스펙에 준 근거</th></tr></thead>
+      <tbody>
+        <tr><td><code>Assets/Design/reel_of_four_houses_GDD.html</code> §02 코어 루프</td><td>한 연차 = 스핀 → 판정 → 배치 → <b>전투 → 외교</b> 5단계. 외교가 연차의 마지막 단계다</td></tr>
+        <tr><td>같은 문서 §03 스핀 경제</td><td>"기본 스핀 3, <b>연차 시작 시 지급, 이월 없음</b>" — 연차 전환 시 스핀 코인 리셋의 근거</td></tr>
+        <tr><td>같은 문서 §06 종족 전쟁 / DiplomacyTable</td><td>선전포고 패배 = <b>본거지 HP −2, 다음 연차 재도전 가능</b>. 본거지 피해량에 관한 GDD의 유일한 수치이자, "패배해도 진행은 이어진다"는 유일한 서술</td></tr>
+        <tr><td>같은 문서 §09 진행 구조</td><td>1런 = 12연차, 4·8·12연차가 심판/최종 웨이브. 메타 진행은 <b>종족 해금 하나</b>로 시작하고 영구 강화 트리는 초기 빌드에 넣지 않는다</td></tr>
+        <tr><td>같은 문서 §14 다음에 결정할 것</td><td><b>"본거지 HP 방식(고정 10 / 연차별 회복) — 결정 시점: 프로토타입 3단계"</b>. GDD가 이 항목을 의도적으로 비워뒀음을 스스로 밝힌다. 지금이 그 3단계다</td></tr>
+        <tr><td>같은 문서 §12 프로토타입 순서</td><td>3단계 게이트 = "단일 종족만으로 <b>12연차를 완주 가능</b>하게 만든다". 완주 판정이 존재해야 이 게이트를 잴 수 있다</td></tr>
+        <tr><td>코드 <code>RunData.cs</code> / <code>UIInGameBattle.cs</code> / <code>InGameScene.cs</code></td><td>훅 지점, 기존 API, 아래 §3의 결함 4건</td></tr>
+        <tr><td>테이블 <code>WaveTable.csv</code> · <code>GameConfigTable.csv</code> · <code>StringTable.csv</code> · <code>UITable.csv</code></td><td>연차·웨이브 구조(12×3=36행), 기존 튜닝 키, 문자열 키, 팝업 등록 방식</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout risk">
+      <b>GDD에 없는 것(검색으로 확인)</b> — "웨이브 종료" · "전투 종료" · "런 종료" 0건, <b>"옥새" 0건</b>.
+      즉 옥새(<code>PlayerData.m_Royal</code>)와 영구 업그레이드 트리(<code>HouseUpgradeTable</code>)는 GDD §09가
+      "초기 빌드에 넣지 않는다"고 적어둔 것을 구현이 이미 앞질러 만든 상태다. 이 스펙은 그 구현을 없애지 않고
+      <b>이미 존재하는 소비처에 공급을 연결</b>하는 방향으로 쓴다(§9에 GDD 갱신 필요 항목으로 분리해 뒀다).
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="overview"><h2>2. 개요 — 지금 무엇이 비어 있나</h2>
+
+    <p>전투 결과 파이프라인은 양 끝만 있고 가운데가 없다. 아래는 코드로 확인한 사실이다.</p>
+
+    <div class="scroll"><pre>[공급]  UIInGameBattle.CheckResult()        → m_Result = Victory / Defeat
+        UIInGameBattle.CheckHomeLine()      → m_HomeHit++
+              │  public eBattleResult result / int homeHit / bool isRunning
+              ▼
+        ╔═══════════════════════════════════════════════════════╗
+        ║   ★ 비어 있는 구간 — 이 문서가 채우는 곳               ║
+        ║   ① 전투 종료 프레임 감지                             ║
+        ║   ② 웨이브 정산(본거지 피해 / 웨이브 진행)            ║
+        ║   ③ 연차 전환(스핀 코인·스왑 리셋, 외교 진입 자리)    ║
+        ║   ④ 런 종료 판정 → 옥새 지급 → 결과 화면              ║
+        ╚═══════════════════════════════════════════════════════╝
+              │
+              ▼
+[소비]  RunData.AdvanceWave()      호출부 0곳
+        RunData.TakeHomeDamage()   호출부 0곳
+        RunData.GetRoyalReward()   호출부 0곳
+        PlayerManager.AddRoyal()   호출부 0곳  ← 옥새를 버는 경로가 게임 전체에 없다
+        PlayerManager.UnlockHouse() 호출부 0곳</pre></div>
+
+    <p><b>옥새 획득 경로가 0곳</b>이라는 건 곧 <code>UIHouseUpgrade</code>(종족 업그레이드 트리)가 현재 <b>영원히 구매 불가</b>라는 뜻이다. 런 종료를 붙이는 것이 그 화면을 살리는 유일한 통로다.</p>
+
+    <h3>단계 구분 — 무엇이 이 문서 밖인가</h3>
+    <table>
+      <thead><tr><th>단계</th><th>내용</th><th>소유</th></tr></thead>
+      <tbody>
+        <tr><td>1단계</td><td>전투 종료 프레임 감지 · 승리→<code>AdvanceWave()</code> / 패배→<code>TakeHomeDamage()</code> · HUD 갱신 · 중앙 배너 결과 한 줄 · 스핀/전투 버튼 연타 가드</td><td>호출자(이미 진행 중)</td></tr>
+        <tr><td><b>2단계</b></td><td><b>연차 전환 · 런 종료 판정 · 옥새 지급 · 결과 팝업 · 재시작/타이틀</b></td><td><b>이 문서</b></td></tr>
+        <tr><td>3단계</td><td>외교(DiplomacyTable) · 침공 예고(SIDE 영역) · 상점</td><td>이 문서는 <b>훅 자리만</b> 정하고 구현은 별도</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">1단계와 2단계는 같은 메서드(<code>OnBattleFinished()</code>)를 건드린다. §5의 의사코드는 1단계 몫까지 포함한 <b>완성형</b>이므로, 1단계가 이미 붙어 있으면 그 위에 덧붙이는 형태로 읽으면 된다.</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="defects"><h2>3. 먼저 알아야 할 실측 결함 4건</h2>
+    <p>결정을 내리기 전에 알아야 한다. 넷 다 코드를 읽어 확인한 것이고, <b>D2·D3는 1단계 설계를 그대로 두면 런이 영원히 끝나지 않게 만든다.</b></p>
+
+    <h3>D1 — 씬이 열린 첫 프레임에 <code>result</code>가 이미 <code>Victory</code>가 된다</h3>
+    <p><code>UIInGameBattle.m_Result</code>의 초기값이 <code>Running</code>이라 <code>isRunning</code>이 참이고, <code>InGameScene.Update()</code>(190행)가 첫 프레임부터 <code>Tick()</code>을 부른다. 유닛 목록이 비어 있으므로 <code>CheckResult()</code>(294행)가 <code>anyEnemy == false</code>로 판단해 <b>즉시 <code>Victory</code></b>를 세운다.</p>
+    <div class="callout risk"><b>결과</b> — "<code>isRunning</code>이 참→거짓으로 바뀐 프레임"을 종료로 잡으면 <b>스핀 한 번 하기 전에 1웨이브 승리가 정산된다.</b> 반드시 "전투가 실제로 시작된 적 있다" 플래그로 게이트해야 한다(§5의 <code>m_isBattleStarted</code>).</div>
+
+    <h3>D2 — 패배해도 본거지가 안 깎인다</h3>
+    <p><code>m_HomeHit</code>은 <b>본거지 선을 넘은 적의 마릿수</b>다. 그런데 패배 판정(아군 전멸)이 나는 순간 <code>Tick()</code>이 멈추므로, 남은 적은 본거지까지 걸어가지 못하고 그 자리에 선다. 즉 <b>패배 시 <code>homeHit</code>은 대체로 0</b>이다(전투 중 한 레인이 비어 적이 미리 새어 나간 경우에만 0보다 크다).</p>
+    <div class="callout risk"><b>결과</b> — 1단계의 "패배 → <code>TakeHomeDamage(homeHit)</code>"는 대부분 <code>TakeHomeDamage(0)</code>이 되고, <code>TakeHomeDamage()</code>는 <code>_amount &lt;= 0</code>이면 그대로 반환한다(137행). <b>본거지 HP가 절대 줄지 않아 런이 끝날 방법이 없다.</b> 패배 자체에 대한 고정 피해가 별도로 필요하다 → §8 Q3.</div>
+
+    <h3>D3 — 같은 병력으로 무한 재전투가 된다</h3>
+    <p><code>m_LastJudgeResult</code>/<code>m_LastGrid</code>(InGameScene 292행 부근에서 설정)는 전투가 끝나도 비워지지 않는다. <code>OnBattleStart()</code>(142행)는 이 값이 <code>null</code>이 아니기만 하면 <code>m_Battle.Begin()</code>을 다시 부르고, <code>Begin()</code>은 <code>Clear()</code>로 결과를 <code>Running</code>으로 되돌린다.</p>
+    <div class="callout risk"><b>결과</b> — 전투 시작 버튼을 다시 누르면 <b>스핀 코인 소모 없이 같은 병력으로 처음부터 다시</b> 싸운다. 패배가 사실상 무의미해진다. 전투 종료 처리에서 두 필드를 반드시 <code>null</code>로 비운다.</div>
+
+    <h3>D4 — 2연차에 들어가는 순간 진행이 막힌다</h3>
+    <p><code>spinCoinMax</code> = 3(<code>SpinCoinPerYear</code>), <code>WAVE_PER_YEAR</code> = 3. 스핀 1회 = 코인 1개 = 웨이브 1개이므로 1연차 세 웨이브를 마치면 코인이 0이다. 그런데 <code>AdvanceWave()</code>(126행)는 <b>코인·스왑을 회복하지 않는다</b>(주석에 TODO로만 남아 있음).</p>
+    <div class="callout risk"><b>결과</b> — 2연차 진입 직후 <code>SpendSpinCoin()</code>이 <code>false</code>를 돌려 스핀이 안 된다. D3와 겹치면 "스핀은 못 하는데 1연차의 마지막 병력으로 2연차 전투는 계속 걸 수 있는" 상태가 된다. <b>연차 전환 리셋은 이 문서의 필수 항목</b>이며, GDD §03("연차 시작 시 지급, 이월 없음")에 근거가 있으므로 창작이 아니다.</div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="trigger"><h2>4. 트리거 시점</h2>
+
+    <table>
+      <caption>이벤트와 훅 지점 — 전부 <code>InGameScene</code>이 소유한다(<code>RunData</code>의 유일한 변경 통로이기 때문)</caption>
+      <thead><tr><th>이벤트</th><th>정확한 훅</th><th>판정식</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>전투 종료</b></td>
+          <td><code>InGameScene.Update()</code> 190행 — <code>m_Battle.Tick()</code> 직후</td>
+          <td><code>m_isBattleStarted == true &amp;&amp; m_Battle.isRunning == false</code><br><span class="muted">D1 때문에 <code>isRunning</code> 단독으로는 못 쓴다</span></td>
+        </tr>
+        <tr>
+          <td><b>웨이브 진행</b></td>
+          <td>새 메서드 <code>InGameScene.OnBattleFinished()</code> 안에서 <code>m_RunData.AdvanceWave()</code></td>
+          <td>§8 Q3의 결정에 따름</td>
+        </tr>
+        <tr>
+          <td><b>연차 전환</b></td>
+          <td><code>RunData.AdvanceWave()</code> 126행 내부 — <code>m_WaveIndex</code>가 1로 되돌고 <code>m_Year++</code> 하는 분기<br><span class="muted">해당 메서드의 기존 TODO 주석이 이 자리를 지목한다</span></td>
+          <td><code>m_WaveIndex &gt; WAVE_PER_YEAR</code></td>
+        </tr>
+        <tr>
+          <td><b>런 종료(본거지 함락)</b></td>
+          <td><code>OnBattleFinished()</code> — 본거지 피해 반영 <b>직후</b></td>
+          <td><code>m_RunData.homeHp &lt;= 0</code></td>
+        </tr>
+        <tr>
+          <td><b>런 종료(완주)</b></td>
+          <td><code>OnBattleFinished()</code> — <code>AdvanceWave()</code> <b>이전</b></td>
+          <td><code>year &gt;= yearMax &amp;&amp; waveIndex &gt;= WAVE_PER_YEAR</code><br><span class="muted">= <code>WaveTable.csv</code>의 <code>WaveType == Final</code>인 36행</span></td>
+        </tr>
+        <tr>
+          <td>외교 단계 <span class="tag proposal">자리만</span></td>
+          <td>연차 전환 훅 직후, 다음 연차 첫 스핀 이전</td>
+          <td>GDD §09 "3연차부터 외교 개방" → <code>year &gt;= 3</code>. 구현은 이 문서 밖</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout confirmed">
+      <b>왜 완주 판정이 <code>AdvanceWave()</code> 이전인가</b> — 12연차 3웨이브를 이긴 뒤 <code>AdvanceWave()</code>를 부르면 <code>year</code>가 13이 된다.
+      그러면 결과 화면이 "도달 연차 13/12"가 되고, <code>GetRoyalReward()</code>가 <code>13 × RoyalPerYear</code>로 계산해 <b>옥새가 1 더 나온다</b>(18 → 19).
+      마지막 웨이브 승리는 <code>AdvanceWave()</code>를 부르지 않고 곧장 완주로 분기한다.
+      <span class="tag proposal">보상 수치에 영향</span> 이 판단은 구현 디테일에서 나왔지만 지급량을 1 바꾸므로 §8 Q2에 확인 항목으로 올려 뒀다.
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="logic"><h2>5. 공식 · 로직</h2>
+
+    <h3>5.1 전체 흐름</h3>
+    <div class="scroll"><pre>전투 종료 프레임
+  │
+  ├─ m_LastJudgeResult / m_LastGrid 를 null 로 비운다            ← D3 방어
+  │
+  ├─ 본거지 피해 계산
+  │     leakDamage   = homeHit × HomeDamagePerLeak
+  │     defeatDamage = (result == Defeat) ? HomeDamagePerDefeat : 0
+  │     TakeHomeDamage(leakDamage + defeatDamage)                ← D2 방어
+  │
+  ├─ 배너: InGameBattleVictory / InGameBattleDefeat (기존 키)
+  │
+  ├─ [런 종료 A] homeHp <= 0            → EndRun(HomeFallen)
+  │
+  ├─ [런 종료 B] 최종 웨이브였는가?
+  │     예 · 승리 → EndRun(Cleared)
+  │     예 · 패배 → Q3 선택에 따름(§8)
+  │
+  ├─ 웨이브 진행 (Q3 선택에 따름)
+  │     AdvanceWave() 가 연차를 넘겼으면
+  │        → 스핀 코인 = spinCoinMax, 스왑 = swapCountMax  (이월 없음)
+  │        → 배너: InGameYearStart
+  │        → (외교 단계 진입 자리)
+  │
+  └─ HUD.Refresh() · Action.Refresh()</pre></div>
+
+    <h3>5.2 <code>InGameScene</code> — 변경/신설</h3>
+    <div class="scroll"><pre>// [신설 필드]
+private bool m_isBattleStarted;   // D1 방어 — 전투가 실제로 시작된 적 있는가
+private bool m_isRunEnded;        // 멱등 가드 — 옥새 이중 지급 방지
+
+// [수정] 190행 Update() — isRunning 게이트를 m_isBattleStarted 로 교체
+private void Update()
+{
+    if (m_Battle == null || m_isBattleStarted == false)
+        return;
+
+    m_Battle.Tick(Time.deltaTime * m_RunData.battleSpeed);
+
+    if (m_Battle.isRunning == true)
+        return;
+
+    m_isBattleStarted = false;
+    OnBattleFinished();
+}
+
+// [수정] 142행 OnBattleStart() — 초입 가드 3줄 추가, 끝에 플래그
+private void OnBattleStart()
+{
+    if (m_isRunEnded == true)
+        return;
+    if (m_isBattleStarted == true)     // 연타 가드
+        return;
+    ...기존 본문...
+    m_Battle.Begin(m_LastJudgeResult, m_LastGrid, m_SlotMachine.spritePool, wave);
+    m_isBattleStarted = true;          // 186행 직후
+}
+
+// [수정] 116행 OnClickSpinButton() — 초입에 가드 2개
+    if (m_isRunEnded == true)
+        return;
+    if (m_isBattleStarted == true)     // 전투 중 스핀 금지
+        return;
+
+// [신설] 전투 종료 1회
+private void OnBattleFinished()
+{
+    eBattleResult result = m_Battle.result;
+    int leakCount = m_Battle.homeHit;
+
+    // 이 판정 결과는 소진됐다. 안 비우면 같은 병력으로 다시 전투를 걸 수 있다.
+    m_LastJudgeResult = null;
+    m_LastGrid = null;
+
+    GameConfigTable configTable = TableManager.instance.GetTable&lt;GameConfigTable&gt;();
+    int homeDamage = leakCount * configTable.GetValue(GameConfigTable.KEY_HOME_DAMAGE_PER_LEAK, 1);
+    if (result == eBattleResult.Defeat)
+        homeDamage += configTable.GetValue(GameConfigTable.KEY_HOME_DAMAGE_PER_DEFEAT, 1);
+
+    m_RunData.TakeHomeDamage(homeDamage);
+
+    ShowBattleResultBanner(result);
+
+    if (m_Hud != null)
+        m_Hud.Refresh();
+
+    if (m_RunData.homeHp &lt;= 0)
+    {
+        EndRun(eRunEndReason.HomeFallen);
+        return;
+    }
+
+    bool isFinalWave = (m_RunData.year &gt;= m_RunData.yearMax
+        &amp;&amp; m_RunData.waveIndex &gt;= RunData.WAVE_PER_YEAR);
+
+    if (isFinalWave == true)
+    {
+        // 최종 웨이브는 넘어갈 다음 웨이브가 없다 — 승패와 무관하게 런이 닫힌다.
+        EndRun((result == eBattleResult.Victory) ? eRunEndReason.Cleared : eRunEndReason.FinalDefeat);
+        return;
+    }
+
+    AdvanceToNextWave(result);
+}
+
+// [신설] 웨이브·연차 진행
+private void AdvanceToNextWave(eBattleResult _result)
+{
+    // ★ Q3-A(패배도 진행) 채택 시 이 조건문 자체가 없어진다
+    if (_result == eBattleResult.Defeat &amp;&amp; ADVANCE_ON_DEFEAT == false)
+        return;
+
+    bool isYearAdvanced = m_RunData.AdvanceWave();   // 반환값 신설(아래 5.3)
+    if (isYearAdvanced == false)
+        return;
+
+    OnYearAdvanced();
+}
+
+// [신설] 연차가 넘어간 프레임
+private void OnYearAdvanced()
+{
+    if (m_Action != null)
+        m_Action.Refresh();
+
+    if (m_Hud != null)
+        m_Hud.Refresh();
+
+    ShowYearStartBanner(m_RunData.year);
+
+    // ▼ 외교 단계는 여기에 들어온다(GDD §02 STEP 05 / §09 "3연차부터 외교 개방").
+    //   이 문서는 자리만 정하고 구현은 별도 작업이다.
+}
+
+// [신설] 런 종료 — 멱등
+private void EndRun(eRunEndReason _reason)
+{
+    if (m_isRunEnded == true)
+        return;
+
+    m_isRunEnded = true;
+
+    int royal = m_RunData.GetRoyalReward();
+    PlayerManager.instance.AddRoyal(royal);
+    // 명시적 Save()는 부르지 않는다 — PlayerData.AddRoyal()이 SetChanged()를 세우고
+    // PlayerManager.Update()의 더티 검사가 저장한다. PlayerManager는 MonoSingleton이라
+    // 씬 전환에도 살아남는다. Save()는 앱이 내려가는 시점 전용이라고 주석에 못 박혀 있다.
+
+    UIRunResult popup = UIManager.instance.Get&lt;UIRunResult&gt;();
+    if (popup == null)
+    {
+        Logger.Error("[InGameScene] EndRun Failed! UIRunResult 생성 실패 (기대: UITable.csv에 행 + Resources/Prefabs/UI/UIRunResult)");
+        return;
+    }
+
+    popup.Apply(_reason, m_RunData.year, m_RunData.yearMax, royal);
+}</pre></div>
+
+    <h3>5.3 <code>RunData</code> — 변경/신설</h3>
+    <div class="scroll"><pre>// [수정] 126행 AdvanceWave() — 반환값 신설 + 연차 자원 리셋
+//   반환값: 연차가 넘어갔는가. 호출부가 0곳이라 시그니처 변경이 안전하다.
+//   리셋을 여기 두는 이유: m_SpinCoin/m_SwapCount 가 private 이고,
+//   기존 TODO 주석이 정확히 이 자리를 지목한다.
+public bool AdvanceWave()
+{
+    m_WaveIndex++;
+    if (m_WaveIndex &lt;= WAVE_PER_YEAR)
+        return false;
+
+    m_WaveIndex = 1;
+    m_Year++;
+
+    // GDD §03 "연차 시작 시 지급, 이월 없음" — 더하지 않고 최대치로 되돌린다.
+    m_SpinCoin = m_SpinCoinMax;
+    m_SwapCount = m_SwapCountMax;
+
+    return true;
+}</pre></div>
+    <p class="muted"><code>m_SwapCount</code>는 아직 소모하는 코드가 없다(스왑 단계 미구현). 그래도 같은 자리에서 함께 리셋해 두는 편이 낫다 — 스왑이 붙은 뒤 여기를 다시 찾아 고쳐야 하는 일을 없앤다.</p>
+
+    <h3>5.4 옥새 계산 — 기존 식을 그대로 쓴다</h3>
+    <p><code>RunData.GetRoyalReward()</code>(149행)는 이미 완성되어 있다. <b>새 계산식을 만들지 않는다.</b></p>
+    <div class="scroll"><pre>reward = year × RoyalPerYear                       (= year × 1)
+       + (year &gt;= yearMax ? RoyalClearBonus : 0)   (= +6)
+
+예) 4연차 2웨이브에서 함락  → 4 × 1        = 4
+    12연차 최종 웨이브 승리 → 12 × 1 + 6   = 18</pre></div>
+    <div class="callout"><b>주의</b> — 이 식은 "완주"를 <code>year &gt;= yearMax</code>로만 판단한다. 즉 <b>12연차에서 최종 웨이브를 지고 끝나도 완주 보너스 6이 붙는다.</b> 의도한 것인지 확인이 필요하다 → §8 Q2.</div>
+
+    <h3>5.5 결과 팝업 <code>UIRunResult</code></h3>
+    <div class="scroll"><pre>public enum eRunEndReason
+{
+    HomeFallen = 0,   // 본거지 HP 0
+    Cleared,          // 최종 웨이브 승리
+    FinalDefeat,      // 최종 웨이브 패배(본거지는 남음) — Q3-A 채택 시에만 발생
+}
+
+public class UIRunResult : UIPopup
+{
+    public void Apply(eRunEndReason _reason, int _year, int _yearMax, int _royal);
+
+    // 뒤로가기로 닫히면 안 된다 — 닫히면 끝난 런의 인게임 화면에 갇힌다.
+    public override void OnPressBackBtn() { }   // 아무것도 하지 않는다
+
+    public void OnClickRestartButton();
+    public void OnClickTitleButton();
+}</pre></div>
+    <p>담는 것: 결과 제목 · 도달 연차 <code>{year}/{yearMax}</code> · 획득 옥새 · 버튼 2개. <b>기존 팝업 3종(<code>UIHouseSelect</code> / <code>UIHouseUpgrade</code> / <code>UISetting</code>)과 완전히 같은 패턴</b>이라 새로 만드는 것은 프리팹 1개와 클래스 1개뿐이다.</p>
+    <table>
+      <caption>기존 팝업에서 그대로 가져올 것</caption>
+      <thead><tr><th>패턴</th><th>출처</th></tr></thead>
+      <tbody>
+        <tr><td><code>UIPopup</code> 상속 + <code>UIManager.instance.Get&lt;T&gt;()</code>로 열기</td><td><code>TitleScene.OnClickUpgradeButton()</code> 103행</td></tr>
+        <tr><td><code>Show()</code>에서 RectTransform을 1920×1080 중앙으로 맞추기</td><td><code>UIHouseUpgrade.Show()</code> 25행부터</td></tr>
+        <tr><td><code>StringTable.LANGUAGE.RegisterObserver</code> / <code>Unregister</code>(<code>Close</code>·<code>OnDestroy</code> 양쪽)</td><td><code>UIHouseUpgrade</code> 55·62·68행</td></tr>
+        <tr><td>버튼은 <code>UIButton</code>, 텍스트는 <code>TextMeshProUGUI</code>, 리스너는 <code>RemoveListener</code> 후 <code>AddListener</code></td><td><code>UIInGameSummary.Awake()</code> · PREFAB.MD</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="schema"><h2>6. 데이터 스키마</h2>
+
+    <h3>6.1 <code>GameConfigTable.csv</code> — 신규 행 2개</h3>
+    <p>새 테이블은 만들지 않는다. 둘 다 단일 스칼라 튜닝값이라 CODE.MD 규칙상 <code>GameConfigTable</code>이 맞는 자리다.</p>
+    <table>
+      <thead><tr><th>Id</th><th>Key</th><th>Value</th><th>뜻</th><th>근거</th></tr></thead>
+      <tbody>
+        <tr><td class="num">11</td><td><code>HomeDamagePerDefeat</code></td><td class="num"><span class="tag unknown">미기재</span></td><td>웨이브 패배 시 본거지 피해(누출과 별개인 고정 피해)</td><td>GDD 참고치는 외교 선전포고 패배의 <b>−2</b> 하나뿐. 웨이브 패배 수치는 없음 → §8 Q3</td></tr>
+        <tr><td class="num">12</td><td><code>HomeDamagePerLeak</code></td><td class="num"><span class="tag unknown">미기재</span></td><td>적 1마리가 본거지 선을 넘을 때 피해</td><td>코드가 <code>homeHit</code>을 <b>마릿수</b>로 세므로 1이 자연스럽지만 GDD에 수치 없음 → §8 Q3</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">코드 상수는 <code>GameConfigTable.cs</code>에 <code>KEY_HOME_DAMAGE_PER_DEFEAT</code> / <code>KEY_HOME_DAMAGE_PER_LEAK</code>로 추가한다(기존 키 선언 관례 그대로, 14~32행).</p>
+
+    <h3>6.2 <code>UITable.csv</code> — 신규 행 1개</h3>
+    <div class="scroll"><pre>UIName,UIType,PrefabPath
+UIRunResult,Popup,Prefabs/UI/UIRunResult</pre></div>
+    <p>프리팹 경로: <code>Assets/Resources/Prefabs/UI/UIRunResult.prefab</code> (<code>UIManager.Get&lt;T&gt;()</code>가 <code>ResUtil.Create</code>로 Resources에서 로드한다).</p>
+
+    <h3>6.3 <code>StringTable.csv</code> — 신규 키</h3>
+    <p><b>4개 언어 전부 실제 폰트 파일로 글자 커버리지를 검사했다</b>(방법은 §6.4). 아래 표의 문구는 전부 <span class="tag yes">커버 확인</span>이다.</p>
+    <table>
+      <caption>제안 키 — Id는 65부터 이어 붙인다</caption>
+      <thead><tr><th>Key</th><th>Kr</th><th>En</th><th>Cn</th><th>Jp</th><th>쓰이는 곳</th></tr></thead>
+      <tbody>
+        <tr><td><code>RunResultDefeatTitle</code></td><td>본거지 함락</td><td>Stronghold Fallen</td><td>本营陷落</td><td>本拠地陥落</td><td>팝업 제목 · <code>HomeFallen</code></td></tr>
+        <tr><td><code>RunResultClearTitle</code></td><td>{0}연차 완주</td><td>Run Complete</td><td>通关 {0}年</td><td>{0}年 走破</td><td>팝업 제목 · <code>Cleared</code></td></tr>
+        <tr><td><code>RunResultFinalDefeatTitle</code></td><td>최후의 방어 실패</td><td>Final Stand Lost</td><td>最终防守失败</td><td>最後の防衛失敗</td><td>팝업 제목 · <code>FinalDefeat</code><br><span class="muted">Q3-A 채택 시에만 필요</span></td></tr>
+        <tr><td><code>RunResultYear</code></td><td>도달 연차 {0}/{1}</td><td>Reached Year {0}/{1}</td><td>到达 {0}/{1} 年</td><td>到達年 {0}/{1}</td><td>팝업 본문</td></tr>
+        <tr><td><code>RunResultRoyal</code></td><td>획득 옥새 {0}</td><td>Seals Earned {0}</td><td>获得玉玺 {0}</td><td>獲得玉璽 {0}</td><td>팝업 본문</td></tr>
+        <tr><td><code>RunResultRestart</code></td><td>다시 도전</td><td>Retry</td><td>重新开始</td><td>もう一度</td><td>팝업 버튼</td></tr>
+        <tr><td><code>RunResultToTitle</code></td><td>타이틀로</td><td>To Title</td><td>返回标题</td><td>タイトルへ</td><td>팝업 버튼</td></tr>
+        <tr><td><code>InGameYearStart</code></td><td>{0}연차 시작</td><td>Year {0}</td><td>第 {0} 年</td><td>{0}年目</td><td>연차 전환 배너</td></tr>
+        <tr><td><code>InGameHomeDamage</code></td><td>본거지 피해 {0}</td><td>Stronghold −{0}</td><td>本营受损 {0}</td><td>本拠地被害 {0}</td><td>피해 배너 <span class="tag proposal">선택</span><br><span class="muted">§8 Q5에서 띄울지 결정</span></td></tr>
+      </tbody>
+    </table>
+    <div class="callout confirmed"><b>재사용</b> — 웨이브 승패 배너 문구는 <b>이미 있다</b>: <code>InGameBattleVictory</code>(Id 63) · <code>InGameBattleDefeat</code>(Id 64). 새로 만들지 않는다.<br>
+    옥새 라벨도 <code>HouseUpgradeRoyal</code>(Id 45, "옥새/Royal Seal/玉玺/玉璽")이 있다. 다만 그 키는 업그레이드 화면 전용 이름이고 여기서 필요한 건 값이 붙은 문장이라, 위 <code>RunResultRoyal</code>을 따로 두는 쪽을 권한다.</div>
+
+    <h3>6.4 중국어 · 일본어 폰트 커버리지 검사 결과</h3>
+    <p>TMP 폰트 애셋 <code>Assets/font/Vonwaon Bitmap.asset</code>은 <code>m_AtlasPopulationMode: 1</code>(<b>Dynamic</b>)이다. 즉 아틀라스가 아니라 <b>소스 TTF의 글리프 보유 여부</b>가 렌더 가능 여부를 결정한다. 그래서 TTF의 <code>CharacterToGlyphMap</code>을 직접 조회해 확인했다.</p>
+    <div class="scroll"><pre>Add-Type -AssemblyName PresentationCore
+$gt  = New-Object System.Windows.Media.GlyphTypeface((New-Object System.Uri($ttfPath)))
+$map = $gt.CharacterToGlyphMap
+$map.ContainsKey([int]$char)   # false 면 □ 로 뜬다</pre></div>
+    <table>
+      <thead><tr><th>언어</th><th>폰트</th><th>결과</th></tr></thead>
+      <tbody>
+        <tr><td>중국어</td><td><code>TextMesh Pro/Resources/VonwaonBitmap-12px.ttf</code> (글리프 7,540자)</td><td><span class="tag yes">§6.3의 Cn 전부 커버</span></td></tr>
+        <tr><td>일본어</td><td><code>TextMesh Pro/Resources/PixelMplus12-Regular.ttf</code></td><td><span class="tag yes">§6.3의 Jp 전부 커버</span></td></tr>
+        <tr><td>한국어</td><td><code>font/DungGeunMo.ttf</code></td><td><span class="tag yes">§6.3의 Kr 전부 커버</span></td></tr>
+      </tbody>
+    </table>
+    <div class="callout risk"><b>검사 방법이 실제로 결함을 잡는지 확인함</b> — 이미 알려진 미보유 글자 <code>柶</code>(U+67F6, <code>StringTable.csv</code> Id 50 <code>HouseYut</code>의 중국어 "柶戏")를 같은 방법으로 조회해 <code>false</code>가 나오는 것을 확인했다. 검사가 통과만 하는 빈 껍데기가 아니라는 증거다.<br>
+    <b>따라서 <code>HouseYut</code>의 Cn "柶戏"는 지금 이 순간 □로 뜨고 있다.</b> 이 문서 범위 밖이지만 발견했으므로 남긴다(수정하지 않았다).</div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="touch"><h2>7. 기존 구현과의 접점</h2>
+
+    <h3>7.1 이미 있어서 그대로 쓰는 것</h3>
+    <table>
+      <thead><tr><th>대상</th><th>위치</th><th>어떻게 쓰나</th></tr></thead>
+      <tbody>
+        <tr><td><code>UIInGameBattle.result</code> / <code>homeHit</code> / <code>isRunning</code></td><td><code>Assets/Scripts/InGame/Battle/UIInGameBattle.cs:37-39</code></td><td>읽기만 한다. 전투 클래스는 손대지 않는다</td></tr>
+        <tr><td><code>RunData.GetRoyalReward()</code></td><td><code>Assets/Scripts/InGame/RunData.cs:149</code></td><td>계산식 그대로. TODO 주석만 제거</td></tr>
+        <tr><td><code>RunData.TakeHomeDamage()</code></td><td><code>Assets/Scripts/InGame/RunData.cs:137</code></td><td>그대로. 주석의 "종료 처리는 아직 없다"만 갱신</td></tr>
+        <tr><td><code>PlayerManager.AddRoyal()</code></td><td><code>Assets/Scripts/Player/PlayerManager.cs:159</code></td><td>런 종료 1회 호출. 저장은 <code>SetChanged()</code> → 더티 검사가 알아서 한다</td></tr>
+        <tr><td><code>UIManager.Get&lt;T&gt;()</code> + <code>UIPopup</code></td><td><code>Assets/Scripts/Glory/UI/UIManager.cs:29</code> · <code>Glory/UI/UIPopup.cs:1</code></td><td>결과 팝업을 여는 표준 경로. <code>OnPressBackBtn()</code> 오버라이드로 뒤로가기 차단</td></tr>
+        <tr><td><code>UIInGameBanner.Show()</code></td><td><code>Assets/Scripts/InGame/UI/UIInGameBanner.cs:40</code></td><td>승패·연차 시작 한 줄 알림. 큐가 있어 연속 호출해도 겹치지 않는다</td></tr>
+        <tr><td><code>UIInGameHud.Refresh()</code> / <code>UIInGameAction.Refresh()</code></td><td><code>InGame/UI/UIInGameHud.cs:76</code> · <code>UIInGameAction.cs:172</code></td><td>정산 직후 HP·연차·코인·스왑 재표시</td></tr>
+        <tr><td><code>SceneManager.instance.NextScene()</code></td><td><code>Assets/Scripts/Glory/Scene/SceneManager.cs:224</code></td><td>"타이틀로" 버튼. <code>IsSceneTransitioning</code>으로 연타 가드(<code>TitleScene.cs:92</code>의 선례 그대로)</td></tr>
+        <tr><td><code>GameConfigTable.GetValue()</code></td><td><code>Assets/Scripts/Table/GameConfigRecord.cs:38</code></td><td>신규 피해 수치 2개를 읽는다</td></tr>
+      </tbody>
+    </table>
+
+    <h3>7.2 새로 필요한 것</h3>
+    <table>
+      <thead><tr><th>종류</th><th>이름 / 경로</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td>enum</td><td><code>eRunEndReason</code></td><td><code>UIRunResult.cs</code> 파일 상단에 둔다(<code>eBattleResult</code>가 <code>UIInGameBattle.cs</code> 상단에 있는 것과 같은 관례)</td></tr>
+        <tr><td>클래스</td><td><code>Assets/Scripts/InGame/UI/UIRunResult.cs</code></td><td><code>UIPopup</code> 상속. 이름을 <code>UIInGameRunResult</code>로 하지 않은 이유: 공용 <code>Resources/Prefabs/UI</code>에 놓이고 <code>UIManager</code>가 여는 팝업이라 기존 팝업 3종의 이름 규칙(<code>UIHouseSelect</code>/<code>UIHouseUpgrade</code>/<code>UISetting</code>)을 따른다</td></tr>
+        <tr><td>프리팹</td><td><code>Assets/Resources/Prefabs/UI/UIRunResult.prefab</code></td><td><code>UIHouseUpgrade.prefab</code>을 골격으로 복제 권장</td></tr>
+        <tr><td>테이블 행</td><td><code>UITable.csv</code> 1행 · <code>GameConfigTable.csv</code> 2행 · <code>StringTable.csv</code> 8~9행</td><td>§6</td></tr>
+        <tr><td>메서드</td><td><code>InGameScene.OnBattleFinished()</code> / <code>AdvanceToNextWave()</code> / <code>OnYearAdvanced()</code> / <code>EndRun()</code></td><td>§5.2</td></tr>
+        <tr><td>시그니처 변경</td><td><code>RunData.AdvanceWave()</code> → <code>bool</code> 반환</td><td>호출부가 0곳이라 안전</td></tr>
+      </tbody>
+    </table>
+
+    <h3>7.3 충돌 가능 지점</h3>
+    <table>
+      <thead><tr><th>지점</th><th>무엇이 부딪히나</th><th>정리</th></tr></thead>
+      <tbody>
+        <tr><td><code>InGameScene.Update()</code> 190행</td><td>1단계 작업이 같은 메서드를 이미 고치고 있다</td><td><b>같은 브랜치에서 하나로 합쳐 작성</b>한다. 두 갈래로 나눠 넣으면 D1 가드가 이중으로 들어간다</td></tr>
+        <tr><td>전투 종료 감지 방식</td><td>1단계가 <code>isRunning</code> 변화만 보고 있다면 D1에 걸린다</td><td><code>m_isBattleStarted</code> 게이트로 통일. 이 플래그의 소유자는 <code>InGameScene</code> 하나다</td></tr>
+        <tr><td>본거지 피해 계산</td><td>1단계 "패배 → <code>TakeHomeDamage(homeHit)</code>"는 D2 때문에 거의 항상 0</td><td><code>HomeDamagePerDefeat</code> 고정 피해로 교체 · 누출 피해와 합산</td></tr>
+        <tr><td><code>m_Battle</code>의 유닛 잔해</td><td>전투가 끝나도 유닛이 화면에 남는다(<code>Tick()</code>이 조기 반환할 뿐 <code>Clear()</code>는 다음 <code>Begin()</code>에서만 불린다)</td><td>런 종료 팝업이 뜰 때 <code>m_Battle.Clear()</code>·<code>m_Field.Clear()</code>를 부를지 결정 → §8 Q5</td></tr>
+        <tr><td>연차 리셋과 무료 스핀</td><td><code>AddSpinCoin()</code>은 최대치를 넘기지 않게 클램프한다. 리셋은 대입이라 규칙이 다르다</td><td>GDD "이월 없음"이 대입을 지시한다. 클램프가 아니라 <code>m_SpinCoin = m_SpinCoinMax</code></td></tr>
+        <tr><td>팝업 뒤의 SPIN 버튼</td><td>팝업이 레이캐스트를 다 막는지 프리팹에 달렸다</td><td>프리팹에 기대지 않고 <code>m_isRunEnded</code> 가드를 <code>OnClickSpinButton()</code>·<code>OnBattleStart()</code> 초입에 둔다</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout risk">
+      <h4 style="margin-top:0">"다시 도전" 버튼 — 씬 재로드는 쓸 수 없다</h4>
+      <p><code>SceneManager.NextScene()</code>은 <code>LoadSceneMode.Additive</code>로 새 씬을 올린 뒤 <code>Command_UnloadScene(currentScene)</code>으로 이전 씬을 내린다(<code>SceneManager.cs:181,224</code>). 그런데 <code>Command_UnloadScene</code>은 <code>GetSceneByName(name)</code>으로 대상을 찾는다(127행). <b><code>NextScene("InGameScene")</code>을 InGameScene에서 부르면 같은 이름의 씬이 둘 로드된 상태가 되어, 방금 올린 새 씬을 언로드해 버릴 수 있다.</b></p>
+      <p>따라서 재시작은 셋 중 하나여야 한다 → §8 Q6에 선택지로 정리했다.</p>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="decisions"><h2>8. 문서에 없어서 확인이 필요한 부분</h2>
+    <p>전부 GDD에 서술이 없는 항목이다. <b>수치와 규칙은 지어내지 않았다.</b> 각 항목에 권장안을 달았지만 결정은 사용자 몫이다.</p>
+
+    <h3>Q1. 본거지 HP가 0이 되면 무엇이 뜨는가</h3>
+    <table>
+      <thead><tr><th>선택지</th><th>얻는 것</th><th>잃는 것</th></tr></thead>
+      <tbody>
+        <tr><td><b>A. 결과 팝업</b>(<code>UIRunResult</code>) <span class="tag proposal">권장</span></td><td>도달 연차·획득 옥새를 보여줄 자리가 생긴다. 옥새가 화면에 안 보이면 <b>플레이어가 영구 성장을 배울 기회가 없다</b>. 기존 팝업 3종과 완전히 같은 패턴이라 신규 자산은 프리팹 1 + 클래스 1</td><td>프리팹 제작 필요. UITable·StringTable 행 추가</td></tr>
+        <tr><td>B. 배너 한 줄 후 자동 타이틀 복귀</td><td>신규 자산 0개. 오늘 안에 붙는다</td><td>옥새 지급이 화면에 안 보인다. 재도전이 항상 타이틀 왕복이 된다. 결국 팝업을 나중에 다시 만들게 된다</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">근거: GDD §14가 "본거지 HP 방식"의 결정 시점을 <b>프로토타입 3단계</b>로 지정했고, §12의 3단계 게이트가 "12연차 클리어율 20~35%"다. 클리어율을 재려면 종료 화면이 통계를 보여줘야 한다.</p>
+
+    <h3>Q2. 완주 승리는 패배와 같은 화면인가</h3>
+    <table>
+      <thead><tr><th>선택지</th><th>트레이드오프</th></tr></thead>
+      <tbody>
+        <tr><td><b>A. 같은 팝업, 제목만 분기</b> <span class="tag proposal">권장</span></td><td><code>GetRoyalReward()</code>가 이미 승패 구분 없이 하나의 식으로 계산한다 — 화면을 나누면 코드와 어긋난다. 완주 보너스 <code>+6</code>을 별도 행으로 보여주면 차이는 충분히 전달된다</td></tr>
+        <tr><td>B. 전용 클리어 연출/화면</td><td>완주의 무게가 산다. 다만 12연차 완주를 실제로 보기 전에 만드는 연출이라 검증 없이 자산을 쓰게 된다</td></tr>
+      </tbody>
+    </table>
+    <p><b>딸린 확인 2건</b></p>
+    <ul>
+      <li><b>완주 시 옥새 18 vs 19</b> — 최종 웨이브 승리 후 <code>AdvanceWave()</code>를 부르면 <code>year</code>가 13이 되어 <code>13×1+6=19</code>가 되고, 결과 화면도 "13/12"가 된다. 이 스펙은 <b>부르지 않고 12에서 닫아 18</b>로 했다. 맞는가?</li>
+      <li><b>최종 웨이브에서 지고 끝나도 완주 보너스 +6인가</b> — 현재 식은 <code>year &gt;= yearMax</code>만 보므로 <b>진 경우에도 보너스가 붙는다</b>. 붙이지 않으려면 <code>GetRoyalReward(bool _isCleared)</code>로 인자를 하나 받아야 한다.</li>
+    </ul>
+
+    <h3>Q3. 웨이브에서 패배하면 웨이브가 진행되는가 <span class="tag unknown">가장 중요</span></h3>
+    <p>이 선택이 §3의 D2, 본거지 피해 수치, 최종 웨이브 패배 처리를 전부 결정한다.</p>
+    <table>
+      <thead><tr><th>선택지</th><th>규칙</th><th>얻는 것</th><th>잃는 것 · 따라오는 결정</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>A. 넘어가되 본거지가 깎인다</b> <span class="tag proposal">권장</span></td>
+          <td>패배해도 <code>AdvanceWave()</code>. 본거지 −<code>HomeDamagePerDefeat</code></td>
+          <td>스핀 코인이 곧 웨이브라 <b>자원이 단조 감소해 런이 반드시 끝난다</b>. GDD §06의 "본거지 HP −2, <b>다음 연차 재도전 가능</b>"과 결이 같다. 12연차 완주율을 잴 수 있게 된다</td>
+          <td><b>최종 웨이브(12-3) 패배는 넘어갈 곳이 없다</b> → "최종 웨이브 패배 = 런 종료(미완주)"라는 예외 규칙이 반드시 따라온다(<code>FinalDefeat</code>). 팝업 제목 키 1개 추가</td>
+        </tr>
+        <tr>
+          <td>B. 같은 웨이브 재도전</td>
+          <td>웨이브 유지. 본거지 −<code>HomeDamagePerDefeat</code></td>
+          <td>예외 규칙이 없다. 최종 웨이브도 HP가 남는 한 계속 도전 가능</td>
+          <td><b>재도전 비용을 반드시 정해야 한다</b>(스핀 코인을 또 쓰는가?). 안 정하면 §3 D3와 합쳐져 무한 재시도가 된다. 그 수치는 GDD에 없다</td>
+        </tr>
+        <tr>
+          <td>C. 1단계 현행 유지(넘어가지도, 깎이지도 않음)</td>
+          <td>—</td>
+          <td>—</td>
+          <td><b>채택 불가</b>. D2·D3에 따라 본거지 HP가 줄지 않고 같은 병력으로 무한 재전투가 되어 <b>런이 끝나지 않는다</b></td>
+        </tr>
+      </tbody>
+    </table>
+    <p><b>필요한 수치 2개</b> — 둘 다 GDD 미기재다.</p>
+    <table>
+      <thead><tr><th>키</th><th>질문</th><th>참고</th></tr></thead>
+      <tbody>
+        <tr><td><code>HomeDamagePerDefeat</code></td><td>웨이브 패배 1회에 본거지 몇?</td><td><code>HomeHpMax</code>=8이므로 1이면 8번 져야 끝나고, 2면 4번(GDD §06 외교 패배가 −2)</td></tr>
+        <tr><td><code>HomeDamagePerLeak</code></td><td>적 1마리가 성문을 넘으면 몇?</td><td><code>homeHit</code>이 마릿수라 1이 자연스럽지만, 한 웨이브에 여러 마리가 새면 한 번에 여러 칸이 날아간다</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Q4. 연차가 바뀔 때 외교가 끼어드는가</h3>
+    <p>GDD §02는 외교를 연차의 <b>마지막(STEP 05)</b> 단계로, §09는 <b>3연차부터 개방</b>으로 못 박았다. 즉 자리는 정해져 있고, 이 문서는 그 자리(<code>OnYearAdvanced()</code>)만 비워 둔다.</p>
+    <table>
+      <thead><tr><th>선택지</th><th>트레이드오프</th></tr></thead>
+      <tbody>
+        <tr><td><b>A. 지금은 훅 자리만</b> <span class="tag proposal">권장</span></td><td>런이 12연차까지 도는 것을 먼저 확인할 수 있다(GDD §12의 3단계 게이트가 정확히 그것). 외교는 4단계 과제로 문서에 명시돼 있다</td></tr>
+        <tr><td>B. 지금 함께 붙인다</td><td>SIDE 영역(침공 예고·외교) UI가 <b>씬에 아예 없다</b>(<code>InGameScene.unity</code>의 오브젝트 전체를 훑어 확인). 화면·테이블·전리품 심볼 판정까지 한 덩어리로 커진다</td></tr>
+      </tbody>
+    </table>
+    <p><b>미기재</b> — 외교 결과가 <b>런 종료 화면에 표시되는가</b>(선전포고한 종족, 약탈한 심볼 등)는 GDD에 없다. A를 택하면 지금 결정할 필요가 없다.</p>
+
+    <h3>Q5. 결과를 무엇으로 어디까지 보여주는가</h3>
+    <table>
+      <thead><tr><th>층위</th><th>수단</th><th>결정 필요</th></tr></thead>
+      <tbody>
+        <tr><td>웨이브 승패</td><td>기존 중앙 배너 · 기존 키 <code>InGameBattleVictory</code>/<code>InGameBattleDefeat</code></td><td>없음(1단계에서 이미)</td></tr>
+        <tr><td>본거지 피해</td><td>배너 <code>InGameHomeDamage</code> 추가 <b>또는</b> HUD 핍이 꺼지는 것으로 갈음</td><td><b>필요</b> — 핍만으로 충분한가? 화면 맨 위 작은 칸이라 놓치기 쉽다는 지적이 <code>UIInGameHud.PlaySpinCoinBonus()</code> 주석에 이미 남아 있다. 같은 방식으로 <b>깎인 핍을 튀기는</b> 연출을 붙일 수도 있다</td></tr>
+        <tr><td>연차 전환</td><td>배너 <code>InGameYearStart</code></td><td><b>필요</b> — 띄우는가? 스핀 코인이 3개로 되돌아오는 게 유일한 신호라 그냥 두면 왜 늘었는지 알 수 없다</td></tr>
+        <tr><td>런 종료</td><td>팝업 <code>UIRunResult</code></td><td><b>필요</b> — 담을 항목 확정. 아래 표</td></tr>
+      </tbody>
+    </table>
+    <table>
+      <caption>팝업에 담을 후보</caption>
+      <thead><tr><th>항목</th><th>판단</th></tr></thead>
+      <tbody>
+        <tr><td>결과 제목(함락 / 완주 / 최후 방어 실패)</td><td><span class="tag proposal">포함 권장</span></td></tr>
+        <tr><td>도달 연차 <code>{year}/{yearMax}</code></td><td><span class="tag proposal">포함 권장</span> — 클리어율 측정의 기준값</td></tr>
+        <tr><td>획득 옥새(연차분 + 완주 보너스 분리 표시)</td><td><span class="tag proposal">포함 권장</span> — 영구 성장을 알리는 유일한 통로</td></tr>
+        <tr><td>다시 도전 / 타이틀로 버튼</td><td><span class="tag proposal">포함 권장</span> — 재시작 방식은 Q6</td></tr>
+        <tr><td>선택 종족 이름·엠블럼</td><td><span class="tag unknown">미기재</span> — 넣을지 확인</td></tr>
+        <tr><td>통계(총 스핀 수, 최고 전력 족보, 처치 수)</td><td><span class="tag unknown">미기재</span> — <b>지금은 어느 것도 집계되지 않는다.</b> 넣으려면 <code>RunData</code>에 카운터 필드가 새로 필요하다</td></tr>
+        <tr><td>런 종료 시 전장 정리(<code>m_Battle.Clear()</code>/<code>m_Field.Clear()</code>)</td><td><span class="tag unknown">확인</span> — 팝업 뒤에 시체가 남은 채로 둘지, 비울지</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Q6. "다시 도전"을 어떻게 구현하는가</h3>
+    <p>§7.3에서 확인한 대로 <b>같은 이름 씬 재로드는 안전하지 않다.</b></p>
+    <table>
+      <thead><tr><th>선택지</th><th>얻는 것</th><th>잃는 것</th></tr></thead>
+      <tbody>
+        <tr><td><b>A. 씬 안에서 런만 리셋</b>(<code>InGameScene.RestartRun()</code>) <span class="tag proposal">권장</span></td><td>씬 전환 비용도 커맨드 큐 위험도 없다. 즉시 다시 시작</td><td>리셋 대상을 하나라도 빠뜨리면 이전 런 상태가 새 런에 남는다. <b>리셋 목록을 스펙에 못 박아야 한다</b>(아래)</td></tr>
+        <tr><td>B. 버튼을 "타이틀로" 하나만 둔다</td><td>새 코드 0줄. 위험 0</td><td>재도전이 매번 타이틀 왕복 2회. 반복 플레이 흐름이 끊긴다</td></tr>
+        <tr><td>C. <code>SceneManager</code>에 재로드 지원 추가</td><td>다른 씬에서도 재사용 가능</td><td><b>Glory 공용 코드 수정</b>. 영향 범위가 이 기능 밖으로 나간다 — 최소 침습 원칙에 어긋난다</td></tr>
+      </tbody>
+    </table>
+    <p>A를 택할 경우 <code>RestartRun()</code>이 반드시 되돌려야 하는 것:</p>
+    <div class="scroll"><pre>m_RunData.Init();            // 메타 보너스 스냅샷도 여기서 다시 뜬다(런 도중 산 것은 소급 안 됨 — 기존 주석 유지)
+m_isRunEnded    = false;
+m_isBattleStarted = false;
+m_LastJudgeResult = null;
+m_LastGrid        = null;
+m_Battle.Clear();
+m_Field.Clear();
+m_SpinRoutine 정리(진행 중이면 StopCoroutine)
+m_Hud.Apply(m_RunData, record);      // 핍 개수가 바뀔 수 있어 Refresh 가 아니라 Apply
+m_Action.Apply(m_RunData);           // 같은 이유
+m_SlotMachine 결과 표시 초기화 여부  ← 확인 필요</pre></div>
+    <p class="muted"><code>Hud.Apply()</code>/<code>Action.Apply()</code>를 다시 부르는 이유: 둘 다 <code>BuildPipList()</code>로 핍을 다시 만든다. <code>Refresh()</code>만 부르면 이전 런의 핍 개수가 그대로 남는다.</p>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="gdd"><h2>9. GDD와의 관계</h2>
+
+    <h3>9.1 충돌 없이 <b>추가만</b> 하는 것</h3>
+    <ul>
+      <li>전투 종료 감지 · 웨이브 정산 · 런 종료 판정 — GDD에 서술 자체가 없다(§14가 관련 항목을 "프로토타입 3단계에 결정"으로 미뤄 뒀다). 새 규칙을 넣는 게 아니라 <b>비워둔 칸을 채우는 것</b>이다.</li>
+      <li>연차 전환 시 스핀 코인·스왑 리셋 — GDD §03 "연차 시작 시 지급, 이월 없음"의 <b>직접 구현</b>이다.</li>
+      <li>결과 팝업 — GDD §10 ScreenZones는 HUD/REEL/BATTLEFIELD/ACTION/SIDE 다섯 영역만 정의하고 팝업 레이어는 다루지 않는다. 그 위에 덮는 팝업은 기존 세 팝업과 같은 층이라 영역 정의와 부딪히지 않는다.</li>
+    </ul>
+
+    <h3>9.2 이미 구현이 GDD를 앞질러 간 것 — <span class="tag unknown">GDD 갱신 필요</span></h3>
+    <table>
+      <thead><tr><th>항목</th><th>GDD</th><th>구현</th><th>제안</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>영구 성장</td>
+          <td>§09 "메타 진행은 <b>종족 해금 하나</b>로 시작. 영구 강화 트리는 초기 빌드에 넣지 않는다 — 밸런싱 축이 하나 더 늘면 프로토타입 검증이 불가능해진다"</td>
+          <td>옥새(<code>PlayerData.m_Royal</code>) + <code>HouseUpgradeTable</code> + <code>UIHouseUpgrade</code> 화면이 이미 존재하고, <code>RunData.Init()</code>이 <code>GetRunConfigBonus()</code>로 런 시작값에 반영한다</td>
+          <td><b>이 문서는 그 구현을 지우지 않는다</b>(있는 소비처에 공급을 연결할 뿐). 다만 GDD §09를 현재 구현대로 고치는 것은 별도 작업으로 <b>사용자 결정</b>이 필요하다 — 밸런싱 축을 하나 더 두겠다는 판단이기 때문이다</td>
+        </tr>
+        <tr>
+          <td>종족 해금</td>
+          <td>§09 "각 종족의 왕을 처치할 때마다 그 종족이 플레이 가능"</td>
+          <td><code>PlayerManager.UnlockHouse()</code>는 있으나 <b>호출부 0곳</b>. 그런데 <code>HouseTable.csv</code>의 <code>isUnlocked</code>가 <b>7종족 전부 1</b>이라 지금은 다 열려 있다</td>
+          <td>현재 상태로는 급하지 않다. 심판/최종 웨이브 승리 시 해금 처리를 붙이려면 먼저 <code>isUnlocked</code>를 닫아야 하며, 그건 이 문서 밖의 결정이다</td>
+        </tr>
+        <tr>
+          <td>연차 = 웨이브 3개</td>
+          <td>§02는 한 연차에 전투 1회로 읽히고, §09 표는 "1–3연차 / 일반 ×3"으로 <b>양쪽으로 읽힌다</b></td>
+          <td><code>WaveTable.csv</code>가 12연차 × 3웨이브 = 36행으로 <b>이미 확정</b>. <code>WAVE_PER_YEAR=3</code>, 스핀 코인 1개 = 웨이브 1개</td>
+          <td>구현 쪽이 정본이다. 이 스펙은 구현을 따른다 — <b>이 문서에서 바꾸지 않는다</b></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout confirmed">이 문서는 <code>Assets/Design/reel_of_four_houses_GDD.html</code>을 <b>수정하지 않았다.</b> 위 3건은 GDD 갱신이 필요하다는 <b>보고</b>이며, 실행은 사용자 승인 후 별도 작업이다.</div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section id="refs"><h2>10. 참고</h2>
+    <h3>연관 클래스 기록</h3>
+    <ul>
+      <li><a href="../class/RunData.md">../class/RunData.md</a> — "아직 호출부가 없다" 절이 이 문서로 해소된다. 구현 후 갱신 대상</li>
+      <li><a href="../class/UIInGameBattle.md">../class/UIInGameBattle.md</a> · <a href="../class/InGameScene.md">../class/InGameScene.md</a> · <a href="../class/UIInGameHud.md">../class/UIInGameHud.md</a> · <a href="../class/UIInGameAction.md">../class/UIInGameAction.md</a> · <a href="../class/UIInGameBanner.md">../class/UIInGameBanner.md</a></li>
+      <li><a href="../class/PlayerManager.md">../class/PlayerManager.md</a> · <a href="../class/GameConfigTable.md">../class/GameConfigTable.md</a> · <a href="../class/StringTable.md">../class/StringTable.md</a> · <a href="../class/WaveRecord.md">../class/WaveRecord.md</a></li>
+      <li><code>UIRunResult</code>는 신규라 기록이 없다 — 구현 후 <code>.claude/class/UIRunResult.md</code>를 만든다</li>
+    </ul>
+
+    <h3>연관 기획 스펙</h3>
+    <ul>
+      <li><a href="upgrade-system.html">upgrade-system.html</a> — 옥새 소비처. 이 문서가 공급을 붙인다</li>
+      <li><a href="slot-weight.html">slot-weight.html</a> · <a href="yut-house.html">yut-house.html</a> · <a href="mahjong-house.html">mahjong-house.html</a> · <a href="slot-house.html">slot-house.html</a> · <a href="subjudge-pair.html">subjudge-pair.html</a></li>
+    </ul>
+
+    <h3>검증 없이는 완료가 아닌 것</h3>
+    <p>구현 후 <b>Play Mode에서 실제로 확인해야</b> 하는 항목이다. 컴파일 성공은 통과가 아니다.</p>
+    <ol>
+      <li>씬 진입 직후 아무것도 안 하고 3초 대기 — <b>웨이브가 진행되지 않는가</b>(D1 회귀 확인). <code>waveIndex</code>가 1에 머물러야 한다</li>
+      <li>일부러 패배 — 본거지 핍이 실제로 <b>줄어드는가</b>(D2). 스핀 코인 소모 없이 전투 시작을 다시 눌러 <b>재전투가 안 되는가</b>(D3)</li>
+      <li>1연차 3웨이브 소화 후 2연차 진입 — 스핀 코인 핍이 <b>3개로 되돌아오는가</b>(D4)</li>
+      <li>본거지 HP를 0까지 떨어뜨림 — 팝업이 뜨고, <b>타이틀 업그레이드 화면의 옥새 수가 실제로 늘었는가</b>(상태 플래그가 아니라 화면의 숫자를 읽을 것)</li>
+      <li>런 종료 팝업이 뜬 상태에서 <b>SPIN·전투 시작이 안 눌리는가</b></li>
+      <li>4개 언어 전부 전환해 팝업을 열어 <b>□가 없는가</b>(§6.4는 TTF 검사일 뿐, 실제 렌더 확인은 별도)</li>
+      <li>재시작 후 <b>2회차 런의 HUD 핍 개수·연차·코인이 1회차 초기값과 같은가</b></li>
+    </ol>
+  </section>
+
+</main></body>
+</html>
