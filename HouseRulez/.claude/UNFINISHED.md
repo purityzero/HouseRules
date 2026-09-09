@@ -12,8 +12,7 @@
 
 | 브랜치 | HEAD | main 병합 |
 |---|---|---|
-| `main` | `f009e31` | — |
-| `work/2026-09-09-font-unify` ← **병합 준비 완료** | `48fa071` + 최종 QA 문서 | ✅ 변경분 QA 통과, 별건 결함 1건(`柶`)은 기획 결정 대기 |
+| `main` | 최신 원격과 일치 | — |
 | `work/2026-08-28-ingame-canvas-fit` | `eac6d6e` | ❌ **보류** — 충돌 82곳 + 주제 중복(바로 아래 「2026-09-09 병합」 참고) |
 
 ### 2026-09-10 QA·Git 마무리
@@ -23,6 +22,9 @@ Play Mode QA를 통과해 `07d6a1f`로 커밋했다. 배너 상세는 `archive/2
 
 전투 연출 `80121a0`도 QA 통과 후 `main`에 `--no-ff` 병합하고 push했다(`f009e31`).
 상세는 `archive/2026-09-09-battle-motion.md` 참고.
+
+폰트 통일·설정 닫기 로컬라이제이션·인게임 결과 처리·배너 수정은 최종 결합 QA 후
+`main`에 `--no-ff` 병합하고 push했다(`9744ff4`). 완료된 작업 브랜치는 정리 대상이다.
 
 ⚠️ **폰트 아틀라스 4개**(`Assets/font/*.asset` 3개 + `LiberationSans SDF - Fallback.asset`)도
 더티로 뜨지만 **커밋하지 않는다** — 에디터가 켜지면 글리프가 쌓이는 알려진 현상이다(`unfinished/repo-notes.md` 참고).
