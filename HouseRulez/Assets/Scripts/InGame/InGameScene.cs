@@ -1,4 +1,3 @@
-using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,13 +24,24 @@ public class InGameScene : BaseScene
     private const string STRING_KEY_BONUS_SPIN = "InGameBonusSpin";
     private const string STRING_KEY_BATTLE_VICTORY = "InGameBattleVictory";
     private const string STRING_KEY_BATTLE_DEFEAT = "InGameBattleDefeat";
+    private const string STRING_KEY_YEAR_START = "InGameYearStart";
 
-    private Coroutine m_SpinRoutine;
+    // 스핀 흐름은 커맨드 큐로 돈다. 진행 여부는 이 큐가 스스로 답한다 —
+    // 코루틴 핸들처럼 따로 들고 비워줄 상태가 없다.
+    private FlowCommand m_SpinFlow = new FlowCommand();
+
+    private bool m_isSpinning
+    {
+        get { return m_SpinFlow.IsFinished() == false; }
+    }
 
     // 전투가 실제로 시작됐는지. UIInGameBattle.result는 초기값이 Running이라
     // 이 플래그 없이 isRunning만 보면 전투 전에도 Tick이 돌고,
     // CheckResult가 "적이 하나도 없다"를 승리로 읽어 유령 승리가 난다.
     private bool m_isBattleActive;
+
+    // 런이 닫혔는가. 옥새 이중 지급과 종료 후 조작을 함께 막는다.
+    private bool m_isRunEnded;
 
     // 전투 시작이 마지막 스핀 결과를 쓴다. 스핀을 안 돌렸으면 전투가 성립하지 않는다.
     private JudgeResult m_LastJudgeResult;
@@ -111,6 +121,7 @@ public class InGameScene : BaseScene
 
         m_Action.OnBattleStart += OnBattleStart;
         m_Action.OnBattleSpeed += OnBattleSpeed;
+        m_Action.OnBuyExtraSpin += OnBuyExtraSpin;
     }
 
     public void OnClickSpinButton()
@@ -118,10 +129,13 @@ public class InGameScene : BaseScene
         if (m_SlotMachine == null)
             return;
 
+        if (m_isRunEnded == true)
+            return;
+
         // 이미 돌고 있거나 전투 중이면 무시한다. 가드가 없던 동안엔 연타할 때마다
         // 코인이 깎이고(SpendSpinCoin이 먼저 돌았다) 돌던 릴이 리셋됐다.
         // 가드는 코인 차감보다 앞에 있어야 한다 — 뒤에 두면 무시된 입력에도 코인이 샌다.
-        if (m_SpinRoutine != null)
+        if (m_isSpinning == true)
             return;
 
         if (m_isBattleActive == true)
@@ -132,10 +146,9 @@ public class InGameScene : BaseScene
         if (m_RunData.SpendSpinCoin() == false)
             return;
 
-        if (m_Hud != null)
-            m_Hud.Refresh();
+        RefreshRunUI();
 
-        m_SpinRoutine = StartCoroutine(CoSpinAndStop());
+        StartSpinFlow();
     }
 
     // 전투 시작. 마지막 스핀의 판정 결과를 아군으로, 현재 연차·웨이브의 적을 상대로 세운다.
@@ -147,13 +160,16 @@ public class InGameScene : BaseScene
             return;
         }
 
+        if (m_isRunEnded == true)
+            return;
+
         if (m_isBattleActive == true)
         {
             Logger.Log("[InGameScene] OnBattleStart - 이미 전투 중이라 무시한다 (기대: 전투 종료 후 재시작)");
             return;
         }
 
-        if (m_SpinRoutine != null)
+        if (m_isSpinning == true)
         {
             Logger.Log("[InGameScene] OnBattleStart - 릴이 도는 중이라 무시한다 (기대: 스핀 완료 후 전투)");
             return;
@@ -189,6 +205,9 @@ public class InGameScene : BaseScene
 
     private void Update()
     {
+        // 스핀 흐름은 전투 여부와 무관하게 매 프레임 돌아야 한다.
+        m_SpinFlow.Update();
+
         if (m_isBattleActive == false)
             return;
 
@@ -204,27 +223,107 @@ public class InGameScene : BaseScene
 
     // 전투가 끝난 프레임에 한 번 불린다.
     //
-    // ⚠️ 런 종료(본거지 HP 0 / 최종 연차 완주)는 여기서 처리하지 않는다 — 기획 스펙 대기 중이다.
-    //    「패배해도 웨이브를 넘기지 않는다」도 잠정 결정이며 스펙이 나오면 재판정한다.
-    //    RunData.GetRoyalReward()의 호출부가 아직 없는 것도 같은 이유다.
+    // 웨이브 진행 규칙은 「패배하면 같은 웨이브를 다시 한다」(기획 결정 2026-09-10, run-end-flow.html Q3-B).
+    // 재도전에는 스핀 코인이 든다 — 그래서 코인이 곧 연차당 실패 허용 횟수이고,
+    // 코인이 떨어지면 그 자리에서 런이 닫힌다. 안 그러면 진행도 종료도 안 되는 교착이 된다.
     private void OnBattleFinished()
     {
-        if (m_Battle.result == eBattleResult.Victory)
-            m_RunData.AdvanceWave();
-        else
-            m_RunData.TakeHomeDamage(m_Battle.homeHit);
+        eBattleResult result = m_Battle.result;
+        int leakCount = m_Battle.homeHit;
 
-        if (m_Hud != null)
-            m_Hud.Refresh();
-
-        ShowBattleResult();
-
-        // 같은 스핀 결과로 전투를 두 번 시작하지 못하게 비운다.
+        // 이 판정 결과는 소진됐다. 안 비우면 같은 병력으로 전투를 다시 걸 수 있다.
         m_LastJudgeResult = null;
         m_LastGrid = null;
+
+        m_RunData.TakeHomeDamage(GetHomeDamage(result, leakCount));
+
+        ShowBannerByKey((result == eBattleResult.Victory) ? STRING_KEY_BATTLE_VICTORY : STRING_KEY_BATTLE_DEFEAT);
+
+        RefreshRunUI();
+
+        if (m_RunData.homeHp <= 0)
+        {
+            EndRun(eRunEndReason.HomeFallen);
+            return;
+        }
+
+        // 최종 연차의 마지막 웨이브는 넘어갈 다음 웨이브가 없다 — 승패와 무관하게 런이 닫힌다.
+        bool isFinalWave = (m_RunData.year >= m_RunData.yearMax && m_RunData.waveIndex >= RunData.WAVE_PER_YEAR);
+        if (isFinalWave == true && result == eBattleResult.Victory)
+        {
+            EndRun(eRunEndReason.Cleared);
+            return;
+        }
+
+        if (result == eBattleResult.Victory)
+            AdvanceToNextWave();
+
+        // 코인이 떨어져도 골드로 살 수 있으면 아직 끝이 아니다 —
+        // 살 수단까지 없어야 비로소 더 진행할 방법이 없는 것이다.
+        if (m_RunData.spinCoin <= 0 && m_RunData.IsExtraSpinBuyable() == false)
+            EndRun(eRunEndReason.OutOfSpinCoin);
     }
 
-    private void ShowBattleResult()
+    // 패배의 대가 = 성문을 넘은 적 수 × PerLeak + (패배면) PerDefeat.
+    // 고정분이 있어야 적이 한 마리도 안 넘고 아군만 전멸한 판도 대가를 치른다.
+    private int GetHomeDamage(eBattleResult _result, int _leakCount)
+    {
+        GameConfigTable configTable = TableManager.instance.GetTable<GameConfigTable>();
+        if (configTable == null)
+        {
+            Logger.Error("[InGameScene] GetHomeDamage Failed! GameConfigTable not found (기대: TableManager에 등록됨)");
+            return _leakCount;
+        }
+
+        int damage = _leakCount * configTable.GetValue(GameConfigTable.KEY_HOME_DAMAGE_PER_LEAK, 1);
+
+        if (_result == eBattleResult.Defeat)
+            damage += configTable.GetValue(GameConfigTable.KEY_HOME_DAMAGE_PER_DEFEAT, 1);
+
+        return damage;
+    }
+
+    private void AdvanceToNextWave()
+    {
+        bool isYearAdvanced = m_RunData.AdvanceWave();
+        if (isYearAdvanced == false)
+            return;
+
+        // 연차가 넘어가며 스핀 코인·스왑이 회복됐다. 화면에 안 알리면
+        // 코인이 왜 늘었는지 알 수 없다 — HUD 핍만으로는 놓치기 쉽다.
+        RefreshRunUI();
+
+        ShowYearStartBanner(m_RunData.year);
+
+        // ▼ 외교 단계는 여기 들어온다(GDD 02장 STEP 05 / 09장 "3연차부터 개방").
+        //   기획 스펙이 자리만 정해두고 구현은 별도 작업으로 남겼다.
+    }
+
+    // 런 종료. 옥새는 여기서 한 번만 지급된다 — 멱등 가드가 이중 지급을 막는다.
+    private void EndRun(eRunEndReason _reason)
+    {
+        if (m_isRunEnded == true)
+            return;
+
+        m_isRunEnded = true;
+
+        int royal = m_RunData.GetRoyalReward();
+        PlayerManager.instance.AddRoyal(royal);
+
+        Logger.Log("InGameScene", $"런 종료 - 사유 {_reason} / 도달 {m_RunData.year}/{m_RunData.yearMax}연차 / 옥새 +{royal}", Logger.eColor.Green);
+
+        UIRunResult popup = UIManager.instance.Get<UIRunResult>();
+        if (popup == null)
+        {
+            Logger.Error("[InGameScene] EndRun Failed! UIRunResult 생성 실패 (기대: UITable.csv에 행 + Resources/Prefabs/UI/UIRunResult 프리팹)");
+            return;
+        }
+
+        popup.Apply(_reason, m_RunData.year, m_RunData.yearMax, royal);
+    }
+
+    // 연차 문구만 포맷 인자가 있다("{0}연차 시작").
+    private void ShowYearStartBanner(int _year)
     {
         if (m_Banner == null)
             return;
@@ -232,23 +331,69 @@ public class InGameScene : BaseScene
         StringTable stringTable = TableManager.instance.GetTable<StringTable>();
         if (stringTable == null)
         {
-            Logger.Error("[InGameScene] ShowBattleResult Failed! StringTable not found (기대: TableManager에 등록됨)");
+            Logger.Error($"[InGameScene] ShowYearStartBanner Failed! StringTable not found - {STRING_KEY_YEAR_START} (기대: TableManager에 등록됨)");
             return;
         }
 
-        string messageKey = (m_Battle.result == eBattleResult.Victory) ? STRING_KEY_BATTLE_VICTORY : STRING_KEY_BATTLE_DEFEAT;
-        m_Banner.Show(stringTable.GetString(messageKey));
+        m_Banner.Show(stringTable.GetString(STRING_KEY_YEAR_START, _year));
+    }
+
+    // 런 상태를 바꾼 뒤엔 HUD와 ACTION을 항상 함께 갱신한다.
+    // 골드는 HUD에만 뜨는 값이 아니다 — ACTION의 추가 스핀 버튼도 골드를 보고 활성/비활성을 정한다.
+    // 예전엔 스핀 뒤 HUD만 갱신해서, 골드가 쌓여도 버튼이 계속 비활성으로 남아
+    // 코인 0인데 살 수도 없는 교착이 났다(2026-09-10 QA).
+    private void RefreshRunUI()
+    {
+        if (m_Hud != null)
+            m_Hud.Refresh();
+
+        if (m_Action != null)
+            m_Action.Refresh();
+    }
+
+    private void ShowBannerByKey(string _key)
+    {
+        if (m_Banner == null)
+            return;
+
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        if (stringTable == null)
+        {
+            Logger.Error($"[InGameScene] ShowBannerByKey Failed! StringTable not found - {_key} (기대: TableManager에 등록됨)");
+            return;
+        }
+
+        m_Banner.Show(stringTable.GetString(_key));
+    }
+
+    // 골드로 스핀 코인을 산다(GDD 03장). 재도전 비용이 곧 이 골드다.
+    private void OnBuyExtraSpin()
+    {
+        if (m_isRunEnded == true)
+            return;
+
+        if (m_RunData.BuyExtraSpin() == false)
+            return;
+
+        RefreshRunUI();
     }
 
     private void OnBattleSpeed()
     {
         m_RunData.ToggleBattleSpeed();
 
-        if (m_Action != null)
-            m_Action.Refresh();
+        RefreshRunUI();
     }
 
-    private IEnumerator CoSpinAndStop()
+    // 스핀 흐름. 이 프로젝트의 관례대로 FlowCommand로 조립한다 —
+    // SceneManager·TableManager·UIManager·릴 정착 트윈이 전부 같은 방식이다.
+    //
+    // 코루틴 대신 커맨드를 쓰는 이유:
+    //  1. `Cancel()`이 인터페이스에 있어 중단 처리가 일원화된다.
+    //     코루틴은 핸들을 들고 StopCoroutine을 부르고 그 핸들을 다시 비우는 걸 손으로 챙겨야 한다.
+    //  2. 오브젝트가 꺼져도 조용히 죽지 않는다. 코루틴은 유니티가 강제로 멈추는데,
+    //     그때 핸들이 남아 있으면 "아직 돌고 있다"고 오판하게 된다(실제로 겪은 결함이다).
+    private void StartSpinFlow()
     {
         m_SlotMachine.Spin();
 
@@ -267,51 +412,51 @@ public class InGameScene : BaseScene
         // 예전엔 슬롯머신이 자기 규칙("같은 심볼 3개")으로 반짝여서 7종족 중 6종족에서 거짓 신호였다.
         m_SlotMachine.SetJudgeResult(judgeResult);
 
-        yield return new WaitForSeconds(m_SpinDuration);
+        m_SpinFlow.Clear();
 
-        m_SlotMachine.StopAll();
+        // ① 굴리는 시간이 지나면 정지 신호를 보낸다.
+        m_SpinFlow.Add(new Command_DeltaTime(m_SpinDuration, m_SlotMachine.StopAll));
 
-        // 릴이 실제로 다 멈출 때까지 기다렸다가 결과를 보여준다 —
-        // 정지 전에 띄우면 아직 돌고 있는 릴의 결과를 미리 알려주는 꼴이 된다.
-        //
-        // ★ 고정 시간으로 기다리면 안 된다. 릴 감속은 프레임당 이동량 기반이라
-        //   (`UISlotMachineReel.GetStopSpeed`) 정지 소요가 프레임레이트를 탄다 —
-        //   52fps에서 1.00초, 23fps에서 1.69초로 측정됐다. 예전엔 여기가 고정 0.9초라
-        //   두 경우 모두 릴보다 배너가 먼저 떴다(2026-09-10 QA 계측).
-        yield return new WaitUntil(() => m_SlotMachine.isAllReelIdle);
+        // ② 릴이 **실제로** 다 멈출 때까지 기다린다.
+        //    ★ 고정 시간으로 기다리면 안 된다. 릴 감속은 프레임당 이동량 기반이라
+        //      (`UISlotMachineReel.GetStopSpeed`) 정지 소요가 프레임레이트를 탄다 —
+        //      52fps에서 1.00초, 23fps에서 1.69초로 측정됐다. 예전엔 여기가 고정 0.9초라
+        //      두 경우 모두 릴보다 결과가 먼저 떴다(2026-09-10 QA 계측).
+        m_SpinFlow.Add(new Command_WaitUntil(() => m_SlotMachine.isAllReelIdle));
 
+        // ③ 멈춘 뒤에 결과를 드러낸다.
+        m_SpinFlow.Add(new Command_Delegate(() => OnSpinSettled(judgeResult, grid)));
+    }
+
+    // 릴이 완전히 멈춘 프레임에 한 번 불린다.
+    private void OnSpinSettled(JudgeResult _judgeResult, int[] _grid)
+    {
         // 무엇이 성립했는지 크게 한 번 알린다. 요약 패널은 접혀 있어서 안 열면 안 보이는데,
         // 그러면 "왜 이만큼 소환됐지"를 배울 기회가 매 스핀 그냥 지나간다.
         // 무판정일 때는 띄우지 않는다 — 전력이 0인 스핀이 화면을 덮을 이유가 없다.
-        //
-        // 릴이 멈춘 뒤에 띄운다. 예전엔 StopAll() 직후(위 대기 전)에 띄워서
-        // 아직 돌고 있는 릴의 족보 이름을 먼저 알려주는 스포일러가 됐다.
-        if (judgeResult != null && judgeResult.Power > 0f && m_Banner != null)
-            m_Banner.Show(judgeResult.PatternName);
+        if (_judgeResult != null && _judgeResult.Power > 0f && m_Banner != null)
+            m_Banner.Show(_judgeResult.PatternName);
 
-        m_LastJudgeResult = judgeResult;
-        m_LastGrid = grid;
+        m_LastJudgeResult = _judgeResult;
+        m_LastGrid = _grid;
 
         // 당첨 배당. 소환과 별개로 골드가 나온다 — 전력이 소환 1기에 못 미치는 스핀도 빈손이 아니다.
-        if (judgeResult != null)
+        if (_judgeResult != null)
         {
-            m_RunData.AwardGoldByPower(judgeResult.Power);
+            m_RunData.AwardGoldByPower(_judgeResult.Power);
 
             // 무료 스핀(윷·모). 코인을 먼저 돌려주고 그다음에 화면을 그린다 —
             // 순서가 뒤집히면 방금 돌아온 칸이 아직 비어 있는 상태로 강조된다.
-            int bonusSpin = m_RunData.AddSpinCoin(judgeResult.bonusSpin);
+            int bonusSpin = m_RunData.AddSpinCoin(_judgeResult.bonusSpin);
 
-            if (m_Hud != null)
-                m_Hud.Refresh();
+            RefreshRunUI();
 
             if (bonusSpin > 0)
                 ShowBonusSpin();
         }
 
-        if (m_Field != null && judgeResult != null)
-            m_Field.ShowSummon(judgeResult, grid, m_SlotMachine.spritePool);
-
-        m_SpinRoutine = null;
+        if (m_Field != null && _judgeResult != null)
+            m_Field.ShowSummon(_judgeResult, _grid, m_SlotMachine.spritePool);
     }
 
     // 무료 스핀을 화면에 알린다. 코인 칸이 하나 돌아오는 게 전부라 그냥 두면 눈에 안 띈다.

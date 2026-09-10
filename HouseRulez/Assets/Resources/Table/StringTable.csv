@@ -1,6 +1,6 @@
 Id,Key,Kr,En,Cn,Jp
 1,TitlePlay,시작하기,Play,开始游戏,はじめる
-2,TitleHouseSelect,종족선택하기,Select House,选择种族,種族選択
+2,TitleHouseSelect,종족선택하기,HOUSE,选择种族,種族選択
 3,TitleUpgrade,업그레이드,Upgrade,升级,アップグレード
 4,TitleSetting,설정,Setting,设置,設定
 5,HouseSelectTitle,종족 선택,Select House,选择种族,種族選択
@@ -10,26 +10,26 @@ Id,Key,Kr,En,Cn,Jp
 9,HousePoker,포커,Poker,扑克,ポーカー
 10,HouseMahjong,마작,Mahjong,麻将,麻雀
 11,AxisPower,평균 전력,Power,平均战力,平均戦力
-12,AxisVariance,분산,Variance,波动,分散
-13,AxisCeiling,상한,Ceiling,上限,上限
-14,AxisLearning,학습 비용,Learning,学习成本,習得コスト
+12,AxisVariance,분산,Var,波动,分散
+13,AxisCeiling,상한,Cap,上限,上限
+14,AxisLearning,학습 비용,Learn,学习成本,習得コスト
 15,HouseLocked,미해금,Locked,未解锁,未解放
 16,HouseSelectConfirm,이 종족으로,Choose,选择,これにする
 17,HudHome,본거지,Home,本营,本拠地
 18,HudYear,YEAR {0}/{1},YEAR {0}/{1},年 {0}/{1},YEAR {0}/{1}
 19,HudGold,골드,Gold,金币,ゴールド
-20,HudSpinCoin,스핀 코인,Spin Coin,旋转币,スピンコイン
+20,HudSpinCoin,스핀 코인,Spins,旋转币,スピンコイン
 21,HudBet,판돈 {0} ×{1},Bet {0} ×{1},赌注 {0} ×{1},賭け金 {0} ×{1}
 22,ActionBattleStart,전투 시작,Battle,开始战斗,戦闘開始
 23,ActionSwap,스왑 {0},Swap {0},交换 {0},スワップ {0}
-24,ActionBattleSpeed,배속 ×{0},Speed ×{0},倍速 ×{0},倍速 ×{0}
+24,ActionBattleSpeed,배속 ×{0},SPD ×{0},倍速 ×{0},倍速 ×{0}
 25,ReelSpin,SPIN,SPIN,SPIN,SPIN
 26,HouseSlot,슬롯,Slot,老虎机,スロット
 27,SettingsTitle,설정,Settings,设置,設定
 28,SettingsLanguage,언어,Language,语言,言語
-29,SettingsBgm,BGM 음량,BGM Volume,BGM 音量,BGM 音量
-30,SettingsSfx,효과음 음량,SFX Volume,音效音量,効果音音量
-31,SettingsFps,프레임 제한,Frame Rate,帧率限制,フレームレート
+29,SettingsBgm,BGM 음량,BGM,BGM 音量,BGM 音量
+30,SettingsSfx,효과음 음량,SFX,音效音量,効果音音量
+31,SettingsFps,프레임 제한,FPS,帧率限制,フレームレート
 32,SettingsFpsAdaptive,자동,Adaptive,自动,自動
 33,SettingsFps30,30 FPS,30 FPS,30 FPS,30 FPS
 34,SettingsFps60,60 FPS,60 FPS,60 FPS,60 FPS
@@ -37,15 +37,15 @@ Id,Key,Kr,En,Cn,Jp
 36,HouseUpgradeEmpty,업그레이드 노드 기획 중,Upgrade nodes are in development,升级节点规划中,アップグレードノード企画中
 37,HouseUpgradeHomeHpName,본거지 보강,Stronghold HP,本部加固,本拠地補強
 38,HouseUpgradeHomeHpDesc,런 시작 본거지 HP 증가,Starting stronghold HP,开局本部生命值,ラン開始時の本拠地HP
-39,HouseUpgradeSpinCoinName,스핀 코인,Spin Coins,旋转币,スピンコイン
-40,HouseUpgradeSpinCoinDesc,연차당 스핀 코인 증가,Spin coins per year,每年旋转币,年ごとのスピンコイン
-41,HouseUpgradeSwapName,스왑 횟수,Swap Count,交换次数,スワップ回数
+39,HouseUpgradeSpinCoinName,스핀 코인,Spins,旋转币,スピンコイン
+40,HouseUpgradeSpinCoinDesc,연차당 스핀 코인 증가,Spins per year,每年旋转币,年ごとのスピンコイン
+41,HouseUpgradeSwapName,스왑 횟수,Swaps,交换次数,スワップ回数
 42,HouseUpgradeSwapDesc,연차당 스왑 횟수 증가,Swaps per year,每年交换次数,年ごとのスワップ回数
-43,HouseUpgradeStartGoldName,초기 자금,Starting Funds,初始资金,初期資金
+43,HouseUpgradeStartGoldName,초기 자금,Funds,初始资金,初期資金
 44,HouseUpgradeStartGoldDesc,런 시작 골드 증가,Starting gold,开局金币,ラン開始時のゴールド
 45,HouseUpgradeRoyal,옥새,Royal Seal,玉玺,玉璽
-46,HouseUpgradePurchase,강화,Upgrade,强化,強化
-47,HouseUpgradeMaxLevel,MAX LEVEL,MAX LEVEL,已满级,最大レベル
+46,HouseUpgradePurchase,강화,UP,强化,強化
+47,HouseUpgradeMaxLevel,MAX,MAX,已满级,最大レベル
 48,HouseUpgradeLevelFormat,Lv {0}/{1},Lv {0}/{1},Lv {0}/{1},Lv {0}/{1}
 49,HouseUpgradeCostFormat,옥새 {0},{0} Seals,玉玺 {0},玉璽 {0}
 50,HouseYut,윷놀이,Yutnori,柶戏,ユンノリ
@@ -63,3 +63,11 @@ Id,Key,Kr,En,Cn,Jp
 62,SettingsClose,닫기,Close,关闭,閉じる
 63,InGameBattleVictory,승리!,Victory!,胜利!,勝利!
 64,InGameBattleDefeat,패배…,Defeat…,失败…,敗北…
+65,InGameYearStart,{0}연차 시작,Year {0},第{0}年,第{0}年
+66,RunEndHomeFallen,본거지 함락,Home Fallen,本营陷落,本拠地陥落
+67,RunEndCleared,완주!,Cleared!,通关!,完走!
+68,RunEndOutOfSpinCoin,스핀 코인 소진,NO SPINS,旋转币耗尽,スピンコイン切れ
+69,RunEndYear,{0}/{1}연차 도달,YEAR {0}/{1},到达 {0}/{1} 年,{0}/{1}年 到達
+70,RunEndRoyal,옥새 +{0},Royal Seal +{0},玉玺 +{0},玉璽 +{0}
+71,RunEndToTitle,타이틀로,To Title,返回标题,タイトルへ
+72,ActionExtraSpin,추가 스핀 {0}G ({1}회),+SPIN {0}G ({1}),追加旋转 {0}G ({1}次),追加スピン {0}G ({1}回)

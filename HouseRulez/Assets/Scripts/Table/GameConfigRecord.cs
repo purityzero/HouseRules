@@ -31,6 +31,20 @@ public class GameConfigTable : Table<GameConfigRecord>
     // 전력이 0.5 미만이라 소환이 0기인 스핀도 빈손으로 끝나지 않는다.
     public const string KEY_GOLD_PER_POWER = "GoldPerPower";
 
+    // 웨이브 패배의 대가. 두 값이 더해져 본거지 HP에서 빠진다.
+    //  - PerLeak  : 성문을 넘은 적 1마리당. 많이 뚫릴수록 아프다
+    //  - PerDefeat: 아군이 전멸한 패배 자체에 붙는 고정값.
+    //               적이 한 마리도 못 넘고 아군만 전멸하는 판이 있어(그때 leak은 0),
+    //               이게 없으면 패배가 아무 대가 없이 지나간다
+    public const string KEY_HOME_DAMAGE_PER_LEAK = "HomeDamagePerLeak";
+    public const string KEY_HOME_DAMAGE_PER_DEFEAT = "HomeDamagePerDefeat";
+
+    // 추가 스핀 구매(GDD 03장 "추가 스핀 골드 25 → +1, 연차당 2회까지, 가격 고정").
+    // 기본 스핀 3개로는 웨이브 3개를 실패 없이 통과해야만 연차가 넘어간다 —
+    // 패배하면 같은 웨이브를 다시 해야 하므로, 재도전 비용이 곧 이 골드다.
+    public const string KEY_EXTRA_SPIN_GOLD_COST = "ExtraSpinGoldCost";
+    public const string KEY_EXTRA_SPIN_MAX_PER_YEAR = "ExtraSpinMaxPerYear";
+
     public GameConfigTable(List<GameConfigRecord> _listRecord) : base(_listRecord) { }
 
     // 키가 없으면 기본값으로 조용히 흘러가지 않도록 에러를 남긴다 —
