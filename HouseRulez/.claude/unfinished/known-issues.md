@@ -1,4 +1,4 @@
-# 진단만 하고 안 고친 결함 3건
+# 진단만 하고 안 고친 결함 2건
 
 > `.claude/UNFINISHED.md`에서 분할된 파일이다(2026-09-10, 200줄 규칙).
 
@@ -20,41 +20,6 @@
 그래서 만들 때 반드시 "떴다가 실제로 닫히는지"를 실행으로 확인해야 한다.
 
 되살리면 게임 전체가 알림 수단을 갖는다(지금은 [[UIInGameBanner]]가 인게임 전용).
-
----
-
-## 2026-08-31-1 — EventSystem이 씬 전환 중 2개가 된다 (진단만, 미수정)
-
-### 증상
-Play Mode 콘솔에 3건. `There can be only one active Event System.` /
-`There are 2 event systems in the scene.` ×2 (2026-08-31 Codex QA가 덤으로 발견)
-
-### 원인
-`SceneManager.NextScene()`의 커맨드 순서가 **로드 → 언로드**다
-(`Assets/Scripts/Glory/Scene/SceneManager.cs:236-237`):
-```
-Command_Fade(검게)
-Command_LoadScene(새 씬)      ← Additive 로드
-Command_UnloadScene(옛 씬)    ← 그다음에 내림
-```
-`TitleScene.unity`와 `InGameScene.unity`가 **각각 EventSystem을 1개씩** 갖고 있어서,
-두 커맨드 사이 구간에 2개가 동시에 존재한다.
-
-### 지금 당장의 피해는 없다
-그 구간은 화면이 검게 페이드된 상태고 Unity가 하나만 활성으로 둔다.
-**다만 로그가 매 전환마다 쌓이고, 어느 쪽이 활성인지 보장이 없다** — 나중에 전환 중 입력을
-받아야 하는 연출이 생기면 그때 조용히 어긋난다.
-
-### 고치려면
-로드→언로드 순서 자체는 옳다(반대로 하면 빈 화면 프레임이 생긴다). 그래서 **EventSystem을 하나만 두는 쪽**이 맞다.
-- (a) `SceneManager`처럼 씬을 넘어 사는 싱글톤 쪽으로 옮기고 두 씬에서 제거 — 근본 해결.
-  `SceneManager.cs:54`에 이미 "싱글톤 매니저는 씬을 넘어 유지" 개념이 있다
-- (b) 새 씬 로드 직후 중복 EventSystem을 비활성화 — 국소적이지만 미봉책
-- (c) 그대로 둔다
-
-★ **이번 작업과 무관한 기존 결함이다.** 발견만 하고 손대지 않았다.
-
----
 
 ## 2026-08-31-0 — ⚠️ 윷 심볼이 형제 종족보다 3.4배 작게 그려진다 (진단만, 미수정)
 
@@ -89,4 +54,3 @@ Command_UnloadScene(옛 씬)    ← 그다음에 내림
 **관련 파일**: `Assets/Resources/Image/InGame/Actor/yut/*`(미수정), `.claude/asset/yut-reel-frame.md`
 
 ---
-
