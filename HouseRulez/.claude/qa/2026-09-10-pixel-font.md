@@ -56,6 +56,18 @@ PressStart2P로 렌더됐고 □ 0, 콘솔 오류 0이었다.
 UIHouseUpgrade 레벨 140→156, 하우스명 버튼 200/195→224로 넓혔다.
 컴파일 성공, CSV 테이블 14개 검증 통과. Play Mode는 종료했다.
 
+## ACTION 겹침 및 전역 씬 오브젝트 후속 QA
+
+- BattleStartButton을 `x=24`, 폭 184로 조정해 장식 Panel과의 겹침을 제거했다.
+- TitleScene/InGameScene의 EventSystem과 Global Light 2D를 제거하고
+  `PersistentSceneObjects`에서 각각 하나씩 유지하도록 바꿨다.
+- 타이틀 Play 버튼 실제 클릭으로 InGameScene 전환 완료.
+- 인게임 Spin 버튼 실제 클릭: 스핀 코인 `6 → 5`.
+- 전환 전후 EventSystem 1개, Global Light 2D 1개.
+- 라이트 설정: Type Global, Intensity 1, Falloff 0.5, Blend Style 0.
+- EventSystem/Global Light 중복 경고 3종: 0건. 기타 경고·오류도 0건.
+- Play Mode 종료.
+
 ## 추가 스핀 연차 리셋
 
 실제 SpinButton·BattleStartButton·ExtraSpinButton 클릭으로 검증했다.
