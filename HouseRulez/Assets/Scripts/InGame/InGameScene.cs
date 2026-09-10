@@ -1,4 +1,3 @@
-using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -27,7 +26,14 @@ public class InGameScene : BaseScene
     private const string STRING_KEY_BATTLE_DEFEAT = "InGameBattleDefeat";
     private const string STRING_KEY_YEAR_START = "InGameYearStart";
 
-    private Coroutine m_SpinRoutine;
+    // 스핀 흐름은 커맨드 큐로 돈다. 진행 여부는 이 큐가 스스로 답한다 —
+    // 코루틴 핸들처럼 따로 들고 비워줄 상태가 없다.
+    private FlowCommand m_SpinFlow = new FlowCommand();
+
+    private bool m_isSpinning
+    {
+        get { return m_SpinFlow.IsFinished() == false; }
+    }
 
     // 전투가 실제로 시작됐는지. UIInGameBattle.result는 초기값이 Running이라
     // 이 플래그 없이 isRunning만 보면 전투 전에도 Tick이 돌고,
@@ -129,7 +135,7 @@ public class InGameScene : BaseScene
         // 이미 돌고 있거나 전투 중이면 무시한다. 가드가 없던 동안엔 연타할 때마다
         // 코인이 깎이고(SpendSpinCoin이 먼저 돌았다) 돌던 릴이 리셋됐다.
         // 가드는 코인 차감보다 앞에 있어야 한다 — 뒤에 두면 무시된 입력에도 코인이 샌다.
-        if (m_SpinRoutine != null)
+        if (m_isSpinning == true)
             return;
 
         if (m_isBattleActive == true)
@@ -142,7 +148,7 @@ public class InGameScene : BaseScene
 
         RefreshRunUI();
 
-        m_SpinRoutine = StartCoroutine(CoSpinAndStop());
+        StartSpinFlow();
     }
 
     // 전투 시작. 마지막 스핀의 판정 결과를 아군으로, 현재 연차·웨이브의 적을 상대로 세운다.
@@ -163,7 +169,7 @@ public class InGameScene : BaseScene
             return;
         }
 
-        if (m_SpinRoutine != null)
+        if (m_isSpinning == true)
         {
             Logger.Log("[InGameScene] OnBattleStart - 릴이 도는 중이라 무시한다 (기대: 스핀 완료 후 전투)");
             return;
@@ -199,6 +205,9 @@ public class InGameScene : BaseScene
 
     private void Update()
     {
+        // 스핀 흐름은 전투 여부와 무관하게 매 프레임 돌아야 한다.
+        m_SpinFlow.Update();
+
         if (m_isBattleActive == false)
             return;
 
@@ -376,7 +385,15 @@ public class InGameScene : BaseScene
         RefreshRunUI();
     }
 
-    private IEnumerator CoSpinAndStop()
+    // 스핀 흐름. 이 프로젝트의 관례대로 FlowCommand로 조립한다 —
+    // SceneManager·TableManager·UIManager·릴 정착 트윈이 전부 같은 방식이다.
+    //
+    // 코루틴 대신 커맨드를 쓰는 이유:
+    //  1. `Cancel()`이 인터페이스에 있어 중단 처리가 일원화된다.
+    //     코루틴은 핸들을 들고 StopCoroutine을 부르고 그 핸들을 다시 비우는 걸 손으로 챙겨야 한다.
+    //  2. 오브젝트가 꺼져도 조용히 죽지 않는다. 코루틴은 유니티가 강제로 멈추는데,
+    //     그때 핸들이 남아 있으면 "아직 돌고 있다"고 오판하게 된다(실제로 겪은 결함이다).
+    private void StartSpinFlow()
     {
         m_SlotMachine.Spin();
 
@@ -395,39 +412,42 @@ public class InGameScene : BaseScene
         // 예전엔 슬롯머신이 자기 규칙("같은 심볼 3개")으로 반짝여서 7종족 중 6종족에서 거짓 신호였다.
         m_SlotMachine.SetJudgeResult(judgeResult);
 
-        yield return new WaitForSeconds(m_SpinDuration);
+        m_SpinFlow.Clear();
 
-        m_SlotMachine.StopAll();
+        // ① 굴리는 시간이 지나면 정지 신호를 보낸다.
+        m_SpinFlow.Add(new Command_DeltaTime(m_SpinDuration, m_SlotMachine.StopAll));
 
-        // 릴이 실제로 다 멈출 때까지 기다렸다가 결과를 보여준다 —
-        // 정지 전에 띄우면 아직 돌고 있는 릴의 결과를 미리 알려주는 꼴이 된다.
-        //
-        // ★ 고정 시간으로 기다리면 안 된다. 릴 감속은 프레임당 이동량 기반이라
-        //   (`UISlotMachineReel.GetStopSpeed`) 정지 소요가 프레임레이트를 탄다 —
-        //   52fps에서 1.00초, 23fps에서 1.69초로 측정됐다. 예전엔 여기가 고정 0.9초라
-        //   두 경우 모두 릴보다 배너가 먼저 떴다(2026-09-10 QA 계측).
-        yield return new WaitUntil(() => m_SlotMachine.isAllReelIdle);
+        // ② 릴이 **실제로** 다 멈출 때까지 기다린다.
+        //    ★ 고정 시간으로 기다리면 안 된다. 릴 감속은 프레임당 이동량 기반이라
+        //      (`UISlotMachineReel.GetStopSpeed`) 정지 소요가 프레임레이트를 탄다 —
+        //      52fps에서 1.00초, 23fps에서 1.69초로 측정됐다. 예전엔 여기가 고정 0.9초라
+        //      두 경우 모두 릴보다 결과가 먼저 떴다(2026-09-10 QA 계측).
+        m_SpinFlow.Add(new Command_WaitUntil(() => m_SlotMachine.isAllReelIdle));
 
+        // ③ 멈춘 뒤에 결과를 드러낸다.
+        m_SpinFlow.Add(new Command_Delegate(() => OnSpinSettled(judgeResult, grid)));
+    }
+
+    // 릴이 완전히 멈춘 프레임에 한 번 불린다.
+    private void OnSpinSettled(JudgeResult _judgeResult, int[] _grid)
+    {
         // 무엇이 성립했는지 크게 한 번 알린다. 요약 패널은 접혀 있어서 안 열면 안 보이는데,
         // 그러면 "왜 이만큼 소환됐지"를 배울 기회가 매 스핀 그냥 지나간다.
         // 무판정일 때는 띄우지 않는다 — 전력이 0인 스핀이 화면을 덮을 이유가 없다.
-        //
-        // 릴이 멈춘 뒤에 띄운다. 예전엔 StopAll() 직후(위 대기 전)에 띄워서
-        // 아직 돌고 있는 릴의 족보 이름을 먼저 알려주는 스포일러가 됐다.
-        if (judgeResult != null && judgeResult.Power > 0f && m_Banner != null)
-            m_Banner.Show(judgeResult.PatternName);
+        if (_judgeResult != null && _judgeResult.Power > 0f && m_Banner != null)
+            m_Banner.Show(_judgeResult.PatternName);
 
-        m_LastJudgeResult = judgeResult;
-        m_LastGrid = grid;
+        m_LastJudgeResult = _judgeResult;
+        m_LastGrid = _grid;
 
         // 당첨 배당. 소환과 별개로 골드가 나온다 — 전력이 소환 1기에 못 미치는 스핀도 빈손이 아니다.
-        if (judgeResult != null)
+        if (_judgeResult != null)
         {
-            m_RunData.AwardGoldByPower(judgeResult.Power);
+            m_RunData.AwardGoldByPower(_judgeResult.Power);
 
             // 무료 스핀(윷·모). 코인을 먼저 돌려주고 그다음에 화면을 그린다 —
             // 순서가 뒤집히면 방금 돌아온 칸이 아직 비어 있는 상태로 강조된다.
-            int bonusSpin = m_RunData.AddSpinCoin(judgeResult.bonusSpin);
+            int bonusSpin = m_RunData.AddSpinCoin(_judgeResult.bonusSpin);
 
             RefreshRunUI();
 
@@ -435,10 +455,8 @@ public class InGameScene : BaseScene
                 ShowBonusSpin();
         }
 
-        if (m_Field != null && judgeResult != null)
-            m_Field.ShowSummon(judgeResult, grid, m_SlotMachine.spritePool);
-
-        m_SpinRoutine = null;
+        if (m_Field != null && _judgeResult != null)
+            m_Field.ShowSummon(_judgeResult, _grid, m_SlotMachine.spritePool);
     }
 
     // 무료 스핀을 화면에 알린다. 코인 칸이 하나 돌아오는 게 전부라 그냥 두면 눈에 안 띈다.

@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -25,8 +23,7 @@ public class UIInGameBanner : MonoBehaviour
 
     private Sequence m_Sequence;
 
-    private readonly List<string> m_ListPendingMessage = new List<string>();
-    private Coroutine m_PlayRoutine;
+    private readonly FlowCommand m_Flow = new FlowCommand();
 
     private void Awake()
     {
@@ -37,6 +34,9 @@ public class UIInGameBanner : MonoBehaviour
 
     // 한 스핀에서 족보 이름과 무료 스핀 알림이 잇달아 온다(윷·모).
     // 덮어쓰면 앞의 것이 뜨자마자 지워져 아예 안 보이므로, 받은 순서대로 한 줄씩 재생한다.
+    //
+    // 큐는 FlowCommand가 맡는다 — 이 프로젝트의 관례이고, 코루틴처럼
+    // 오브젝트가 꺼질 때 조용히 죽어 핸들만 남는 문제가 없다.
     public void Show(string _message)
     {
         if (m_CanvasGroup == null || m_MessageText == null)
@@ -45,25 +45,14 @@ public class UIInGameBanner : MonoBehaviour
             return;
         }
 
-        m_ListPendingMessage.Add(_message);
-
-        if (m_PlayRoutine == null)
-            m_PlayRoutine = StartCoroutine(CoPlayPendingMessages());
+        // 재생 + 그 연출이 끝날 때까지 대기. 큐에 쌓이면 앞의 것이 끝난 뒤에 시작된다.
+        m_Flow.Add(new Command_Delegate(() => PlayMessage(_message)));
+        m_Flow.Add(new Command_DeltaTime(m_FadeInDuration + m_HoldDuration + m_FadeOutDuration, null));
     }
 
-    private IEnumerator CoPlayPendingMessages()
+    private void Update()
     {
-        while (m_ListPendingMessage.Count > 0)
-        {
-            string message = m_ListPendingMessage[0];
-            m_ListPendingMessage.RemoveAt(0);
-
-            PlayMessage(message);
-
-            yield return new WaitForSeconds(m_FadeInDuration + m_HoldDuration + m_FadeOutDuration);
-        }
-
-        m_PlayRoutine = null;
+        m_Flow.Update();
     }
 
     private void PlayMessage(string _message)
@@ -99,10 +88,8 @@ public class UIInGameBanner : MonoBehaviour
         // 트윈이 살아 있는 채로 오브젝트가 꺼지면 다음에 켤 때 중간 알파로 남는다.
         KillSequence();
 
-        // 오브젝트가 꺼지면 코루틴은 유니티가 알아서 멈춘다. 그때 m_PlayRoutine을 안 비우면
-        // 다시 켰을 때 "이미 돌고 있다"고 판단해 재생을 영영 시작하지 않는다.
-        m_PlayRoutine = null;
-        m_ListPendingMessage.Clear();
+        // 남은 알림은 버린다. 화면이 꺼진 사이의 알림을 다시 켤 때 몰아 보여줄 이유가 없다.
+        m_Flow.Cancel();
 
         if (m_CanvasGroup != null)
             m_CanvasGroup.alpha = 0f;
