@@ -9,3 +9,7 @@ Id,Key,Value
 8,RoyalClearBonus,6
 9,WaveBasePower,6
 10,GoldPerPower,2
+11,HomeDamagePerLeak,1
+12,HomeDamagePerDefeat,1
+13,ExtraSpinGoldCost,25
+14,ExtraSpinMaxPerYear,2

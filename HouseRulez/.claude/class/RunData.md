@@ -96,3 +96,53 @@ HP 감소(선전포고 패배 −2), 연차 진행, 골드 증감, 판돈 변경
 
 스핀은 항상 코인을 먼저 쓰므로(`SpendSpinCoin`) 지급 시점엔 최대치 미만이라
 실제로 상한이 걸릴 일은 드물다. 그래서 **"무료 스핀 = 방금 쓴 코인을 돌려준다"**로 읽힌다.
+
+---
+
+## 2026-09-10-0 — 런 진행·종료·추가 스핀
+
+### `AdvanceWave()` — 반환값 신설 + 연차 자원 리셋
+
+```csharp
+// 전
+public void AdvanceWave()
+{
+    m_WaveIndex++;
+    if (m_WaveIndex <= WAVE_PER_YEAR) return;
+    m_WaveIndex = 1;
+    m_Year++;
+}
+
+// 후
+public bool AdvanceWave()   // 반환: 연차가 넘어갔는가
+{
+    m_WaveIndex++;
+    if (m_WaveIndex <= WAVE_PER_YEAR) return false;
+    m_WaveIndex = 1;
+    m_Year++;
+    m_SpinCoin = m_SpinCoinMax;      // GDD 03장 "연차 시작 지급, 이월 없음"
+    m_SwapCount = m_SwapCountMax;
+    m_ExtraSpinBought = 0;           // 구매 횟수도 연차 단위
+    return true;
+}
+```
+
+**★ 이 리셋이 없어서 2연차 진입 즉시 진행이 막혔다.** 코인 3개 = 웨이브 3개라
+1연차를 마치면 코인이 0인데 회복 경로가 없었다(기존 TODO 주석이 정확히 이 자리를 지목하고 있었다).
+반환값은 호출부가 **연차 전환 연출을 그 프레임에 띄우는 데** 쓴다. 호출부가 0곳이라 시그니처 변경이 안전했다.
+
+### 추가 스핀 구매 (신설)
+
+```csharp
+public bool IsExtraSpinBuyable()   // 판정 — 연차당 횟수와 골드를 둘 다 본다
+public bool BuyExtraSpin()         // 실행 — 골드 -25, 코인 +1, 구매횟수 +1
+```
+
+메서드 이름은 [[CODE]]의 「bool 반환 메서드」 규칙을 따랐다 —
+**판정은 `Is`, 실행+성패 반환은 동사.** 처음 `CanBuyExtraSpin()`으로 썼다가 정정했다(2026-09-10).
+
+### 검증
+- ✅ 연차 전환 시 코인·스왑이 최대치로 회복됨(Codex Play Mode)
+- ✅ 골드 부족 시 구매 차단, 클릭해도 값 불변
+- 🐛 **구매 버튼이 계속 비활성이던 결함은 이 클래스가 아니라 [[InGameScene]]의 UI 갱신 누락이었다** —
+  골드를 지급한 뒤 `m_Action.Refresh()`를 안 불렀다. `RefreshRunUI()` 헬퍼로 묶어 해결.

@@ -21,6 +21,11 @@ public class RunData
     private int m_BattleSpeed;
     private int m_BattleSpeedFast;
 
+    // 추가 스핀 구매(GDD 03장). 연차당 횟수 제한이 있고 가격은 고정이다.
+    private int m_ExtraSpinBought;
+    private int m_ExtraSpinMax;
+    private int m_ExtraSpinGoldCost;
+
     public int homeHp => m_HomeHp;
     public int homeHpMax => m_HomeHpMax;
     public int year => m_Year;
@@ -35,6 +40,9 @@ public class RunData
     public int swapCountMax => m_SwapCountMax;
     public int betLevel => m_BetLevel;
     public int battleSpeed => m_BattleSpeed;
+    public int extraSpinBought => m_ExtraSpinBought;
+    public int extraSpinMax => m_ExtraSpinMax;
+    public int extraSpinGoldCost => m_ExtraSpinGoldCost;
 
     public void Init()
     {
@@ -58,6 +66,8 @@ public class RunData
         m_SwapCountMax = configTable.GetValue(GameConfigTable.KEY_SWAP_COUNT_PER_YEAR, 2)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_SWAP_COUNT_PER_YEAR);
         m_BattleSpeedFast = configTable.GetValue(GameConfigTable.KEY_BATTLE_SPEED_FAST, 2);
+        m_ExtraSpinMax = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR, 2);
+        m_ExtraSpinGoldCost = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_GOLD_COST, 25);
 
         m_HomeHp = m_HomeHpMax;
         m_Year = 1;
@@ -68,6 +78,29 @@ public class RunData
         m_SwapCount = m_SwapCountMax;
         m_BetLevel = 0;
         m_BattleSpeed = 1;
+        m_ExtraSpinBought = 0;
+    }
+
+    // 추가 스핀을 살 수 있는가. 연차당 횟수와 골드를 둘 다 본다.
+    public bool IsExtraSpinBuyable()
+    {
+        if (m_ExtraSpinBought >= m_ExtraSpinMax)
+            return false;
+
+        return m_Gold >= m_ExtraSpinGoldCost;
+    }
+
+    // 골드로 스핀 코인 1개를 산다. 가격은 고정이다(GDD 03장).
+    public bool BuyExtraSpin()
+    {
+        if (IsExtraSpinBuyable() == false)
+            return false;
+
+        m_Gold -= m_ExtraSpinGoldCost;
+        m_SpinCoin++;
+        m_ExtraSpinBought++;
+
+        return true;
     }
 
     // 스핀 1회에 코인 1개. 판돈으로 코인을 쓰는 규칙(GDD 05장)은 판정기가 붙은 뒤에 이어진다.
@@ -122,18 +155,28 @@ public class RunData
     }
 
     // 웨이브를 하나 끝냈다. 3개를 다 치르면 다음 연차로 넘어간다.
-    // TODO: 연차 전환 시 스핀 코인·스왑 회복과 상점/외교 단계는 그 단계가 생길 때 여기에 붙인다.
-    public void AdvanceWave()
+    // 반환값은 "연차가 넘어갔는가" — 호출부가 연차 전환 연출을 그 프레임에 띄우는 데 쓴다.
+    public bool AdvanceWave()
     {
         m_WaveIndex++;
         if (m_WaveIndex <= WAVE_PER_YEAR)
-            return;
+            return false;
 
         m_WaveIndex = 1;
         m_Year++;
+
+        // GDD 03장 "연차 시작 시 지급, 이월 없음" — 더하지 않고 최대치로 되돌린다.
+        // 이 리셋이 없으면 1연차 스핀 코인을 다 쓴 채 2연차에 들어가 스핀 자체가 막힌다.
+        m_SpinCoin = m_SpinCoinMax;
+        m_SwapCount = m_SwapCountMax;
+
+        // 추가 스핀 구매 횟수도 연차 단위다("연차당 2회까지").
+        m_ExtraSpinBought = 0;
+
+        return true;
     }
 
-    // 본거지가 맞았다. 0이 되면 런이 끝난다(종료 처리는 아직 없다).
+    // 본거지가 맞았다. 0이 되면 런이 끝난다(종료 판정은 InGameScene이 한다).
     public void TakeHomeDamage(int _amount)
     {
         if (_amount <= 0)

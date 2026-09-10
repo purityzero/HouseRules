@@ -25,6 +25,7 @@ public class InGameScene : BaseScene
     private const string STRING_KEY_BONUS_SPIN = "InGameBonusSpin";
     private const string STRING_KEY_BATTLE_VICTORY = "InGameBattleVictory";
     private const string STRING_KEY_BATTLE_DEFEAT = "InGameBattleDefeat";
+    private const string STRING_KEY_YEAR_START = "InGameYearStart";
 
     private Coroutine m_SpinRoutine;
 
@@ -32,6 +33,9 @@ public class InGameScene : BaseScene
     // 이 플래그 없이 isRunning만 보면 전투 전에도 Tick이 돌고,
     // CheckResult가 "적이 하나도 없다"를 승리로 읽어 유령 승리가 난다.
     private bool m_isBattleActive;
+
+    // 런이 닫혔는가. 옥새 이중 지급과 종료 후 조작을 함께 막는다.
+    private bool m_isRunEnded;
 
     // 전투 시작이 마지막 스핀 결과를 쓴다. 스핀을 안 돌렸으면 전투가 성립하지 않는다.
     private JudgeResult m_LastJudgeResult;
@@ -111,11 +115,15 @@ public class InGameScene : BaseScene
 
         m_Action.OnBattleStart += OnBattleStart;
         m_Action.OnBattleSpeed += OnBattleSpeed;
+        m_Action.OnBuyExtraSpin += OnBuyExtraSpin;
     }
 
     public void OnClickSpinButton()
     {
         if (m_SlotMachine == null)
+            return;
+
+        if (m_isRunEnded == true)
             return;
 
         // 이미 돌고 있거나 전투 중이면 무시한다. 가드가 없던 동안엔 연타할 때마다
@@ -132,8 +140,7 @@ public class InGameScene : BaseScene
         if (m_RunData.SpendSpinCoin() == false)
             return;
 
-        if (m_Hud != null)
-            m_Hud.Refresh();
+        RefreshRunUI();
 
         m_SpinRoutine = StartCoroutine(CoSpinAndStop());
     }
@@ -146,6 +153,9 @@ public class InGameScene : BaseScene
             Logger.Error("[InGameScene] OnBattleStart Failed! UIInGameBattle 미연결 (기대: 씬에서 직렬화 연결)");
             return;
         }
+
+        if (m_isRunEnded == true)
+            return;
 
         if (m_isBattleActive == true)
         {
@@ -204,27 +214,107 @@ public class InGameScene : BaseScene
 
     // 전투가 끝난 프레임에 한 번 불린다.
     //
-    // ⚠️ 런 종료(본거지 HP 0 / 최종 연차 완주)는 여기서 처리하지 않는다 — 기획 스펙 대기 중이다.
-    //    「패배해도 웨이브를 넘기지 않는다」도 잠정 결정이며 스펙이 나오면 재판정한다.
-    //    RunData.GetRoyalReward()의 호출부가 아직 없는 것도 같은 이유다.
+    // 웨이브 진행 규칙은 「패배하면 같은 웨이브를 다시 한다」(기획 결정 2026-09-10, run-end-flow.html Q3-B).
+    // 재도전에는 스핀 코인이 든다 — 그래서 코인이 곧 연차당 실패 허용 횟수이고,
+    // 코인이 떨어지면 그 자리에서 런이 닫힌다. 안 그러면 진행도 종료도 안 되는 교착이 된다.
     private void OnBattleFinished()
     {
-        if (m_Battle.result == eBattleResult.Victory)
-            m_RunData.AdvanceWave();
-        else
-            m_RunData.TakeHomeDamage(m_Battle.homeHit);
+        eBattleResult result = m_Battle.result;
+        int leakCount = m_Battle.homeHit;
 
-        if (m_Hud != null)
-            m_Hud.Refresh();
-
-        ShowBattleResult();
-
-        // 같은 스핀 결과로 전투를 두 번 시작하지 못하게 비운다.
+        // 이 판정 결과는 소진됐다. 안 비우면 같은 병력으로 전투를 다시 걸 수 있다.
         m_LastJudgeResult = null;
         m_LastGrid = null;
+
+        m_RunData.TakeHomeDamage(GetHomeDamage(result, leakCount));
+
+        ShowBannerByKey((result == eBattleResult.Victory) ? STRING_KEY_BATTLE_VICTORY : STRING_KEY_BATTLE_DEFEAT);
+
+        RefreshRunUI();
+
+        if (m_RunData.homeHp <= 0)
+        {
+            EndRun(eRunEndReason.HomeFallen);
+            return;
+        }
+
+        // 최종 연차의 마지막 웨이브는 넘어갈 다음 웨이브가 없다 — 승패와 무관하게 런이 닫힌다.
+        bool isFinalWave = (m_RunData.year >= m_RunData.yearMax && m_RunData.waveIndex >= RunData.WAVE_PER_YEAR);
+        if (isFinalWave == true && result == eBattleResult.Victory)
+        {
+            EndRun(eRunEndReason.Cleared);
+            return;
+        }
+
+        if (result == eBattleResult.Victory)
+            AdvanceToNextWave();
+
+        // 코인이 떨어져도 골드로 살 수 있으면 아직 끝이 아니다 —
+        // 살 수단까지 없어야 비로소 더 진행할 방법이 없는 것이다.
+        if (m_RunData.spinCoin <= 0 && m_RunData.IsExtraSpinBuyable() == false)
+            EndRun(eRunEndReason.OutOfSpinCoin);
     }
 
-    private void ShowBattleResult()
+    // 패배의 대가 = 성문을 넘은 적 수 × PerLeak + (패배면) PerDefeat.
+    // 고정분이 있어야 적이 한 마리도 안 넘고 아군만 전멸한 판도 대가를 치른다.
+    private int GetHomeDamage(eBattleResult _result, int _leakCount)
+    {
+        GameConfigTable configTable = TableManager.instance.GetTable<GameConfigTable>();
+        if (configTable == null)
+        {
+            Logger.Error("[InGameScene] GetHomeDamage Failed! GameConfigTable not found (기대: TableManager에 등록됨)");
+            return _leakCount;
+        }
+
+        int damage = _leakCount * configTable.GetValue(GameConfigTable.KEY_HOME_DAMAGE_PER_LEAK, 1);
+
+        if (_result == eBattleResult.Defeat)
+            damage += configTable.GetValue(GameConfigTable.KEY_HOME_DAMAGE_PER_DEFEAT, 1);
+
+        return damage;
+    }
+
+    private void AdvanceToNextWave()
+    {
+        bool isYearAdvanced = m_RunData.AdvanceWave();
+        if (isYearAdvanced == false)
+            return;
+
+        // 연차가 넘어가며 스핀 코인·스왑이 회복됐다. 화면에 안 알리면
+        // 코인이 왜 늘었는지 알 수 없다 — HUD 핍만으로는 놓치기 쉽다.
+        RefreshRunUI();
+
+        ShowYearStartBanner(m_RunData.year);
+
+        // ▼ 외교 단계는 여기 들어온다(GDD 02장 STEP 05 / 09장 "3연차부터 개방").
+        //   기획 스펙이 자리만 정해두고 구현은 별도 작업으로 남겼다.
+    }
+
+    // 런 종료. 옥새는 여기서 한 번만 지급된다 — 멱등 가드가 이중 지급을 막는다.
+    private void EndRun(eRunEndReason _reason)
+    {
+        if (m_isRunEnded == true)
+            return;
+
+        m_isRunEnded = true;
+
+        int royal = m_RunData.GetRoyalReward();
+        PlayerManager.instance.AddRoyal(royal);
+
+        Logger.Log("InGameScene", $"런 종료 - 사유 {_reason} / 도달 {m_RunData.year}/{m_RunData.yearMax}연차 / 옥새 +{royal}", Logger.eColor.Green);
+
+        UIRunResult popup = UIManager.instance.Get<UIRunResult>();
+        if (popup == null)
+        {
+            Logger.Error("[InGameScene] EndRun Failed! UIRunResult 생성 실패 (기대: UITable.csv에 행 + Resources/Prefabs/UI/UIRunResult 프리팹)");
+            return;
+        }
+
+        popup.Apply(_reason, m_RunData.year, m_RunData.yearMax, royal);
+    }
+
+    // 연차 문구만 포맷 인자가 있다("{0}연차 시작").
+    private void ShowYearStartBanner(int _year)
     {
         if (m_Banner == null)
             return;
@@ -232,20 +322,58 @@ public class InGameScene : BaseScene
         StringTable stringTable = TableManager.instance.GetTable<StringTable>();
         if (stringTable == null)
         {
-            Logger.Error("[InGameScene] ShowBattleResult Failed! StringTable not found (기대: TableManager에 등록됨)");
+            Logger.Error($"[InGameScene] ShowYearStartBanner Failed! StringTable not found - {STRING_KEY_YEAR_START} (기대: TableManager에 등록됨)");
             return;
         }
 
-        string messageKey = (m_Battle.result == eBattleResult.Victory) ? STRING_KEY_BATTLE_VICTORY : STRING_KEY_BATTLE_DEFEAT;
-        m_Banner.Show(stringTable.GetString(messageKey));
+        m_Banner.Show(stringTable.GetString(STRING_KEY_YEAR_START, _year));
+    }
+
+    // 런 상태를 바꾼 뒤엔 HUD와 ACTION을 항상 함께 갱신한다.
+    // 골드는 HUD에만 뜨는 값이 아니다 — ACTION의 추가 스핀 버튼도 골드를 보고 활성/비활성을 정한다.
+    // 예전엔 스핀 뒤 HUD만 갱신해서, 골드가 쌓여도 버튼이 계속 비활성으로 남아
+    // 코인 0인데 살 수도 없는 교착이 났다(2026-09-10 QA).
+    private void RefreshRunUI()
+    {
+        if (m_Hud != null)
+            m_Hud.Refresh();
+
+        if (m_Action != null)
+            m_Action.Refresh();
+    }
+
+    private void ShowBannerByKey(string _key)
+    {
+        if (m_Banner == null)
+            return;
+
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        if (stringTable == null)
+        {
+            Logger.Error($"[InGameScene] ShowBannerByKey Failed! StringTable not found - {_key} (기대: TableManager에 등록됨)");
+            return;
+        }
+
+        m_Banner.Show(stringTable.GetString(_key));
+    }
+
+    // 골드로 스핀 코인을 산다(GDD 03장). 재도전 비용이 곧 이 골드다.
+    private void OnBuyExtraSpin()
+    {
+        if (m_isRunEnded == true)
+            return;
+
+        if (m_RunData.BuyExtraSpin() == false)
+            return;
+
+        RefreshRunUI();
     }
 
     private void OnBattleSpeed()
     {
         m_RunData.ToggleBattleSpeed();
 
-        if (m_Action != null)
-            m_Action.Refresh();
+        RefreshRunUI();
     }
 
     private IEnumerator CoSpinAndStop()
@@ -301,8 +429,7 @@ public class InGameScene : BaseScene
             // 순서가 뒤집히면 방금 돌아온 칸이 아직 비어 있는 상태로 강조된다.
             int bonusSpin = m_RunData.AddSpinCoin(judgeResult.bonusSpin);
 
-            if (m_Hud != null)
-                m_Hud.Refresh();
+            RefreshRunUI();
 
             if (bonusSpin > 0)
                 ShowBonusSpin();

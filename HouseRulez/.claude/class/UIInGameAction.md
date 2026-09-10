@@ -109,3 +109,44 @@ HUD는 `HorizontalLayoutGroup`이 있어 폭이 늘면 뒤 항목이 알아서 �
 
 라벨↔배속 버튼도 전부 겹침 0. 실제 문자열 `스왑 2`~`스왑 5` 확인(키 이름 노출 없음).
 HUD 회귀도 같이 확인 — HP 10칸(160–454) ↔ YEAR(470–690) 간격 16, 겹침 0.
+
+---
+
+## 2026-09-10-0 — 추가 스핀 구매 버튼 추가
+
+### 무엇이 늘었나
+| 항목 | 내용 |
+|---|---|
+| 직렬화 | `m_ExtraSpinButton`(Button) · `m_ExtraSpinText`(TMP) |
+| 이벤트 | `public event Action OnBuyExtraSpin` — [[InGameScene]]이 받는다 |
+| 핸들러 | `OnClickExtraSpinButton()` |
+| 갱신 | `RefreshExtraSpin()` — 라벨(가격 + 남은 횟수)과 `interactable`을 함께 정한다 |
+
+라벨은 `ActionExtraSpin` 키(`추가 스핀 {0}G ({1}회)`)로 **코드가 매 `Refresh()`마다 채운다.**
+정적 라벨이 아니므로 [[UIText]] 컴포넌트를 붙이지 않는다.
+
+**남은 횟수를 가격과 같이 보여준다** — 가격만 있으면 "몇 번 더 살 수 있는지"를 알 수 없다.
+살 수 없는 상태(횟수 소진 / 골드 부족)는 버튼을 꺼서 알린다.
+
+### ★ 이 클래스는 자기 갱신 시점을 모른다
+`interactable`이 **골드**에 걸려 있는데, 골드는 이 클래스가 아니라 [[InGameScene]]이 바꾼다.
+그래서 골드가 바뀔 때마다 씬이 `Refresh()`를 불러줘야 한다.
+
+2026-09-10 QA에서 **골드가 65까지 쌓였는데 버튼이 계속 비활성**인 결함이 나왔다.
+원인은 씬이 스핀 후 `m_Hud.Refresh()`만 부르고 이쪽을 빠뜨린 것.
+씬 쪽에 `RefreshRunUI()`(HUD + ACTION 동시)를 만들어 구조적으로 막았다.
+
+→ **이 UI에 런 상태를 읽는 요소를 추가할 때는 그 값을 바꾸는 쪽이 `Refresh()`를 부르는지 함께 확인할 것.**
+
+### 씬 배치 (`InGameScene.unity` / `Action` 폭 1044)
+```
+Panel              [ -24 ~   24]
+BattleStartButton  [  24 ~  312]
+SwapPipRoot        [ 336 ~  408]
+SwapText           [ 424 ~  584]
+ExtraSpinButton    [ 588 ~  752]   ← 신규 (164×72, auto-size 18~30)
+BattleSpeedButton  [ 756 ~ 1020]
+```
+처음엔 배속 버튼을 복제해 264px로 놨다가 `SwapText`와 **476~584 구간이 겹쳤다.**
+빈 구간이 172px뿐이라 폭을 164로 줄여 넣었다. 라벨은 auto-size로 18.25pt에서 163.61px에 들어간다(실측).
+→ **눈으로 못 보는 편집은 좌표 구간을 계산해 겹침을 수치로 확인할 것.**

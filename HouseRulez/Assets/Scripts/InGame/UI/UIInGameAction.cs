@@ -17,6 +17,10 @@ public class UIInGameAction : MonoBehaviour
     [SerializeField] private Button m_BattleSpeedButton;
     [SerializeField] private TextMeshProUGUI m_BattleSpeedText;
 
+    // 추가 스핀 구매(GDD 03장 — 골드 25로 +1, 연차당 2회까지, 가격 고정).
+    [SerializeField] private Button m_ExtraSpinButton;
+    [SerializeField] private TextMeshProUGUI m_ExtraSpinText;
+
     [SerializeField] private float m_PipSpacing = 8f;
     [SerializeField] private Color m_PipFilledColor = new Color(0.9647059f, 0.9607843f, 0.9411765f, 1f);
     [SerializeField] private Color m_PipEmptyColor = new Color(0.22352941f, 0.24313726f, 0.30588236f, 1f);
@@ -30,6 +34,7 @@ public class UIInGameAction : MonoBehaviour
 
     public event Action OnBattleStart;
     public event Action OnBattleSpeed;
+    public event Action OnBuyExtraSpin;
 
     private void Awake()
     {
@@ -38,6 +43,9 @@ public class UIInGameAction : MonoBehaviour
 
         if (m_BattleSpeedButton != null)
             m_BattleSpeedButton.onClick.AddListener(OnClickBattleSpeedButton);
+
+        if (m_ExtraSpinButton != null)
+            m_ExtraSpinButton.onClick.AddListener(OnClickExtraSpinButton);
     }
 
     public void Apply(RunData _runData)
@@ -75,6 +83,22 @@ public class UIInGameAction : MonoBehaviour
 
         SetText(m_SwapText, stringTable.GetString("ActionSwap", m_RunData.swapCount));
         SetText(m_BattleSpeedText, stringTable.GetString("ActionBattleSpeed", m_RunData.battleSpeed));
+
+        RefreshExtraSpin(stringTable);
+    }
+
+    // 남은 구매 횟수와 가격을 같이 보여준다 — 가격만 있으면 "몇 번 더 살 수 있는지"를 알 수 없다.
+    // 살 수 없는 상태(횟수 소진 / 골드 부족)는 버튼을 꺼서 알린다.
+    private void RefreshExtraSpin(StringTable _stringTable)
+    {
+        int remain = m_RunData.extraSpinMax - m_RunData.extraSpinBought;
+        if (remain < 0)
+            remain = 0;
+
+        SetText(m_ExtraSpinText, _stringTable.GetString("ActionExtraSpin", m_RunData.extraSpinGoldCost, remain));
+
+        if (m_ExtraSpinButton != null)
+            m_ExtraSpinButton.interactable = m_RunData.IsExtraSpinBuyable();
     }
 
     private void BuildSwapPipList(int _count)
@@ -153,6 +177,11 @@ public class UIInGameAction : MonoBehaviour
     public void OnClickBattleStartButton()
     {
         OnBattleStart?.Invoke();
+    }
+
+    public void OnClickExtraSpinButton()
+    {
+        OnBuyExtraSpin?.Invoke();
     }
 
     public void OnClickBattleSpeedButton()
