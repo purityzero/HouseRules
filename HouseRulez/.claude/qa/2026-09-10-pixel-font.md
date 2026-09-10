@@ -27,50 +27,34 @@
 재리임포트 후 별도 Play Mode 스모크에서 TitleScene 활성 글자 29/29가
 PressStart2P로 렌더됐고 □ 0, 콘솔 오류 0이었다.
 
-## 오버플로 후보
+## 오버플로 재검증
 
-`preferredWidth > rect.width`, `isTextOverflowing`, `isTextTruncated` 중 하나라도
-성립한 항목이다. 레이아웃과 폰트 크기는 사용자 판단 대상으로 남겨 수정하지 않았다.
+영문 문구 축약과 레이아웃 조정 후 65곳을 4개 언어로 다시 측정했다.
+판정은 `preferredWidth > rect.width + 0.5`, `isTextOverflowing`,
+`isTextTruncated` 중 하나라도 성립하는 경우로 했다.
 
-### TitleScene 및 팝업
+| 화면 | English | Chinese | Japanese | Korean |
+|---|---:|---:|---:|---:|
+| TitleScene 및 팝업 | 0 | 0 | 0 | 0 |
+| InGameScene (활성 TMP 13곳) | 0 | 0 | 0 | 0 |
+| UIRunResult (TMP 4곳) | 0 | 0 | 0 | 0 |
 
-| 경로/텍스트 | 필요 폭 | 실제 폭 |
+남은 오버플로는 0곳이다. 신규 □도 0이며, 중국어의 기존 `柶` 결손
+2표시만 TitleScene 선택/업그레이드 UI에서 재현됐다.
+
+### ACTION 영역 재배치
+
+| 요소 | 변경 전 x 구간 | 변경 후 x 구간 |
 |---|---:|---:|
-| Menu/HouseSelectButton/Text — Select House | 408.01 | 340 |
-| UISetting/BgmLabel — BGM Volume | 270.01 | 240 |
-| UISetting/SfxLabel — SFX Volume | 270.01 | 240 |
-| UISetting/FpsLabel — Frame Rate | 270.01 | 240 |
-| UIHouseSelect/HouseButton/Name — Mahjong·Yutnori | 224.01 | 200 |
-| UIHouseSelect/StatBars/Variance — Variance | 208.01 | 160 |
-| UIHouseSelect/StatBars/Ceiling — Ceiling | 182.01 | 160 |
-| UIHouseSelect/StatBars/Learning — Learning | 208.01 | 160 |
-| UIHouseUpgrade/HouseButton/Name — Mahjong·Yutnori | 189.01 | 175 |
-| UIHouseUpgrade/Node/Name — Spin Coins·Swap Count | 300.01 | 220 |
-| UIHouseUpgrade/Node/Name — Starting Funds | 420.01 | 220 |
-| UIHouseUpgrade/Node/Desc — Spin coins per year | 418.01 | 340 |
-| UIHouseUpgrade/Node/Level — Lv 0/2·Lv 0/3·Lv 3/3 | 156.01 | 140 |
-| UIHouseUpgrade/Node/UpgradeButton — Upgrade | 182.01 | 160 |
-| UIHouseUpgrade/Node/MaxText — MAX LEVEL | 234.01 | 160 |
+| BattleStartButton | 24–312 | 0–184 |
+| SwapPipRoot | 336–408 | 192–264 (y=20) |
+| SwapText | 424–584 | 192–336 (y=-20) |
+| ExtraSpinButton | 588–752 | 344–776 |
+| BattleSpeedButton | 756–1020 | 780–1044 |
 
-### InGameScene
-
-| 언어/경로/텍스트 | 필요 폭 | 실제 폭 |
-|---|---|---:|
-| English Hud/GoldLabel — Gold | 96.01 | 90 |
-| English Hud/SpinCoinLabel — Spin Coin | 216.01 | 150 |
-| 공통 Hud/YearText — YEAR 01/12 | 240.01 | 220 |
-| English ExtraSpinButton — Extra Spin 25G (2 left) | 690.01 | 164 |
-| Korean ExtraSpinButton — 추가 스핀 25G (2회) | 420.01 | 164 |
-| Chinese ExtraSpinButton — 追加旋转 25G (2次) | 390.01 | 164 |
-| Japanese Hud/GoldLabel — ゴールド | 96.01 | 90 |
-| Japanese ExtraSpinButton — 追加スピン 25G (2回) | 420.01 | 164 |
-
-### UIRunResult
-
-| 언어/경로/텍스트 | 필요 폭 | 실제 폭 |
-|---|---:|---:|
-| English TitleText — Out of Spin Coins | 884.01 | 540 |
-| English YearText — Reached Year 2/12 | 578.01 | 540 |
+추가로 YearText 220→240, GoldLabel 90→96,
+UIHouseUpgrade 레벨 140→156, 하우스명 버튼 200/195→224로 넓혔다.
+컴파일 성공, CSV 테이블 14개 검증 통과. Play Mode는 종료했다.
 
 ## 추가 스핀 연차 리셋
 
@@ -78,4 +62,3 @@ PressStart2P로 렌더됐고 □ 0, 콘솔 오류 0이었다.
 Year 1에서 추가 스핀을 2/2회 산 뒤 3개 웨이브를 통과했고,
 Year 2 진입 직후 `extraSpinBought 2 → 0`, `spinCoin 6`, `gold 94`,
 구매 버튼 활성 상태를 확인했다.
-
