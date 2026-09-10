@@ -13,7 +13,6 @@
 | 브랜치 | HEAD | main 병합 |
 |---|---|---|
 | `main` | 최신 원격과 일치 | — |
-| `work/2026-08-28-ingame-canvas-fit` | `eac6d6e` | ❌ **보류** — 충돌 82곳 + 주제 중복(바로 아래 「2026-09-09 병합」 참고) |
 
 ### 2026-09-10 QA·Git 마무리
 
@@ -43,11 +42,9 @@ Play Mode QA를 통과해 `07d6a1f`로 커밋했다. 배너 상세는 `archive/2
   상세는 `archive/2026-09-09-battle-motion.md` 참고.
 - `work/2026-08-29-upgrade-content`(`93846fb`)는 enemy-art에 포함돼 있어 main에 함께 들어갔다.
   **로컬·원격 모두 삭제 완료.**
-- `work/2026-08-28-ingame-canvas-fit`(`eac6d6e`)은 **건드리지 않았다.**
-  같은 `Assets/Scenes/InGameScene.unity`를 건드려 **병합 시 충돌 82곳**이고,
-  enemy-art의 `4d71c80 인게임 화면이 캔버스를 못 채우던 문제와 HUD 겹침 수정`이
-  **같은 주제를 이미 고친 것으로 보인다.** 병합 전에 두 커밋의 diff를 대조해
-  실제로 중복인지부터 판정할 것 — 중복이면 병합하지 말고 브랜치를 버린다.
+- `work/2026-08-28-ingame-canvas-fit`(`eac6d6e`)은 2026-09-10 대조 후 **병합하지 않고 폐기했다.**
+  인게임 stretch/HUD 문제는 `4d71c80`에서 이미 해결됐고, 나머지는 프리팹 이전 전의
+  TitleScene 종족 버튼 구조·폰트 아틀라스 오염·옛 문서뿐이라 살릴 변경이 없었다.
 
 옛 브랜치 5개(`2026-08-26-player-data` · `2026-08-26-slot-reel` · `2026-08-27-title-to-ingame` ·
 `2026-08-27-ingame-hud` · `2026-08-27-slot-house`)는 **로컬·원격 모두 이미 삭제됐다.**
