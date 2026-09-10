@@ -46,11 +46,11 @@ PressStart2P로 렌더됐고 □ 0, 콘솔 오류 0이었다.
 
 | 요소 | 변경 전 x 구간 | 변경 후 x 구간 |
 |---|---:|---:|
-| BattleStartButton | 24–312 | 0–184 |
-| SwapPipRoot | 336–408 | 192–264 (y=20) |
-| SwapText | 424–584 | 192–336 (y=-20) |
-| ExtraSpinButton | 588–752 | 344–776 |
-| BattleSpeedButton | 756–1020 | 780–1044 |
+| BattleStartButton | 24–312 | 24–208 |
+| SwapPipRoot | 336–408 | 212–284 (y=20) |
+| SwapText | 424–584 | 212–356 (y=-20) |
+| ExtraSpinButton | 588–752 | 360–792 |
+| BattleSpeedButton | 756–1020 | 796–1044 |
 
 추가로 YearText 220→240, GoldLabel 90→96,
 UIHouseUpgrade 레벨 140→156, 하우스명 버튼 200/195→224로 넓혔다.
@@ -67,6 +67,32 @@ UIHouseUpgrade 레벨 140→156, 하우스명 버튼 200/195→224로 넓혔다.
 - 라이트 설정: Type Global, Intensity 1, Falloff 0.5, Blend Style 0.
 - EventSystem/Global Light 중복 경고 3종: 0건. 기타 경고·오류도 0건.
 - Play Mode 종료.
+
+### ACTION 최종 간격 보정
+
+BattleStartButton을 `x=24`로 옮긴 뒤 생긴 SwapPipRoot와의 전경 컨트롤
+겹침을 최종 보정했다.
+
+| 요소 | 런타임 X 구간 | 런타임 Y 구간 |
+|---|---:|---:|
+| Panel | -24–1068 | -110–8 |
+| BattleStartButton | 24–208 | -87–-15 |
+| SwapPipRoot | 212–284 | -47–-15 |
+| SwapText | 212–356 | -91–-51 |
+| ExtraSpinButton | 360–792 | -87–-15 |
+| BattleSpeedButton | 796–1044 | -87–-15 |
+
+Panel은 `anchorMin=(0,0)`, `anchorMax=(1,1)`인 스트레치 배경이다.
+`sizeDelta=(48,16)`만으로 고정 크기 장식처럼 계산하면 안 된다. 실제로는 모든
+컨트롤 뒤에 겹치지만 `Image.raycastTarget=0`이라 클릭을 차단하지 않는다.
+Panel을 제외한 전경 컨트롤끼리 X와 Y가 동시에 교차하는 겹침은 0쌍이다.
+
+4개 언어의 활성 TMP 13곳은 각각 오버플로 0, □ 0이었다. SPIN과 BATTLE
+버튼은 EventSystem pointer click이 각각 1회씩 전달됐고 두 버튼 모두
+interactable 상태였다.
+
+현재 `Swap 2`는 필요 폭과 실제 폭이 모두 144라 여유가 없다. 향후 두 자리
+`Swap 10`이 되면 필요 폭 168로 초과하므로 별도 레이아웃 대응이 필요하다.
 
 ## 추가 스핀 연차 리셋
 
