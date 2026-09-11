@@ -56,9 +56,12 @@ public class UIInGameBattle : MonoBehaviour
         m_HomeHit = 0;
     }
 
-    // 판정 결과와 웨이브를 받아 양쪽 유닛을 세운다.
-    public void Begin(JudgeResult _judgeResult, int[] _grid,
-        IReadOnlyList<HouseSlotSymbolSprite> _spritePool, WaveRecord _wave)
+    // 전장 배치와 웨이브를 받아 양쪽 유닛을 세운다.
+    //
+    // 아군은 스핀 결과가 아니라 **명부의 전장**에서 온다(2026-09-11). 그래서 유닛이 웨이브를
+    // 넘어 살아남는다 — 매 전투 Clear()로 화면 오브젝트는 지우지만 명부는 그대로라
+    // 전투에서 죽은 유닛도 다음 웨이브에 다시 선다. 화면 오브젝트와 유닛의 수명을 분리한 것이다.
+    public void Begin(RunRoster _roster, IReadOnlyList<HouseSlotSymbolSprite> _spritePool, WaveRecord _wave)
     {
         Clear();
 
@@ -70,7 +73,7 @@ public class UIInGameBattle : MonoBehaviour
 
         m_UnitTemplate.gameObject.SetActive(false);
 
-        SpawnAllies(_judgeResult, _grid, _spritePool);
+        SpawnAllies(_roster, _spritePool);
         SpawnEnemies(_wave);
     }
 
@@ -81,9 +84,9 @@ public class UIInGameBattle : MonoBehaviour
         return new Vector2(_x + laneFromFront * LANE_STEP_X, laneFromFront * LANE_STEP_Y);
     }
 
-    private void SpawnAllies(JudgeResult _judgeResult, int[] _grid, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
+    private void SpawnAllies(RunRoster _roster, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
     {
-        if (_judgeResult == null || _grid == null || _spritePool == null)
+        if (_roster == null || _spritePool == null)
             return;
 
         UnitGradeTable gradeTable = TableManager.instance.GetTable<UnitGradeTable>();
@@ -93,26 +96,27 @@ public class UIInGameBattle : MonoBehaviour
             return;
         }
 
-        for (int i = 0; i < _judgeResult.ListSummon.Count; ++i)
+        for (int cell = 0; cell < RunRoster.FIELD_SIZE; ++cell)
         {
-            SummonSlot summon = _judgeResult.ListSummon[i];
-            if (summon.Cell < 0 || summon.Cell >= _grid.Length)
+            RunUnit runUnit = _roster.GetFieldUnit(cell);
+            if (runUnit == null)
                 continue;
 
-            // 판정기가 심볼을 직접 정했으면 그걸 쓴다(윷). 아니면 그 칸에 나온 심볼을 쓴다.
-            int symbolType = (summon.SymbolType >= 0) ? summon.SymbolType : _grid[summon.Cell];
-            if (symbolType < 0 || symbolType >= _spritePool.Count)
+            if (runUnit.SymbolType < 0 || runUnit.SymbolType >= _spritePool.Count)
+            {
+                Logger.Error($"[UIInGameBattle] SpawnAllies - 심볼이 풀 범위 밖이라 건너뛴다: {runUnit.SymbolType} (기대: 0~{_spritePool.Count - 1})");
                 continue;
+            }
 
-            UnitGradeRecord grade = gradeTable.GetRecord(summon.Grade);
+            UnitGradeRecord grade = gradeTable.GetRecord(runUnit.Grade);
             if (grade == null)
                 continue;
 
-            int lane = summon.Cell / LANE_COUNT;
-            int column = summon.Cell % LANE_COUNT;
+            int lane = cell / LANE_COUNT;
+            int column = cell % LANE_COUNT;
 
             BattleUnit unit = Instantiate(m_UnitTemplate, m_UnitRoot);
-            unit.Setup(eBattleSide.Ally, lane, _spritePool[symbolType].NormalSprite, summon.Grade,
+            unit.Setup(eBattleSide.Ally, lane, _spritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade,
                 grade.Hp, grade.Atk, grade.AtkSpeed, grade.Range, grade.MoveSpeed,
                 GetLanePosition(lane, m_AllyStartX + column * 108f));
             m_ListUnit.Add(unit);

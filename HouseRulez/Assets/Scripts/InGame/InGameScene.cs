@@ -199,7 +199,12 @@ public class InGameScene : BaseScene
         if (m_Field != null)
             m_Field.Clear();
 
-        m_Battle.Begin(m_LastJudgeResult, m_LastGrid, m_SlotMachine.spritePool, wave);
+        // 배치를 안 한 유닛도 싸우게 한다. 드래그 배치 UI가 붙기 전까지의 안전망이고,
+        // 붙은 뒤에도 남는다 — 보관함에 유닛을 두고 전투를 걸었을 때 빈 전장으로 나가는 게
+        // 의도일 리 없다. 채우는 순서는 앞 칸부터라 플레이어가 직접 놓은 칸은 건드리지 않는다.
+        m_RunData.roster.FillFieldFromBench();
+
+        m_Battle.Begin(m_RunData.roster, m_SlotMachine.spritePool, wave);
         m_isBattleActive = true;
     }
 
@@ -455,8 +460,54 @@ public class InGameScene : BaseScene
                 ShowBonusSpin();
         }
 
-        if (m_Field != null && _judgeResult != null)
-            m_Field.ShowSummon(_judgeResult, _grid, m_SlotMachine.spritePool);
+        // 얻은 유닛을 명부에 넣는다. 전장이 아니라 보관함으로 들어가며, 같은 유닛이 3기가 되면
+        // 그 자리에서 승급한다. 판정 요약은 스핀 1회의 식을 보여줄 뿐이고
+        // 실제로 몇 기를 얻었는지는 이쪽이 정본이다 — 전력이 9를 넘으면 둘의 개수가 갈린다.
+        AddSpinUnits(_judgeResult, _grid);
+
+        // 얻은 유닛을 바로 전장에 올려 보여준다. 드래그 배치가 붙어도 이 자동 배치는 남는다 —
+        // 스핀을 돌렸는데 전장이 비어 보이면 무엇을 얻었는지 알 수 없고, TFT도 초반엔 자동으로 올린다.
+        // 플레이어가 직접 놓은 칸은 앞 칸부터 채우는 규칙상 건드리지 않는다.
+        if (m_RunData != null)
+            m_RunData.roster.FillFieldFromBench();
+
+        if (m_Field != null && m_RunData != null)
+            m_Field.Show(m_RunData.roster, _judgeResult, m_SlotMachine.spritePool);
+    }
+
+    private void AddSpinUnits(JudgeResult _judgeResult, int[] _grid)
+    {
+        if (_judgeResult == null || m_RunData == null)
+            return;
+
+        for (int i = 0; i < _judgeResult.ListSummon.Count; ++i)
+        {
+            SummonSlot summon = _judgeResult.ListSummon[i];
+
+            // 판정기가 종류를 채우지 못한 경우에만 grid로 되짚는다.
+            // 보관함에 들어간 뒤에는 grid를 못 보므로 여기서 확정해야 한다.
+            int symbolType = summon.SymbolType;
+            if (symbolType < 0)
+                symbolType = GetGridSymbol(_grid, summon.Cell);
+
+            if (symbolType < 0)
+                continue;
+
+            m_RunData.roster.AddUnit(symbolType, summon.Grade);
+        }
+
+        RefreshRunUI();
+    }
+
+    private int GetGridSymbol(int[] _grid, int _cell)
+    {
+        if (_grid == null || _cell < 0 || _cell >= _grid.Length)
+        {
+            Logger.Error($"[InGameScene] GetGridSymbol Failed! 심볼을 복원할 수 없다 - cell {_cell} (기대: 0~{JudgeResult.GRID_SIZE - 1})");
+            return -1;
+        }
+
+        return _grid[_cell];
     }
 
     // 무료 스핀을 화면에 알린다. 코인 칸이 하나 돌아오는 게 전부라 그냥 두면 눈에 안 띈다.

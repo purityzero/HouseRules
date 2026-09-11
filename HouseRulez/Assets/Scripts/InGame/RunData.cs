@@ -26,6 +26,10 @@ public class RunData
     private int m_ExtraSpinMax;
     private int m_ExtraSpinGoldCost;
 
+    // 런 동안 쌓이는 유닛 명부. 스핀으로 얻은 유닛이 여기 모이고 전장 배치도 여기가 소유한다.
+    // 런 밖으로 나가지 않는다는 점에서 이 클래스의 다른 값들과 수명이 같아 여기 둔다.
+    private RunRoster m_Roster = new RunRoster();
+
     public int homeHp => m_HomeHp;
     public int homeHpMax => m_HomeHpMax;
     public int year => m_Year;
@@ -43,6 +47,7 @@ public class RunData
     public int extraSpinBought => m_ExtraSpinBought;
     public int extraSpinMax => m_ExtraSpinMax;
     public int extraSpinGoldCost => m_ExtraSpinGoldCost;
+    public RunRoster roster => m_Roster;
 
     public void Init()
     {
@@ -79,6 +84,8 @@ public class RunData
         m_BetLevel = 0;
         m_BattleSpeed = 1;
         m_ExtraSpinBought = 0;
+
+        m_Roster.Init();
     }
 
     // 추가 스핀을 살 수 있는가. 연차당 횟수와 골드를 둘 다 본다.

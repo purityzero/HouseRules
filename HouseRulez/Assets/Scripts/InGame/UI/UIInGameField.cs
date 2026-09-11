@@ -107,33 +107,40 @@ public class UIInGameField : MonoBehaviour
             m_Summary.SetText(string.Empty);
     }
 
-    // 판정 결과를 전장에 세운다. _grid는 스핀 결과(칸별 심볼 인덱스)이고,
-    // _spritePool은 슬롯머신이 이미 만들어 둔 것을 그대로 넘겨받는다 — 여기서 다시 로드하면 같은 파일을 두 번 읽는다.
-    public void ShowSummon(JudgeResult _result, int[] _grid, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
+    // 전장을 그린다. 칸에 무엇이 서 있는지는 **명부**가 정본이다(2026-09-11) —
+    // 예전엔 판정 결과를 직접 그렸는데, 유닛이 스핀을 넘어 누적되기 시작하면서
+    // "이번 스핀에 나온 것"과 "지금 전장에 서 있는 것"이 달라졌다.
+    //
+    // 판정 요약(_result)은 여전히 스핀 1회의 것이다. 그건 "왜 이만큼 나왔나"를 설명하는 식이라
+    // 누적 상태가 아니라 방금 굴린 결과를 보여줘야 한다.
+    //
+    // _spritePool은 슬롯머신이 이미 만들어 둔 것을 넘겨받는다 — 여기서 다시 로드하면 같은 파일을 두 번 읽는다.
+    public void Show(RunRoster _roster, JudgeResult _result, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
     {
         Clear();
 
-        if (_result == null || _grid == null || _spritePool == null)
+        if (_roster == null || _spritePool == null)
         {
-            Logger.Error("[UIInGameField] ShowSummon Failed! 인자 null (기대: 판정 결과·그리드·스프라이트 풀)");
+            Logger.Error("[UIInGameField] Show Failed! 인자 null (기대: 명부·스프라이트 풀)");
             return;
         }
 
-        for (int i = 0; i < _result.ListSummon.Count; ++i)
+        for (int cell = 0; cell < m_ListSlot.Count && cell < RunRoster.FIELD_SIZE; ++cell)
         {
-            SummonSlot summon = _result.ListSummon[i];
-            if (summon.Cell < 0 || summon.Cell >= m_ListSlot.Count)
+            RunUnit runUnit = _roster.GetFieldUnit(cell);
+            if (runUnit == null)
                 continue;
 
-            // 판정기가 심볼을 직접 정했으면 그걸 쓴다(윷). 아니면 그 칸에 나온 심볼을 쓴다.
-            int symbolType = (summon.SymbolType >= 0) ? summon.SymbolType : _grid[summon.Cell];
-            if (symbolType < 0 || symbolType >= _spritePool.Count)
+            if (runUnit.SymbolType < 0 || runUnit.SymbolType >= _spritePool.Count)
+            {
+                Logger.Error($"[UIInGameField] Show - 심볼이 풀 범위 밖이라 건너뛴다: {runUnit.SymbolType} (기대: 0~{_spritePool.Count - 1})");
                 continue;
+            }
 
-            m_ListSlot[summon.Cell].SetUnit(_spritePool[symbolType].NormalSprite, summon.Grade);
+            m_ListSlot[cell].SetUnit(_spritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade);
         }
 
-        if (m_Summary != null)
+        if (m_Summary != null && _result != null)
             m_Summary.SetText(BuildSummaryText(_result));
     }
 
