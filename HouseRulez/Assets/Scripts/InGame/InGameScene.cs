@@ -199,10 +199,10 @@ public class InGameScene : BaseScene
         if (m_Field != null)
             m_Field.Clear();
 
-        // 배치를 안 한 유닛도 싸우게 한다. 드래그 배치 UI가 붙기 전까지의 안전망이고,
-        // 붙은 뒤에도 남는다 — 보관함에 유닛을 두고 전투를 걸었을 때 빈 전장으로 나가는 게
-        // 의도일 리 없다. 채우는 순서는 앞 칸부터라 플레이어가 직접 놓은 칸은 건드리지 않는다.
-        m_RunData.roster.FillFieldFromBench();
+        // 배치를 안 한 유닛도 싸우게 한다. 성급 높은 것부터 전장에 세우므로
+        // 3성이 보관함에 남는 손해가 없다 — 전장이 9칸뿐이라 그 차이가 곧 전투력이다.
+        // ★ 드래그 배치가 붙으면 이 호출을 빈 칸 채우기로 좁혀야 한다(RunRoster 주석 참고).
+        m_RunData.roster.ArrangeFieldByGrade();
 
         m_Battle.Begin(m_RunData.roster, m_SlotMachine.spritePool, wave);
         m_isBattleActive = true;
@@ -465,11 +465,10 @@ public class InGameScene : BaseScene
         // 실제로 몇 기를 얻었는지는 이쪽이 정본이다 — 전력이 9를 넘으면 둘의 개수가 갈린다.
         AddSpinUnits(_judgeResult, _grid);
 
-        // 얻은 유닛을 바로 전장에 올려 보여준다. 드래그 배치가 붙어도 이 자동 배치는 남는다 —
-        // 스핀을 돌렸는데 전장이 비어 보이면 무엇을 얻었는지 알 수 없고, TFT도 초반엔 자동으로 올린다.
-        // 플레이어가 직접 놓은 칸은 앞 칸부터 채우는 규칙상 건드리지 않는다.
+        // 얻은 유닛을 바로 전장에 올려 보여준다. 스핀을 돌렸는데 전장이 비어 보이면
+        // 무엇을 얻었는지 알 수 없다. 성급 높은 것이 앞에 서므로 승급 결과도 바로 눈에 들어온다.
         if (m_RunData != null)
-            m_RunData.roster.FillFieldFromBench();
+            m_RunData.roster.ArrangeFieldByGrade();
 
         if (m_Field != null && m_RunData != null)
             m_Field.Show(m_RunData.roster, _judgeResult, m_SlotMachine.spritePool);

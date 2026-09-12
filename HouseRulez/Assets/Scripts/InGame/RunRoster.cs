@@ -344,25 +344,75 @@ public class RunRoster
         return power;
     }
 
-    // 빈 칸이 있으면 보관함 앞쪽부터 채운다. 플레이어가 배치를 안 해도 전투가 성립하게 하는 안전망이다.
-    // 반환값은 실제로 올라간 유닛 수.
-    public int FillFieldFromBench()
+    // 전장을 성급 높은 순으로 자동 배치한다. 플레이어가 배치를 안 해도 전투가 성립하게 하는 안전망이다.
+    // 반환값은 자리가 실제로 바뀐 칸 수(연출 판단용).
+    //
+    // **왜 성급 순인가** — 예전엔 빈 칸을 보관함 앞쪽부터 채웠다. 그러면 3성이 보관함에 남고
+    // 1성이 전장에 서는 일이 생긴다. 전장이 9칸뿐이라 그 손해가 그대로 전투력이 된다.
+    // 시뮬레이션에서 같은 보유량인데 배치만 바꿔도 6연차 시점 전장 전력이
+    // 심볼 13종 기준 25 → 49로 거의 두 배였다(`scratchpad/merge_rate.py`, 심볼 균등 가정).
+    // 실측 Poker 6-3의 전장 전력 30.6도 최선 배치보다 그 낮은 쪽에 가까웠다.
+    //
+    // ★ **드래그 배치가 붙으면 이 함수를 자동으로 부르지 않는다.**
+    //   전장 전체를 다시 세우므로 플레이어가 직접 놓은 배치를 덮어쓴다. 지금은 배치 수단이
+    //   아예 없어서 순이득이지만, 드래그가 생기면 "빈 칸만 채우는" 쪽으로 좁혀야 한다.
+    //   (제거 조건: `UIInGameFieldSlot`에 드래그 핸들러가 붙는 시점)
+    public int ArrangeFieldByGrade()
     {
-        int filled = 0;
+        List<RunUnit> listAll = new List<RunUnit>();
 
         for (int cell = 0; cell < FIELD_SIZE; ++cell)
         {
-            if (m_ListBench.Count <= 0)
-                break;
-
             if (m_ArrayField[cell] != null)
-                continue;
-
-            m_ArrayField[cell] = m_ListBench[0];
-            m_ListBench.RemoveAt(0);
-            filled += 1;
+                listAll.Add(m_ArrayField[cell]);
         }
 
-        return filled;
+        for (int i = 0; i < m_ListBench.Count; ++i)
+        {
+            listAll.Add(m_ListBench[i]);
+        }
+
+        // 성급이 높은 것부터 담는다. List.Sort는 불안정 정렬이라 같은 성급의 순서가 매번
+        // 뒤바뀔 수 있고, 그러면 스핀마다 화면의 유닛이 이유 없이 자리를 옮긴다.
+        // 성급별로 훑어 담으면 같은 성급 안에서 원래 순서가 유지된다.
+        List<RunUnit> listSorted = new List<RunUnit>();
+        for (int grade = m_MaxGrade; grade >= 1; --grade)
+        {
+            for (int i = 0; i < listAll.Count; ++i)
+            {
+                if (listAll[i].Grade < grade || listAll[i].Grade > grade)
+                    continue;
+
+                listSorted.Add(listAll[i]);
+            }
+        }
+
+        int changed = 0;
+        m_ListBench.Clear();
+
+        for (int i = 0; i < listSorted.Count; ++i)
+        {
+            if (i >= FIELD_SIZE)
+            {
+                m_ListBench.Add(listSorted[i]);
+                continue;
+            }
+
+            if (ReferenceEquals(m_ArrayField[i], listSorted[i]) == false)
+                changed += 1;
+
+            m_ArrayField[i] = listSorted[i];
+        }
+
+        // 유닛이 9칸보다 적으면 뒤쪽 칸을 비운다. 안 비우면 옮겨간 유닛이 원래 칸에도 남는다.
+        for (int cell = listSorted.Count; cell < FIELD_SIZE; ++cell)
+        {
+            if (m_ArrayField[cell] != null)
+                changed += 1;
+
+            m_ArrayField[cell] = null;
+        }
+
+        return changed;
     }
 }
