@@ -33,6 +33,14 @@ public class UIInGameField : MonoBehaviour
 
     private List<UIInGameFieldSlot> m_ListSlot = new List<UIInGameFieldSlot>();
 
+    // 드래그로 자리를 바꾸려면 명부와 스프라이트 풀을 다시 그릴 때까지 들고 있어야 한다.
+    // 소유자는 RunData다 — 여기 있는 것은 표시를 위한 참조일 뿐 사본이 아니다.
+    private RunRoster m_Roster;
+    private IReadOnlyList<HouseSlotSymbolSprite> m_SpritePool;
+
+    private int m_DragFromCell = RunRoster.CELL_NONE;
+    private int m_DragToCell = RunRoster.CELL_NONE;
+
     public void Apply()
     {
         BuildSlots();
@@ -93,6 +101,10 @@ public class UIInGameField : MonoBehaviour
         {
             m_ListSlot[i].gameObject.SetActive(i < JudgeResult.GRID_SIZE);
             m_ListSlot[i].transform.SetSiblingIndex(i + 1);
+
+            // 칸 인덱스를 알려주고 포인터를 받을 준비를 시킨다.
+            // 씬의 템플릿에는 raycast용 Image가 없어서 칸이 스스로 붙인다.
+            m_ListSlot[i].Setup(this, i);
         }
     }
 
@@ -102,6 +114,13 @@ public class UIInGameField : MonoBehaviour
         {
             m_ListSlot[i].Clear();
         }
+
+        // 명부를 놓으면 드래그가 막힌다. 전투 시작 시 이 함수가 불리므로
+        // "전투 중에는 배치를 못 바꾼다"가 별도 플래그 없이 성립한다.
+        m_Roster = null;
+        m_SpritePool = null;
+        m_DragFromCell = RunRoster.CELL_NONE;
+        m_DragToCell = RunRoster.CELL_NONE;
 
         if (m_Summary != null)
             m_Summary.SetText(string.Empty);
@@ -125,23 +144,88 @@ public class UIInGameField : MonoBehaviour
             return;
         }
 
-        for (int cell = 0; cell < m_ListSlot.Count && cell < RunRoster.FIELD_SIZE; ++cell)
-        {
-            RunUnit runUnit = _roster.GetFieldUnit(cell);
-            if (runUnit == null)
-                continue;
+        m_Roster = _roster;
+        m_SpritePool = _spritePool;
 
-            if (runUnit.SymbolType < 0 || runUnit.SymbolType >= _spritePool.Count)
-            {
-                Logger.Error($"[UIInGameField] Show - 심볼이 풀 범위 밖이라 건너뛴다: {runUnit.SymbolType} (기대: 0~{_spritePool.Count - 1})");
-                continue;
-            }
-
-            m_ListSlot[cell].SetUnit(_spritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade);
-        }
+        RefreshSlots();
 
         if (m_Summary != null && _result != null)
             m_Summary.SetText(BuildSummaryText(_result));
+    }
+
+    // 칸만 다시 그린다. **판정 요약은 건드리지 않는다** —
+    // 요약은 "방금 굴린 스핀"의 것이라 드래그로 자리를 바꿨다고 달라지지 않는다.
+    private void RefreshSlots()
+    {
+        if (m_Roster == null || m_SpritePool == null)
+            return;
+
+        for (int cell = 0; cell < m_ListSlot.Count && cell < RunRoster.FIELD_SIZE; ++cell)
+        {
+            m_ListSlot[cell].Clear();
+
+            RunUnit runUnit = m_Roster.GetFieldUnit(cell);
+            if (runUnit == null)
+                continue;
+
+            if (runUnit.SymbolType < 0 || runUnit.SymbolType >= m_SpritePool.Count)
+            {
+                Logger.Error($"[UIInGameField] RefreshSlots - 심볼이 풀 범위 밖이라 건너뛴다: {runUnit.SymbolType} (기대: 0~{m_SpritePool.Count - 1})");
+                continue;
+            }
+
+            m_ListSlot[cell].SetUnit(m_SpritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade);
+        }
+    }
+
+    // ---------------- 드래그 배치 (2026-09-13) ----------------
+    //
+    // 칸은 자기가 끌렸다는 것만 알고, 어디에 놓였는지와 명부를 고치는 일은 여기가 맡는다.
+    // Unity의 호출 순서는 OnBeginDrag -> OnDrag... -> (대상 칸의)OnDrop -> OnEndDrag 이므로,
+    // 출발지와 목적지를 모아 두고 OnEndDrag 시점에 한 번만 처리한다.
+
+    // 명부를 들고 있을 때만 배치를 바꿀 수 있다. 전투 시작 시 Clear()가 명부를 놓으므로
+    // 전투 중 드래그는 별도 플래그 없이 막힌다.
+    public bool IsDragAllowed()
+    {
+        return (m_Roster != null);
+    }
+
+    public void OnSlotDragBegin(int _cell)
+    {
+        m_DragFromCell = _cell;
+        m_DragToCell = RunRoster.CELL_NONE;
+    }
+
+    public void OnSlotDrop(int _cell)
+    {
+        m_DragToCell = _cell;
+    }
+
+    // 드래그가 끝났다. 유효한 목적지가 있으면 **명부에서** 자리를 맞바꾼다.
+    // 화면만 바꾸면 전투는 옛 배치로 싸운다 — 전장의 정본은 RunRoster다(2026-09-11).
+    public void OnSlotDragEnd()
+    {
+        int from = m_DragFromCell;
+        int to = m_DragToCell;
+
+        m_DragFromCell = RunRoster.CELL_NONE;
+        m_DragToCell = RunRoster.CELL_NONE;
+
+        if (m_Roster == null)
+            return;
+
+        // 칸 밖에 놓았으면 목적지가 없다. 제자리에 놓은 것도 바꿀 것이 없다.
+        if (from < 0 || to < 0)
+            return;
+
+        if (from >= to && from <= to)
+            return;
+
+        if (m_Roster.SwapField(from, to) == false)
+            return;
+
+        RefreshSlots();
     }
 
     // 결과만 적으면 종족 규칙을 배울 수가 없다. 무엇이 몇 개 성립해 얼마가 됐는지 식으로 적는다.

@@ -199,10 +199,10 @@ public class InGameScene : BaseScene
         if (m_Field != null)
             m_Field.Clear();
 
-        // 배치를 안 한 유닛도 싸우게 한다. 성급 높은 것부터 전장에 세우므로
+        // 배치를 안 한 유닛도 싸우게 한다. 빈 칸을 성급 높은 것부터 채우므로
         // 3성이 보관함에 남는 손해가 없다 — 전장이 9칸뿐이라 그 차이가 곧 전투력이다.
-        // ★ 드래그 배치가 붙으면 이 호출을 빈 칸 채우기로 좁혀야 한다(RunRoster 주석 참고).
-        m_RunData.roster.ArrangeFieldByGrade();
+        // **플레이어가 드래그로 놓은 자리는 건드리지 않는다**(2026-09-13, 드래그 배치 도입).
+        m_RunData.roster.FillEmptyFieldFromBench();
 
         m_Battle.Begin(m_RunData.roster, m_RunData.houseKey, m_SlotMachine.spritePool, wave);
         m_isBattleActive = true;
@@ -466,9 +466,9 @@ public class InGameScene : BaseScene
         AddSpinUnits(_judgeResult, _grid);
 
         // 얻은 유닛을 바로 전장에 올려 보여준다. 스핀을 돌렸는데 전장이 비어 보이면
-        // 무엇을 얻었는지 알 수 없다. 성급 높은 것이 앞에 서므로 승급 결과도 바로 눈에 들어온다.
+        // 무엇을 얻었는지 알 수 없다. 빈 칸만 채우므로 이미 배치해 둔 자리는 그대로 남는다.
         if (m_RunData != null)
-            m_RunData.roster.ArrangeFieldByGrade();
+            m_RunData.roster.FillEmptyFieldFromBench();
 
         if (m_Field != null && m_RunData != null)
             m_Field.Show(m_RunData.roster, _judgeResult, m_SlotMachine.spritePool);

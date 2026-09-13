@@ -385,3 +385,56 @@ Unity MCP가 **세션 시작 때 한 번만** 붙는 탓에 2026-09-11~13에 QA�
 
 **이 사실 때문에 전투를 전력 비교로 근사하면 안 된다** — Claude가 그 근사로 런 시뮬레이션을 만들었고
 10연차에서 막히는 잘못된 결과를 냈다. 전투는 실제 `UIInGameBattle`을 돌려야 한다.
+
+---
+
+## 2026-09-13 저녁 — 드래그 배치 (검증 통과 · 미커밋)
+
+브랜치 `work/2026-09-13-drag-placement`(`work/2026-09-13-poker-variance` 위 스택).
+설계 `.claude/architecture/ingame-presentation.md` §1 · 브리프 `.claude/briefs/2026-09-13-drag-placement-qa.md`
+보고서 `D:/Orca/reports/drag-placement-qa-2026-09-13.md`
+
+### 무엇을 했나
+
+플레이어가 **전장 9칸의 유닛을 드래그로 맞바꾼다.** 보관함 UI는 범위에서 뺐다.
+
+| 파일 | 변경 |
+|---|---|
+| `RunRoster.cs` | `ArrangeFieldByGrade()` → **`FillEmptyFieldFromBench()`**(빈 칸만) + `FindHighestGradeBenchIndex()` |
+| `UIInGameFieldSlot.cs` | 드래그 인터페이스 4개, `Setup(owner, cell)`, raycast용 Image 자가 부착 |
+| `UIInGameField.cs` | 명부·풀 캐시, `RefreshSlots()`, 드래그 중재 4개 |
+| `InGameScene.cs` | 호출부 2곳 |
+
+**선행 조건이 함께 풀렸다** — 옛 자동 배치가 매 스핀 9칸을 다시 세워 플레이어 배치를 덮어썼다.
+그 함수 주석의 제거 조건("드래그 핸들러가 붙는 시점")이 충족돼 좁혔다.
+
+### 검증 통과 (Codex Play Mode)
+
+| 항목 | 결과 |
+|---|---|
+| 컴파일 | DLL 19:28:50 > 소스 19:27:52, Error/Warning 0 |
+| 점유칸 교환 · 빈칸 이동 | 통과 |
+| **명부 실제 반영** | `OnBattleStart`에서 바꾼 배치대로 `BattleUnit` 생성. 실측 `cell0 cherry@(60,104)` 등 |
+| **자동 배치가 덮지 않음** | 다음 `OnSpinSettled`에서 기존 배치 유지 + 새 유닛만 빈 칸 |
+| 부정 경로 | 전투 중 · 빈 칸 · 칸 밖 · 같은 칸 모두 통과 |
+| sibling 복원 | `[0:1 … 8:9]` 정상, `Clear()` 후에도 유지 |
+
+**QA가 잡은 결함 1건을 고쳤다** — `SetAsLastSibling()`을 되돌리지 않아 연속 드래그 뒤
+그리기 순서가 흐트러졌다(뒤 레인이 앞 레인 위에 그려짐). `m_SiblingHomeIndex`로 기억·복원.
+
+### ⬜ 사람이 확인해야 하는 것 — 실제 포인터 입력
+
+QA는 **MCP 한계로 OS 포인터 raycast hit-test를 건너뛰고** `PointerEventData` 핸들러와
+중재 API를 직접 호출했다. 즉 **핸들러 로직·명부 반영은 검증됐지만, 실제 마우스로 끌었을 때
+포인터가 잡히는지는 미검증이다.**
+
+칸에 `AddComponent<Image>()`(alpha 0)로 붙인 투명 이미지가 입력을 받아야 한다.
+**안 잡히면** 씬의 `SlotTemplate`에 Image를 넣는 씬 작업(Codex 몫)으로 넘어간다.
+
+### ⬜ 이번에 일부러 안 한 것
+
+- **보관함 UI** — `RunRoster.MoveBenchToField()` · `MoveFieldToBench()`는 여전히 호출부 0
+- **스왑 잔재 정리**(`RunData.m_SwapCount`·`GameConfigTable.KEY_SWAP_COUNT_PER_YEAR`·
+  `UIInGameAction` 스왑 핍) — 설계안은 "함께 걷어낸다"고 했지만 드래그 검증이 먼저였다.
+  같이 건드리면 무엇이 깨졌는지 가릴 수 없다. **이제 검증이 끝났으니 다음에 한다**
+- `RunRoster.GetFieldPower()`는 **원래부터 호출부 0건**이다(미사용). 내 변경과 무관해 두었다
