@@ -15,8 +15,6 @@ public class RunData
     private int m_Gold;
     private int m_SpinCoin;
     private int m_SpinCoinMax;
-    private int m_SwapCount;
-    private int m_SwapCountMax;
     private int m_BetLevel;
     private int m_BattleSpeed;
     private int m_BattleSpeedFast;
@@ -45,8 +43,6 @@ public class RunData
     public int gold => m_Gold;
     public int spinCoin => m_SpinCoin;
     public int spinCoinMax => m_SpinCoinMax;
-    public int swapCount => m_SwapCount;
-    public int swapCountMax => m_SwapCountMax;
     public int betLevel => m_BetLevel;
     public int battleSpeed => m_BattleSpeed;
     public int extraSpinBought => m_ExtraSpinBought;
@@ -75,10 +71,13 @@ public class RunData
         m_YearMax = configTable.GetValue(GameConfigTable.KEY_RUN_YEAR_MAX, 12);
         m_SpinCoinMax = configTable.GetValue(GameConfigTable.KEY_SPIN_COIN_PER_YEAR, 3)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_SPIN_COIN_PER_YEAR);
-        m_SwapCountMax = configTable.GetValue(GameConfigTable.KEY_SWAP_COUNT_PER_YEAR, 2)
-            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_SWAP_COUNT_PER_YEAR);
         m_BattleSpeedFast = configTable.GetValue(GameConfigTable.KEY_BATTLE_SPEED_FAST, 2);
-        m_ExtraSpinMax = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR, 2);
+
+        // 업그레이드 보너스를 더한다. 2026-09-13 이전에는 이 한 줄만 보너스를 안 받았는데,
+        // 그때는 이 값을 올리는 업그레이드 노드가 없어서 드러나지 않았다.
+        // 스왑 노드를 「추가 스핀 상한」으로 전용하면서 배선이 필요해졌다.
+        m_ExtraSpinMax = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR, 2)
+            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR);
         m_ExtraSpinGoldCost = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_GOLD_COST, 25);
 
         m_HomeHp = m_HomeHpMax;
@@ -87,7 +86,6 @@ public class RunData
         m_Gold = configTable.GetValue(GameConfigTable.KEY_RUN_START_GOLD, 0)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_RUN_START_GOLD);
         m_SpinCoin = m_SpinCoinMax;
-        m_SwapCount = m_SwapCountMax;
         m_BetLevel = 0;
         m_BattleSpeed = 1;
         m_ExtraSpinBought = 0;
@@ -182,7 +180,6 @@ public class RunData
         // GDD 03장 "연차 시작 시 지급, 이월 없음" — 더하지 않고 최대치로 되돌린다.
         // 이 리셋이 없으면 1연차 스핀 코인을 다 쓴 채 2연차에 들어가 스핀 자체가 막힌다.
         m_SpinCoin = m_SpinCoinMax;
-        m_SwapCount = m_SwapCountMax;
 
         // 추가 스핀 구매 횟수도 연차 단위다("연차당 2회까지").
         m_ExtraSpinBought = 0;

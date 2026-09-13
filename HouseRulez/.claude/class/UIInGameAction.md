@@ -150,3 +150,50 @@ BattleSpeedButton  [ 756 ~ 1020]
 처음엔 배속 버튼을 복제해 264px로 놨다가 `SwapText`와 **476~584 구간이 겹쳤다.**
 빈 구간이 172px뿐이라 폭을 164로 줄여 넣었다. 라벨은 auto-size로 18.25pt에서 163.61px에 들어간다(실측).
 → **눈으로 못 보는 편집은 좌표 구간을 계산해 겹침을 수치로 확인할 것.**
+
+---
+
+## 2026-09-13 — 스왑 표시 제거
+
+**연관**: [[RunData]] · [[UIInGameFieldSlot]](드래그 배치)
+
+### 왜
+
+스왑은 **끝내 구현되지 않은 기능**이다. `RunData`에 카운터가, 여기에 핍과 라벨이 있었지만
+**두 칸을 교환하는 코드가 프로젝트 전체에 0곳**이었다(GDD 03장·13장에 폐기 기록).
+2026-09-13에 드래그 배치가 들어가 그 역할을 대신하므로 잔재를 걷었다.
+
+### 제거한 것
+
+| 대상 | 비고 |
+|---|---|
+| `m_SwapPipRoot` · `m_SwapPipTemplate` · `m_SwapText` | 직렬화 필드 |
+| `m_ListSwapPip` · `m_SwapTextGap` · `m_isSwapTextGapCached` | 내부 상태 |
+| `m_PipSpacing` · `m_PipFilledColor` · `m_PipEmptyColor` | 핍 전용이라 함께 |
+| `BuildSwapPipList()` · `LayoutSwapText()` · `CacheSwapTextGap()` | 메서드 |
+| `using System.Collections.Generic` | `List<Image>`가 사라져 미사용 |
+| `StringTable`의 `ActionSwap` 행 | 인게임 스왑 라벨 문자열 |
+
+`Apply()`는 `Refresh()`만 부르고, `Refresh()`는 배속과 추가 스핀만 갱신한다.
+
+### ★ 함께 사라진 결함
+
+**칸 수에 맞춰 루트 폭과 라벨 위치를 다시 계산하던 코드가 통째로 없어졌다.**
+업그레이드로 스왑 최대치가 늘면 칸이 루트 밖으로 뻗던 결함을 고치려고 넣은 것이었는데
+(`UIInGameHud`에서 같은 결함을 고치며 여기를 빠뜨렸다가 스왑 3칸에서 재발),
+기능 자체가 사라지니 그 보정도 필요 없어졌다.
+
+`SwapText [424~584]`가 `ExtraSpinButton [476~740]`과 **겹치던 문제**도 같이 해소된다
+(`.claude/briefs/2026-09-10-extra-spin-button.md`). 추가 스핀 버튼은 172px 틈에 급히 밀어 넣은
+것이었으므로, **스왑 자리가 비면 제대로 배치할 공간이 생긴다** — 레이아웃 재배치는 별건이다.
+
+### ⬜ 씬 정리가 남았다
+
+필드를 지웠으므로 씬 오브젝트가 고아가 된다. **지우기 전까지 화면에 그대로 보인다.**
+
+| 오브젝트 | fileID |
+|---|---|
+| `SwapPipRoot` (자식 `PipTemplate` 포함) | 900200321 |
+| `SwapText` | 900200342 |
+
+씬 편집은 Codex 몫이다(`AGENT.MD` 방침).

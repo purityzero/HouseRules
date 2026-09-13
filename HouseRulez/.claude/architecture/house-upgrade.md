@@ -439,3 +439,77 @@ unity command verify-tables --project-path "D:\Unity\HouseRules\HouseRulez" --fo
 - 테이블 식별자 문구 불일치: `Key`를 행 유일 키로 볼지 노드 키로 볼지 기획 정본 정리 필요
 - 구매 원자성: 재화와 진행도를 서로 다른 SaveData에 둘 경우 앱 종료 시 부분 저장 가능성이 있으므로 재화 설계와 함께 결정 필요
 - 잠긴 종족의 업그레이드 열람 정책은 현재 데이터가 전부 해금이라 관찰되지 않는다. 실제 잠금 사용 전 확정 필요
+
+
+---
+
+## 2026-09-13 — `swap` 노드를 「추가 스핀 상한」으로 전용
+
+### 왜 지우지 않았나
+
+스왑 기능 자체는 폐기됐지만(드래그 배치가 대체), **노드를 지우면 이미 산 플레이어의 옥새가
+사라진다.** 실제 세이브에 chess·hwatu·mahjong Lv3 + slot Lv2 = **옥새 72개**의 구매 기록이 있었다.
+
+**정정(2026-09-13, QA 중 실측)** — 처음에 "`GetRunConfigBonus`는 세이브만 읽는다"고 적었는데 **틀렸다.**
+`PlayerManager.GetRunConfigBonus`는 `upgradeTable.GetNodeKeyList(houseKey)`로 **테이블의 노드만 순회**하고
+`TargetKey`로 매칭한다. 세이브만 읽는 것은 `PlayerData.GetHouseUpgradeLevel`이다.
+
+그래서 테이블에서 노드를 지우면 **효과가 즉시 0이 되고**(순회 대상이 아니다) UI에서도 사라진다.
+에러는 나지 않지만 **산 것이 조용히 무효가 된다** — 옥새만 낭비된 상태로 남는다.
+전용을 택한 이유는 그것이다.
+
+### 어떻게 전용했나
+
+**노드 키 `swap`을 그대로 두고** 아래만 바꿨다(17행).
+
+| 컬럼 | 전 | 후 |
+|---|---|---|
+| `TargetKey` | `SwapCountPerYear` | **`ExtraSpinMaxPerYear`** |
+| `NameKey` | `HouseUpgradeSwapName` | `HouseUpgradeExtraSpinMaxName` |
+| `DescKey` | `HouseUpgradeSwapDesc` | `HouseUpgradeExtraSpinMaxDesc` |
+
+`Key` · `Level` · `Value` · `CostType` · `CostValue` · `SortOrder`는 유지했다.
+**키가 세이브의 `m_NodeKey`와 맞물리므로 유지가 핵심이다** — 산 레벨이 그대로 새 효과가 된다.
+
+`StringTable`의 41·42행은 키 이름과 4개 언어 내용을 함께 교체했다.
+키 이름을 유지하면 "Swap"이라는 이름에 "추가 스핀" 내용이 들어가 다음 사람이 헷갈린다.
+
+### 함께 필요했던 코드 수정
+
+`RunData.Init()`에서 `m_ExtraSpinMax`가 **업그레이드 보너스를 안 더하고 있었다.**
+다른 4개 키는 모두 더했는데 이것만 빠진 미완성 배선이었다(그때는 이 키를 올리는 노드가 없었다).
+
+### 검증 완료 (2026-09-13 Play Mode)
+
+| 종족 | 세이브 swap 레벨 | `extraSpinMax` | 판정 |
+|---|---|---:|---|
+| chess · hwatu · mahjong | Lv3 | **5** | 통과 |
+| poker | 없음 | **2** | 통과(기본값) |
+| slot | Lv2 기록 있음 | **2** | **통과** — 아래 참조 |
+
+추가 스핀이 chess 에서 5회까지 구매되고 상한에서 버튼이 꺼졌다. poker 는 2회에서 3회째가 거절됐다.
+옥새 145 · 선택 종족 poker 유지, `PlayerPrefs` 미수정.
+
+### ★ `slot` 의 세이브 기록은 orphan 이다 — 테이블 누락이 아니다
+
+QA 가 처음 이것을 실패로 판정했는데, **내가 브리프에 적은 기대값(4)이 틀렸다.**
+`slot` 에는 **처음부터 `swap` 노드가 없다**(최초 커밋까지 git 확인, 0건).
+
+노드 구성은 **종족별 특화가 의도된 설계**다 — 각 종족이 4개 중 3개만 가진다.
+
+| | home_hp | spin_coin | start_gold | swap |
+|---|---|---|---|---|
+| slot | Lv2 | Lv3 | Lv3 | **없음** |
+| chess | Lv3 | 없음 | Lv2 | Lv3 |
+| janggi | Lv3 | Lv2 | 없음 | Lv3 |
+| hwatu | 없음 | Lv2 | Lv3 | Lv3 |
+| poker | 없음 | Lv3 | Lv3 | Lv2 |
+| mahjong | Lv2 | Lv3 | 없음 | Lv3 |
+| yut | 없음 | Lv3 | Lv2 | Lv3 |
+
+그런데 세이브에는 `slot/swap Lv2` 기록이 있다. **구매 로직은 테이블을 검증하므로**
+(`TryPurchaseHouseUpgrade` -> `GetNextUpgradeRecord`가 null 이면 거절) 정상 경로로는 생길 수 없다.
+**과거 QA 가 `SetLevel`을 직접 불러 넣은 것으로 보인다.**
+
+무해하다 — 보너스 계산이 테이블의 노드만 순회하므로 조용히 무시된다.
+다만 세이브에 정상 경로로 못 만드는 값이 들어간 사례이므로 기록해 둔다.

@@ -3,7 +3,6 @@ Id,Key,Value
 2,RunYearMax,12
 3,RunStartGold,25
 4,SpinCoinPerYear,5
-5,SwapCountPerYear,2
 6,BattleSpeedFast,2
 7,RoyalPerYear,1
 8,RoyalClearBonus,6

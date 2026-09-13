@@ -64,3 +64,18 @@ Id,Key,Value
 ### `HomeDamagePerDefeat`가 왜 따로 필요한가
 적이 한 마리도 성문을 못 넘고 아군만 전멸하는 판이 있다(그때 leak = 0).
 고정분이 없으면 **그 패배는 아무 대가 없이 지나간다.** 실제 피해는 두 값의 합이다.
+
+
+---
+
+## 2026-09-13 — `SwapCountPerYear` 제거
+
+스왑이 끝내 구현되지 않아 드래그 배치로 대체됐다(GDD 03장·13장). CSV 행과
+`GameConfigRecord.KEY_SWAP_COUNT_PER_YEAR` 상수를 함께 제거했다. `Id 5`가 비지만
+조회는 `Key`로 하므로 무해하다.
+
+`RunStartGold`는 같은 날 밸런스 실측으로 **0 -> 25**가 됐다(별 브랜치).
+
+`ExtraSpinMaxPerYear`는 값은 그대로(2)지만 **업그레이드로 올라가기 시작했다** —
+`HouseUpgradeTable`의 `swap` 노드를 이 키로 전용했다. `RunData`가 `GetRunConfigBonus`를
+더하도록 배선도 함께 넣었다(그때까지 이 키만 빠져 있었다).
