@@ -43,6 +43,54 @@ public class UIInGameBattle : MonoBehaviour
     public int homeHit => m_HomeHit;
     public bool isRunning => m_Result == eBattleResult.Running;
 
+    // 아직 자기 칸으로 걸어가는 유닛이 있는가. 복귀 연출의 종료 판정에 쓴다.
+    public bool isReturning
+    {
+        get
+        {
+            for (int i = 0; i < m_ListUnit.Count; ++i)
+            {
+                if (m_ListUnit[i] == null)
+                    continue;
+
+                if (m_ListUnit[i].isReturning == true)
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    // 살아남은 아군을 원래 칸으로 걸어 돌려보낸다. 반환값은 **실제로 움직이기 시작한 수**다.
+    //
+    // 0이면 기다릴 것이 없다 — 전멸했거나(패배) 이미 다들 제자리에 서 있다는 뜻이므로,
+    // 호출부는 대기 없이 바로 정리로 넘어가면 된다.
+    //
+    // 적은 돌려보내지 않는다. 살아남은 적은 다음 웨이브에 새로 생성되고, 이 화면의 적 오브젝트는
+    // 곧 Clear()로 사라진다 — 걸어 돌아갈 "자기 자리"라는 개념이 없다.
+    public int ReturnSurvivorsToHome(float _speedScale)
+    {
+        int movingCount = 0;
+
+        for (int i = 0; i < m_ListUnit.Count; ++i)
+        {
+            BattleUnit unit = m_ListUnit[i];
+            if (unit == null)
+                continue;
+
+            if (unit.side != eBattleSide.Ally)
+                continue;
+
+            if (unit.isAlive == false)
+                continue;
+
+            if (unit.ReturnToHome(_speedScale) == true)
+                movingCount += 1;
+        }
+
+        return movingCount;
+    }
+
     public void Clear()
     {
         for (int i = 0; i < m_ListUnit.Count; ++i)

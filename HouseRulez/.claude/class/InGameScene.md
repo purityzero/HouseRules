@@ -292,3 +292,46 @@ QA가 활성 토스트 0개로 잡아냈다. 사유와 대안은 [[UIInGameBanne
 ### 검증 — Codex QA 통과 (2026-08-31)
 성립 스핀: alpha `0 → 1 → 0`, 배너 문자열이 `JudgeResult.PatternName`과 동일(`반정렬 2`).
 **무판정 스핀: alpha가 내내 0** — 안 뜬다.
+
+
+---
+
+## 2026-09-13 — 전투 후 복귀 흐름
+
+### 증상
+
+전투가 끝나도 `m_Battle.Clear()`를 부르지 않아, 살아남은 유닛이 **적진 앞에 몰린 자리 그대로**
+방치됐다. 동시에 `m_Field`는 `OnBattleStart`에서 비워진 상태라 전장 9칸 표시도 없었다.
+즉 **전투와 다음 스핀 사이에 "아무 상태도 아닌" 구간**이 있었다(사용자 지적 2026-09-12).
+
+### 수정
+
+`m_BattleReturnFlow`(별도 `FlowCommand`)를 추가하고 `OnBattleFinished`에서 `StartBattleReturn()`을 부른다.
+
+```
+전투 종료 -> 배너 · 피해 · UI 갱신
+  -> 살아남은 유닛이 자기 칸으로 걸어간다
+  -> 모두 도착하면 m_Battle.Clear() + m_Field.Show(roster, null, pool)
+```
+
+**스핀 흐름과 따로 둔 이유** — 둘은 동시에 살아 있을 수 있다(복귀 중 플레이어가 다음 스핀을 돌린다).
+한 `FlowCommand`에 섞으면 서로를 취소한다.
+
+### ★ 전투 재시작이 복귀와 충돌한다 — 두 겹으로 막았다
+
+복귀가 걸어가는 중에 다음 전투가 시작되면, 뒤늦게 끝난 복귀 흐름이 **방금 시작한 전투를
+`Clear()` 해버린다.**
+
+1. `OnBattleStart`가 `m_BattleReturnFlow.Clear()`로 흐름을 취소한다
+2. `FinishBattleReturn`이 `m_isBattleActive == true`면 손대지 않고 돌아간다
+   (같은 프레임에 완료된 경우까지 막는다)
+
+### 런이 닫히는 경로에서도 복귀를 시작한다
+
+`StartBattleReturn()`을 `EndRun` 분기 **앞**에서 부른다. 런이 여기서 닫히더라도 전투 오브젝트
+정리는 해야 하고, `Clear()`는 멱등이므로 런 종료 처리와 겹쳐도 무해하다.
+
+### 판정 요약은 다시 띄우지 않는다
+
+`m_Field.Show(roster, **null**, pool)`. 그 스핀의 요약은 전투로 소진됐다 —
+다시 띄우면 지난 스핀의 식이 남는다. `Show`가 내부에서 `Clear()`를 부르므로 요약은 비워진다.

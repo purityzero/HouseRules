@@ -145,3 +145,42 @@ m_SymbolRect.localScale = Vector3.one;
    (`Setup`의 `KillMotion`이 트윈을 죽이므로 아마 안전하나 미확인)
 4. 사망 0.22s 지연 중 계속 맞는지 (`isAlive == false` 조기 반환으로 막힐 것으로 보이나 미확인)
 5. 눈으로 보기 — 공격/피격이 실제로 읽히는지
+
+
+---
+
+## 2026-09-13 — 전투 후 제자리 복귀 (`ReturnToHome`)
+
+**연관**: [[UIInGameBattle]] · [[InGameScene]]
+
+### 추가
+
+| 멤버 | 하는 일 |
+|---|---|
+| `m_HomePosition` | `Setup`의 `_startPosition`을 기억한다. 그때까지는 대입만 하고 버렸다 |
+| `m_isReturning` · `isReturning` | 아직 걸어가는 중인가 |
+| `ReturnToHome(float _speedScale)` | 원래 칸으로 트윈 이동. **실제로 움직이기 시작하면 true** |
+| `RETURN_ARRIVE_DISTANCE = 1f` | 이보다 가까우면 걸어갈 것이 없다고 본다 |
+
+### ★ 여기서는 루트를 트윈해도 된다
+
+클래스 주석에 **"연출은 심볼(자식)만 움직인다"**는 규칙이 있다. 루트의 `anchoredPosition`을
+`Tick`이 매 프레임 쓰고 있어서 트윈과 서로 덮어쓰기 때문이다.
+
+**복귀는 예외다** — 전투가 끝난 뒤에 부르므로 `Tick`이 더 이상 불리지 않는다.
+그래서 루트를 직접 트윈한다. 심볼만 움직이면 유닛 루트는 적진 앞에 남아
+HP 바와 성급 표시가 엉뚱한 자리에 뜬다.
+
+### 속도는 유닛 스탯을 따른다
+
+`duration = distance / (m_MoveSpeed * speedScale)`. 시간을 고정하면 먼 칸의 유닛이
+순간이동처럼 빨라진다. 배속(`battleSpeed`)도 곱한다 — 전투를 2배로 보던 사람이
+복귀만 느리게 기다릴 이유가 없다.
+
+`m_MoveSpeed`가 0이면 영원히 도착하지 못하므로 즉시 제자리에 놓고 false를 돌려준다.
+현재 테이블에 0은 없지만, 디버프가 붙으면 생길 수 있는 교착이다.
+
+### 펀치 모션을 먼저 정리한다
+
+공격·피격 `DOPunchAnchorPos`가 남아 있으면 걸어가는 동안 심볼이 어긋난 자리에 떠 있다.
+`ResetSymbolMotion()`을 먼저 부른다.

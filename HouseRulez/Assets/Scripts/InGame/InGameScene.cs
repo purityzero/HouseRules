@@ -30,6 +30,10 @@ public class InGameScene : BaseScene
     // 코루틴 핸들처럼 따로 들고 비워줄 상태가 없다.
     private FlowCommand m_SpinFlow = new FlowCommand();
 
+    // 전투 후 복귀 연출. 스핀 흐름과 따로 두는 이유 — 둘은 동시에 살아 있을 수 있고
+    // (복귀가 걸어가는 동안 플레이어가 다음 스핀을 돌린다) 한 흐름에 섞으면 서로를 취소한다.
+    private FlowCommand m_BattleReturnFlow = new FlowCommand();
+
     private bool m_isSpinning
     {
         get { return m_SpinFlow.IsFinished() == false; }
@@ -195,6 +199,10 @@ public class InGameScene : BaseScene
             return;
         }
 
+        // 이전 복귀가 아직 걸어가는 중이면 취소한다. 안 그러면 그 흐름이 뒤늦게 끝나면서
+        // **방금 시작한 전투를 Clear() 해버린다.**
+        m_BattleReturnFlow.Clear();
+
         // 소환 표시는 전투 유닛이 대신하므로 겹쳐 보이지 않게 지운다.
         if (m_Field != null)
             m_Field.Clear();
@@ -212,6 +220,7 @@ public class InGameScene : BaseScene
     {
         // 스핀 흐름은 전투 여부와 무관하게 매 프레임 돌아야 한다.
         m_SpinFlow.Update();
+        m_BattleReturnFlow.Update();
 
         if (m_isBattleActive == false)
             return;
@@ -246,6 +255,10 @@ public class InGameScene : BaseScene
 
         RefreshRunUI();
 
+        // 살아남은 유닛을 제자리로 걸어 돌려보낸 뒤 전투 화면을 정리한다.
+        // 아래에서 런이 닫히더라도 정리는 해야 하므로 분기 앞에서 시작한다.
+        StartBattleReturn();
+
         if (m_RunData.homeHp <= 0)
         {
             EndRun(eRunEndReason.HomeFallen);
@@ -267,6 +280,51 @@ public class InGameScene : BaseScene
         // 살 수단까지 없어야 비로소 더 진행할 방법이 없는 것이다.
         if (m_RunData.spinCoin <= 0 && m_RunData.IsExtraSpinBuyable() == false)
             EndRun(eRunEndReason.OutOfSpinCoin);
+    }
+
+    // 전투가 끝나면 살아남은 유닛을 원래 칸으로 걸어 돌려보낸 뒤 전투 화면을 정리한다.
+    //
+    // **왜 Clear를 먼저 하지 않는가** — 지우고 다시 그리면 순간이동으로 보인다.
+    // 걸어서 돌아가는 것이 "내 유닛이 살아 돌아왔다"를 보여주는 장면이므로,
+    // 이동이 끝난 뒤에 전투 오브젝트를 정리한다.
+    //
+    // 이전에는 전투가 끝나도 Clear()를 부르지 않아, 살아남은 유닛이 **적진 앞에 몰린 자리 그대로**
+    // 방치되고 전장 9칸 표시는 비어 있는 구간이 있었다(다음 스핀까지). 그 구간을 메운다.
+    private void StartBattleReturn()
+    {
+        m_BattleReturnFlow.Clear();
+
+        if (m_Battle == null)
+            return;
+
+        int movingCount = m_Battle.ReturnSurvivorsToHome(m_RunData.battleSpeed);
+
+        // 돌아올 유닛이 없으면(전멸했거나 이미 제자리) 기다릴 것이 없다.
+        if (movingCount <= 0)
+        {
+            FinishBattleReturn();
+            return;
+        }
+
+        m_BattleReturnFlow.Add(new Command_WaitUntil(() => m_Battle.isReturning == false));
+        m_BattleReturnFlow.Add(new Command_Delegate(FinishBattleReturn));
+    }
+
+    // 복귀가 끝났다. 전투 오브젝트를 지우고 전장 9칸을 다시 그린다.
+    private void FinishBattleReturn()
+    {
+        // 복귀가 끝나기 전에 다음 전투가 시작됐으면 손대지 않는다 — 그 전투를 지워버린다.
+        // OnBattleStart가 이 흐름을 취소하지만, 같은 프레임에 완료된 경우까지 막는다.
+        if (m_isBattleActive == true)
+            return;
+
+        if (m_Battle != null)
+            m_Battle.Clear();
+
+        // 전장 표시를 되돌린다. 판정 요약은 넘기지 않는다 —
+        // 그 스핀의 요약은 전투로 소진됐고, 여기서 다시 띄우면 지난 스핀의 식이 남는다.
+        if (m_Field != null && m_RunData != null && m_SlotMachine != null)
+            m_Field.Show(m_RunData.roster, null, m_SlotMachine.spritePool);
     }
 
     // 패배의 대가 = 성문을 넘은 적 수 × PerLeak + (패배면) PerDefeat.
