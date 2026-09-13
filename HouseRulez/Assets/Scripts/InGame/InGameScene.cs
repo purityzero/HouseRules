@@ -34,6 +34,16 @@ public class InGameScene : BaseScene
     // (복귀가 걸어가는 동안 플레이어가 다음 스핀을 돌린다) 한 흐름에 섞으면 서로를 취소한다.
     private FlowCommand m_BattleReturnFlow = new FlowCommand();
 
+    // 연차 이동 연출. 복귀가 끝난 뒤에 이어지므로 복귀 흐름과도 분리한다 —
+    // 실행 중인 FlowCommand 에 자기 콜백에서 Add 하는 모양이 되면 순서를 보장할 수 없다.
+    private FlowCommand m_YearTravelFlow = new FlowCommand();
+
+    // 연차가 넘어갔다는 것을 복귀가 끝날 때까지 들고 있는다.
+    // 데이터상 연차 전환은 AdvanceToNextWave 에서 이미 일어나지만, 연출은 유닛이 제자리에
+    // 돌아온 뒤에 시작해야 한다 — 적진 앞에 흩어진 채로 배경이 흐르면 무슨 일인지 읽히지 않는다.
+    private bool m_isYearTravelPending;
+    private bool m_isYearTravelling;
+
     private bool m_isSpinning
     {
         get { return m_SpinFlow.IsFinished() == false; }
@@ -43,6 +53,16 @@ public class InGameScene : BaseScene
     // 이 플래그 없이 isRunning만 보면 전투 전에도 Tick이 돌고,
     // CheckResult가 "적이 하나도 없다"를 승리로 읽어 유령 승리가 난다.
     private bool m_isBattleActive;
+
+    // 연차 이동 연출의 길이와 배경 속도.
+    //
+    // 12연차 게임이라 **11번 반복된다.** 복귀 연출(웨이브마다, 36회)이 1배속에서 2.3분이었던
+    // 실측을 감안해 짧게 잡았다 — 2.5초 x 11회 = 27.5초.
+    //
+    // 속도는 타이틀(0.02, 한 바퀴 50초)보다 훨씬 빠르다. 2.5초 동안 텍스처의 37%가 흘러야
+    // "이동했다"가 보인다. 타이틀 속도로는 5%만 흘러 정지한 것과 구별되지 않는다.
+    private const float YEAR_TRAVEL_DURATION = 2.5f;
+    private const float YEAR_TRAVEL_SCROLL_SPEED = 0.15f;
 
     // 런이 닫혔는가. 옥새 이중 지급과 종료 후 조작을 함께 막는다.
     private bool m_isRunEnded;
@@ -203,6 +223,11 @@ public class InGameScene : BaseScene
         // **방금 시작한 전투를 Clear() 해버린다.**
         m_BattleReturnFlow.Clear();
 
+        // 이동 연출 중에 전투가 시작될 수 있다(연출은 2.5초, 그 사이 스핀이 가능하다).
+        // 전장 표시는 곧 Clear()되므로 걷기를 끊고 배경도 멈춘다.
+        m_YearTravelFlow.Clear();
+        FinishYearTravel();
+
         // 소환 표시는 전투 유닛이 대신하므로 겹쳐 보이지 않게 지운다.
         if (m_Field != null)
             m_Field.Clear();
@@ -221,6 +246,10 @@ public class InGameScene : BaseScene
         // 스핀 흐름은 전투 여부와 무관하게 매 프레임 돌아야 한다.
         m_SpinFlow.Update();
         m_BattleReturnFlow.Update();
+        m_YearTravelFlow.Update();
+
+        if (m_isYearTravelling == true)
+            ScrollBackground(Time.deltaTime);
 
         if (m_isBattleActive == false)
             return;
@@ -325,6 +354,57 @@ public class InGameScene : BaseScene
         // 그 스핀의 요약은 전투로 소진됐고, 여기서 다시 띄우면 지난 스핀의 식이 남는다.
         if (m_Field != null && m_RunData != null && m_SlotMachine != null)
             m_Field.Show(m_RunData.roster, null, m_SlotMachine.spritePool);
+
+        // 연차가 넘어갔으면 이제 이동 연출을 한다. 전장 9칸이 그려진 뒤라야
+        // 걷는 대상이 화면에 있다.
+        if (m_isYearTravelPending == true)
+        {
+            m_isYearTravelPending = false;
+            StartYearTravel();
+        }
+    }
+
+    // 연차 이동 연출 — 배경이 오른쪽으로 흐르고 유닛이 제자리걸음을 한다.
+    //
+    // 유닛을 화면 밖까지 실제로 옮기지 않는다. 배경이 흐르는 동안 제자리걸음만 해도
+    // "우리가 이동했다"로 읽히고, 옮기면 전장 9칸 배치가 흐트러져 되돌릴 것이 늘어난다.
+    private void StartYearTravel()
+    {
+        m_YearTravelFlow.Clear();
+
+        m_isYearTravelling = true;
+
+        if (m_Field != null)
+            m_Field.SetWalking(true);
+
+        m_YearTravelFlow.Add(new Command_DeltaTime(YEAR_TRAVEL_DURATION, FinishYearTravel));
+    }
+
+    private void FinishYearTravel()
+    {
+        m_isYearTravelling = false;
+
+        if (m_Field != null)
+            m_Field.SetWalking(false);
+    }
+
+    // 배경 텍스처가 가로 seamless라 uvRect를 밀기만 하면 끊김 없이 이어진다
+    // (TitleBackgroundScroller와 같은 방식). 그 컴포넌트를 붙이지 않은 이유는
+    // 타이틀은 **항상** 흐르고 인게임은 **연차 전환 때만** 흘러야 하기 때문이다 —
+    // 여기서 직접 밀면 씬에 컴포넌트를 추가할 필요도 없다.
+    private void ScrollBackground(float _deltaTime)
+    {
+        if (m_BackgroundImage == null)
+            return;
+
+        Rect uvRect = m_BackgroundImage.uvRect;
+        uvRect.x += YEAR_TRAVEL_SCROLL_SPEED * _deltaTime;
+
+        // uv를 무한정 누적하면 float 정밀도가 떨어져 도트가 미세하게 떨린다.
+        if (uvRect.x >= 1f)
+            uvRect.x -= 1f;
+
+        m_BackgroundImage.uvRect = uvRect;
     }
 
     // 패배의 대가 = 성문을 넘은 적 수 × PerLeak + (패배면) PerDefeat.
@@ -352,11 +432,15 @@ public class InGameScene : BaseScene
         if (isYearAdvanced == false)
             return;
 
-        // 연차가 넘어가며 스핀 코인·스왑이 회복됐다. 화면에 안 알리면
+        // 연차가 넘어가며 스핀 코인이 회복됐다. 화면에 안 알리면
         // 코인이 왜 늘었는지 알 수 없다 — HUD 핍만으로는 놓치기 쉽다.
+        // (스왑도 함께 회복됐다고 적혀 있었는데 그 기능은 2026-09-13에 제거됐다)
         RefreshRunUI();
 
         ShowYearStartBanner(m_RunData.year);
+
+        // 이동 연출은 유닛이 제자리로 돌아온 뒤에 시작한다(FinishBattleReturn).
+        m_isYearTravelPending = true;
 
         // ▼ 외교 단계는 여기 들어온다(GDD 02장 STEP 05 / 09장 "3연차부터 개방").
         //   기획 스펙이 자리만 정해두고 구현은 별도 작업으로 남겼다.

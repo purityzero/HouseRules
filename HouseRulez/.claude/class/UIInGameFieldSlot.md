@@ -112,3 +112,35 @@ transform.SetAsLastSibling();
 되돌린다. 무조건 부르면 드래그하지 않은 칸의 순서를 망친다.
 
 **alpha · anchoredPosition · raycastTarget 복원은 정상이었다**(QA 확인).
+
+
+---
+
+## 2026-09-13-2 — 연차 이동용 제자리걸음 (`SetWalking`)
+
+### 왜 까딱임인가
+
+**스프라이트에 걷기 프레임이 없다.** 종족 폴더를 확인하니 심볼마다 원본 · `_blur` · `_x8`
+세 장뿐이다(예: `chess_king.png` / `_blur` / `_x8`). 걷기 애니메이션을 넣으려면 아트가 필요하다.
+
+그래서 심볼을 위아래로 6px 까딱인다(`DOAnchorPosY`, 0.22초, Yoyo 무한). **아트 추가 0으로
+"걷고 있다"가 읽힌다.** 배경이 흐르는 것과 합쳐져야 "이동한다"가 되므로 큰 움직임은 필요 없다.
+
+### ★ 무한 루프 트윈이라 정리 경로를 여러 겹 뒀다
+
+`SetLoops(-1)`은 끊지 않으면 영원히 돈다. 끊는 곳이 다섯이다.
+
+| 경로 | 언제 |
+|---|---|
+| `SetWalking(false)` | 연출이 끝났다(`InGameScene.FinishYearTravel`) |
+| `Clear()` | 전투가 시작돼 칸이 비워진다 |
+| `OnBeginDrag` | 드래그가 시작된다 — 포인터 이동과 같은 값을 서로 덮어쓴다 |
+| `OnDestroy` | 씬을 나간다. 살아 있는 트윈이 사라진 대상을 건드린다 |
+| `InGameScene.OnBattleStart` | 연출 중 전투가 시작된다(`FinishYearTravel` 직접 호출) |
+
+### 드래그와의 순서
+
+`OnBeginDrag`에서 **걷기를 먼저 끈다.** `SetWalking(false)`가 `anchoredPosition`을 홈으로
+되돌리므로, 그 뒤에 `m_SymbolHomePosition`을 읽어야 **까딱인 중간 좌표가 홈으로 기록되지 않는다.**
+
+빈 칸과 드래그 중인 칸은 걷지 않는다(`m_SymbolImage.enabled` · `m_isDragging` 확인).

@@ -178,6 +178,18 @@ public class UIInGameField : MonoBehaviour
         }
     }
 
+    // 연차 이동 중 9칸에 제자리걸음을 켜고 끈다. 빈 칸은 칸 쪽에서 걸러진다.
+    public void SetWalking(bool _isWalking)
+    {
+        for (int i = 0; i < m_ListSlot.Count; ++i)
+        {
+            if (m_ListSlot[i] == null)
+                continue;
+
+            m_ListSlot[i].SetWalking(_isWalking);
+        }
+    }
+
     // ---------------- 드래그 배치 (2026-09-13) ----------------
     //
     // 칸은 자기가 끌렸다는 것만 알고, 어디에 놓였는지와 명부를 고치는 일은 여기가 맡는다.
