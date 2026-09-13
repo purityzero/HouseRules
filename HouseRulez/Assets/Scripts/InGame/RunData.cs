@@ -30,6 +30,11 @@ public class RunData
     // 런 밖으로 나가지 않는다는 점에서 이 클래스의 다른 값들과 수명이 같아 여기 둔다.
     private RunRoster m_Roster = new RunRoster();
 
+    // 이 런의 종족. UnitTable 조회 키이며 런 도중 바뀌지 않는다.
+    // Init()이 이미 읽고 있던 값을 지역변수로 버리던 것을 필드로 올렸다 —
+    // 전투가 심볼별 스탯을 찾을 때 필요하고, 런 상태의 소유자는 이 클래스다.
+    private string m_HouseKey = string.Empty;
+
     public int homeHp => m_HomeHp;
     public int homeHpMax => m_HomeHpMax;
     public int year => m_Year;
@@ -48,6 +53,7 @@ public class RunData
     public int extraSpinMax => m_ExtraSpinMax;
     public int extraSpinGoldCost => m_ExtraSpinGoldCost;
     public RunRoster roster => m_Roster;
+    public string houseKey => m_HouseKey;
 
     public void Init()
     {
@@ -61,7 +67,8 @@ public class RunData
         // 영구 메타는 런이 시작될 때 한 번만 스냅샷으로 반영한다. 런 도중 타이틀에서 산 것이
         // 진행 중인 런에 소급되지 않도록, 여기 말고 다른 곳에서 다시 더하지 않는다.
         HouseRecord selectedHouse = PlayerManager.instance.GetSelectedHouseRecord();
-        string houseKey = (selectedHouse != null) ? selectedHouse.Key : string.Empty;
+        m_HouseKey = (selectedHouse != null) ? selectedHouse.Key : string.Empty;
+        string houseKey = m_HouseKey;
 
         m_HomeHpMax = configTable.GetValue(GameConfigTable.KEY_HOME_HP_MAX, 8)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_HOME_HP_MAX);

@@ -204,7 +204,7 @@ public class InGameScene : BaseScene
         // ★ 드래그 배치가 붙으면 이 호출을 빈 칸 채우기로 좁혀야 한다(RunRoster 주석 참고).
         m_RunData.roster.ArrangeFieldByGrade();
 
-        m_Battle.Begin(m_RunData.roster, m_SlotMachine.spritePool, wave);
+        m_Battle.Begin(m_RunData.roster, m_RunData.houseKey, m_SlotMachine.spritePool, wave);
         m_isBattleActive = true;
     }
 

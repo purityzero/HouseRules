@@ -243,3 +243,87 @@ Codex가 원칙 A(웨이브당 스핀 1회)로 돌리던 중 중단했다. 부�
 
 1. **`Atk`를 float로 승격할지** — 1성 Atk가 정수 2라 포커 13단 사다리가 1성에서 3단으로 뭉갠다
 2. **화투 죽은 패(11·12월)를 최강으로 둘지** — GDD와 어긋난다. 채택하면 GDD도 함께 고쳐야 한다
+
+## 2026-09-13 — 유닛 테이블 1단계 구현 (미커밋 · **Play Mode 검증 통과**)
+
+상세는 `.claude/class/UnitRecord.md`. 기획 출처는 `.claude/design/unit-spec.html`.
+
+### 미커밋 파일 (디스크에 있고 유실 없음)
+
+| 파일 | 무엇 |
+|---|---|
+| `Assets/Resources/Table/UnitTable.csv` | **신규 59행** — 7종족 전 심볼의 배율·Role·RangeBonus·TraitKey |
+| `Assets/Scripts/Table/UnitRecord.cs` | **신규** — `UnitRecord`, `UnitBattleStat` struct, `UnitTable.GetBattleStat()` |
+| `Glory/Table/TableManager.cs` | `UnitTable` 등록 |
+| `Table/UnitGradeRecord.cs` · `Table/EnemyRecord.cs` | `Atk` int → **float** |
+| `InGame/Battle/BattleUnit.cs` | `m_Atk`·`Setup`·`TakeDamage`, `m_Hp`·`m_MaxHp`까지 **float** |
+| `InGame/Battle/UIInGameBattle.cs` | `SpawnAllies`가 `GetBattleStat` 사용, `Begin`에 `houseKey` 인자. **틀린 클래스 주석 정정** |
+| `InGame/InGameScene.cs` · `InGame/RunData.cs` | 종족 키 전달(`RunData.houseKey` 신규) |
+
+### 검증 완료 (2026-09-13) — 네 번 막혔던 항목이 닫혔다
+
+**컴파일**: Claude Code가 브릿지 없이 확정했다. `Assembly-CSharp.dll` 빌드 시각 11:31:40이
+최신 소스 11:02:19보다 뒤이고, `Editor.log`에 `error CS` 0건이며, DLL 메타데이터에
+`UnitRecord` · `UnitBattleStat` · `UnitTable` · `GetBattleStat`이 모두 있다.
+방법은 `D:/Orca/runbook/unity-bridge.md`에 남겼다.
+
+**Play Mode 2~4순위**: Codex가 새 세션(브릿지 연결됨)에서 전부 통과시켰다.
+보고서 `D:/Orca/reports/unit-table-qa-2026-09-13.md`.
+
+| 항목 | 결과 |
+|---|---|
+| 심볼별 스탯 차이 | slot 1성 cherry `HP12/ATK1.5`, seven `HP7/ATK2.9` — 실제 `BattleUnit`까지 차이 유지 |
+| 전투 종료 | poker 실제 풀·테이블 13종으로 1-1~1-3 모두 Victory(4.14 / 4.68 / 4.90초), 타임아웃 0 |
+| `ATK_MIN` 하한 | 합성 `AtkRate=0`에서도 ATK 1 유지 |
+| 소수 피해 누적 | 0.4씩 3회에 `1 → 0.6 → 0.200000018 → 0`, 사망 판정까지 도달 |
+| HP바 | `10/12 = 0.8333333`이 `fillAmount`와 일치 |
+| 없는 심볼 폴백 | `slot/999`가 성급 원값 `HP10/ATK2/Spd1/Range1/Move1`, 오류 로그 정확히 1건(중복 없음) |
+
+**Claude Code가 원본에서 재확인한 것** — cherry `1.25×10=12.5→12` · `0.75×2=1.5`,
+seven `0.70×10=7` · `1.45×2=2.9`로 CSV와 산술이 정확히 맞는다.
+또 QA 콘솔에 남은 `slot/6~8` 오류가 생산 경로 결함인지 확인했다: `InGameScene.cs:64`와
+`RunData.cs:69`가 **둘 다** `PlayerManager.GetSelectedHouseRecord()`를 읽으므로
+`houseKey`와 스프라이트 풀은 같은 출처에서 파생된다 — Codex의 "QA 입력 불일치" 판정이 맞다.
+
+**남은 것은 Git 마무리뿐이다**(Codex 메인 세션 몫). 커밋 시 폰트 아틀라스 4개는 제외한다.
+
+### 검산한 것
+
+CSV를 만든 뒤 직접 계산해 확인했다 — 7종족 모두 `Hp`·`Atk`·`Spd`·`Mv` 배율 평균 **1.000**,
+`Id` 1~59 중복 없음. 다만 **심볼 균등 가중**이라, 판정이 특정 심볼을 과대 대표하는 것을 감안하면
+실제 획득 분포로는 1.0이 아닐 수 있다(기획 스펙 Q8).
+
+### 확정된 기획 결정 (2026-09-12 사용자)
+
+- **Q4 `Atk` float 승격** — 채택. 정수 2에 배율 0.55~1.5를 곱하면 1·2·3으로 뭉개져
+  런 초반(전부 1성)에 "유닛이 다르다"가 가장 안 보였다
+- **Q3 화투 죽은 패** — GDD 대로 둔다. 배율로 되살리면 코어가 붙을 때 부활 경로가 이중이 된다
+
+### ⬜ 이 단계에서 일부러 안 한 것
+
+- `StringTable`에 `NameKey` 59행 — 유닛 이름을 쓰는 UI가 아직 없어 지금은 무해하다
+- `Role`·`TraitKey`는 **저장만 하고 전투가 읽지 않는다**(2·3단계)
+- `UnitSpawnTable`(소환형) — 5단계
+
+---
+
+## 2026-09-13 — 환경: Unity 자동 실행을 넣었다 (Orca 쪽)
+
+Unity MCP가 **세션 시작 때 한 번만** 붙는 탓에 2026-09-11~13에 QA가 네 번 막혔다.
+세션 안에서는 못 푸는 문제라 환경 쪽에서 막았다(사용자 지시).
+
+| 파일 | 역할 |
+|---|---|
+| `D:\Orca\StartUnityOnLogon.ps1` | Unity Hub 목록에서 **가장 최근 프로젝트**를 골라 기존 런처에 넘긴다. `-DelaySeconds` |
+| `%APPDATA%\...\Startup\Orca-StartUnity.vbs` | 로그온 트리거. 창 숨기고 **120초 지연** |
+
+작업 스케줄러(`schtasks /sc onlogon`)는 `Access is denied`로 막혀 시작 폴더를 썼다 —
+로그온 트리거 등록은 관리자 권한을 요구한다.
+
+### ⬜ 첫 실전 검증 지점 (다음 부팅)
+
+지금까지는 Unity가 이미 떠 있어서 **"건너뛰기" 경로만** 확인했다. 실제 실행 경로는 미검증이다.
+
+**재부팅 후 확인할 것** — 세션 시작 표의 `Unity MCP` 줄이 **`OK 브릿지 응답 (8080)`**이면 성공이다.
+`⚠ 브릿지 없음`이면 자동 실행이 안 된 것이니 시작 폴더의 vbs와 로그를 본다.
+(로그온 후 120초 지연이 있으므로, 부팅 직후 바로 세션을 열면 아직 안 떠 있을 수 있다)

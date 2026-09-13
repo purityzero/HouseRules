@@ -22,9 +22,11 @@ public class BattleUnit : MonoBehaviour
 
     private RectTransform m_RectTransform;
     private eBattleSide m_Side;
-    private int m_MaxHp;
-    private int m_Hp;
-    private int m_Atk;
+    // 피해가 소수로 들어온다(공격력이 심볼 배율에 곱해져 정수가 아니다).
+    // HP를 정수로 두면 소수 피해를 반올림해야 하고, 0.4 같은 값이 0으로 깎여 전투가 안 끝난다.
+    private float m_MaxHp;
+    private float m_Hp;
+    private float m_Atk;
     private float m_AtkSpeed;
     private float m_Range;
     private float m_MoveSpeed;
@@ -55,7 +57,7 @@ public class BattleUnit : MonoBehaviour
     private const float DEATH_DURATION = 0.22f;
 
     public void Setup(eBattleSide _side, int _lane, Sprite _sprite, int _grade,
-        int _hp, int _atk, float _atkSpeed, int _range, float _moveSpeed, Vector2 _startPosition)
+        int _hp, float _atk, float _atkSpeed, int _range, float _moveSpeed, Vector2 _startPosition)
     {
         m_RectTransform = transform as RectTransform;
         m_Side = _side;
@@ -137,12 +139,12 @@ public class BattleUnit : MonoBehaviour
     }
 
     // 본거지 선을 넘은 적처럼 때린 주체가 없는 경우에 쓴다.
-    public void TakeDamage(int _amount)
+    public void TakeDamage(float _amount)
     {
         TakeDamage(_amount, Vector2.zero);
     }
 
-    public void TakeDamage(int _amount, Vector2 _hitDirection)
+    public void TakeDamage(float _amount, Vector2 _hitDirection)
     {
         if (isAlive == false)
             return;
@@ -230,6 +232,6 @@ public class BattleUnit : MonoBehaviour
         if (m_HpFillImage == null)
             return;
 
-        m_HpFillImage.fillAmount = m_Hp / (float)m_MaxHp;
+        m_HpFillImage.fillAmount = m_Hp / m_MaxHp;
     }
 }

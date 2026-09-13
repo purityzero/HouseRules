@@ -8,10 +8,15 @@ public enum eBattleResult
     Defeat,
 }
 
-// 웨이브 한 판. 아군은 판정 소환 결과에서, 적은 WaveTable에서 만들어 서로 진격시킨다.
+// 웨이브 한 판. 아군은 **명부의 전장**에서, 적은 WaveTable에서 만들어 서로 진격시킨다.
 //
-// 최소 수직 슬라이스다. 레인(릴의 행) 안에서만 교전하고 레인 간 간섭은 없다 —
-// 전열/중열/후열의 역할 차이(GDD §FieldLayout)는 전투가 실제로 도는 걸 본 뒤에 얹는다.
+// ⚠️ 2026-09-13 정정 — 이 주석은 "레인 안에서만 교전하고 레인 간 간섭은 없다"고 적혀 있었는데
+// **코드와 달랐다.** FindTarget은 진영만 거르고 2D 거리로 가장 가까운 적을 찾으므로 레인 제약이 없다.
+// 레인 간격이 (30, 52)라 대각 약 60px인데 한 칸이 108px이어서, Range 1짜리 근접 유닛도 옆 레인에 닿는다.
+// 실제로 이 주석을 믿고 "원거리는 옆 레인을 못 쏜다"고 잘못 판단한 일이 있었다.
+//
+// 열별 역할(전열·중열·후열, GDD §FieldLayout)은 아직 미구현이다 — UnitTable의 Role 컬럼에
+// 기획 의도만 들어 있고 전투는 그 값을 읽지 않는다.
 public class UIInGameBattle : MonoBehaviour
 {
     [SerializeField] private RectTransform m_UnitRoot;
@@ -61,7 +66,7 @@ public class UIInGameBattle : MonoBehaviour
     // 아군은 스핀 결과가 아니라 **명부의 전장**에서 온다(2026-09-11). 그래서 유닛이 웨이브를
     // 넘어 살아남는다 — 매 전투 Clear()로 화면 오브젝트는 지우지만 명부는 그대로라
     // 전투에서 죽은 유닛도 다음 웨이브에 다시 선다. 화면 오브젝트와 유닛의 수명을 분리한 것이다.
-    public void Begin(RunRoster _roster, IReadOnlyList<HouseSlotSymbolSprite> _spritePool, WaveRecord _wave)
+    public void Begin(RunRoster _roster, string _houseKey, IReadOnlyList<HouseSlotSymbolSprite> _spritePool, WaveRecord _wave)
     {
         Clear();
 
@@ -73,7 +78,7 @@ public class UIInGameBattle : MonoBehaviour
 
         m_UnitTemplate.gameObject.SetActive(false);
 
-        SpawnAllies(_roster, _spritePool);
+        SpawnAllies(_roster, _houseKey, _spritePool);
         SpawnEnemies(_wave);
     }
 
@@ -84,15 +89,17 @@ public class UIInGameBattle : MonoBehaviour
         return new Vector2(_x + laneFromFront * LANE_STEP_X, laneFromFront * LANE_STEP_Y);
     }
 
-    private void SpawnAllies(RunRoster _roster, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
+    private void SpawnAllies(RunRoster _roster, string _houseKey, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
     {
         if (_roster == null || _spritePool == null)
             return;
 
-        UnitGradeTable gradeTable = TableManager.instance.GetTable<UnitGradeTable>();
-        if (gradeTable == null)
+        // 성급 × 심볼을 합친 스탯은 UnitTable이 계산한다 — 여기서 직접 곱하지 않는다.
+        // 같은 값을 보관함 툴팁과 전장 표시도 써야 하므로, 계산이 전투 화면에 있으면 저쪽이 다시 구현한다.
+        UnitTable unitTable = TableManager.instance.GetTable<UnitTable>();
+        if (unitTable == null)
         {
-            Logger.Error("[UIInGameBattle] SpawnAllies Failed! UnitGradeTable not found");
+            Logger.Error("[UIInGameBattle] SpawnAllies Failed! UnitTable not found (기대: TableManager에 등록됨)");
             return;
         }
 
@@ -108,16 +115,14 @@ public class UIInGameBattle : MonoBehaviour
                 continue;
             }
 
-            UnitGradeRecord grade = gradeTable.GetRecord(runUnit.Grade);
-            if (grade == null)
-                continue;
+            UnitBattleStat stat = unitTable.GetBattleStat(_houseKey, runUnit.SymbolType, runUnit.Grade);
 
             int lane = cell / LANE_COUNT;
             int column = cell % LANE_COUNT;
 
             BattleUnit unit = Instantiate(m_UnitTemplate, m_UnitRoot);
             unit.Setup(eBattleSide.Ally, lane, _spritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade,
-                grade.Hp, grade.Atk, grade.AtkSpeed, grade.Range, grade.MoveSpeed,
+                stat.Hp, stat.Atk, stat.AtkSpeed, stat.Range, stat.MoveSpeed,
                 GetLanePosition(lane, m_AllyStartX + column * 108f));
             m_ListUnit.Add(unit);
         }

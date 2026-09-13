@@ -9,7 +9,8 @@ public class EnemyRecord : Record
     public string NameKey;
     public string SpritePath;
     public int Hp;
-    public int Atk;
+    // 아군 UnitGradeRecord.Atk와 **같은 눈금**이다. 한쪽만 타입을 바꾸면 전투 계산이 어긋난다.
+    public float Atk;
     public float AtkSpeed;
     public int Range;
     public float MoveSpeed;
