@@ -5,4 +5,4 @@ Id,Key,NameKey,SpritePath,Hp,Atk,AtkSpeed,Range,MoveSpeed,Power
 4,brute,EnemyBrute,Image/InGame/Enemy/enemy_brute,52,8,0.7,1,0.7,4
 5,king_first,EnemyKingFirst,Image/InGame/Enemy/enemy_king_first,240,18,0.9,2,0.6,17
 6,king_second,EnemyKingSecond,Image/InGame/Enemy/enemy_king_second,600,34,0.9,2,0.6,41
-7,king_final,EnemyKingFinal,Image/InGame/Enemy/enemy_king_final,1650,78,1.0,2,0.6,110
+7,king_final,EnemyKingFinal,Image/InGame/Enemy/enemy_king_final,850,55,1.0,2,0.6,110
