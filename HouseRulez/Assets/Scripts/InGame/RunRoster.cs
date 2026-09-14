@@ -106,9 +106,15 @@ public class RunRoster
     // 다른 종족이 이 오버로드로 2성 이상을 넣기 시작하면 "승급은 3합으로만"이라는 규칙이 무너진다.
     public RunUnit AddUnit(int _symbolType, int _grade)
     {
+        return AddUnit(_symbolType, _grade, null);
+    }
+
+    // _patternKey 를 주면 판정이 만든 고유 유닛이 된다(심볼에서 나오지 않은 유닛).
+    public RunUnit AddUnit(int _symbolType, int _grade, string _patternKey)
+    {
         int grade = Mathf.Clamp(_grade, 1, m_MaxGrade);
 
-        RunUnit unit = new RunUnit(_symbolType, grade);
+        RunUnit unit = new RunUnit(_symbolType, grade, _patternKey);
         m_ListBench.Add(unit);
 
         MergeAll();
@@ -235,8 +241,17 @@ public class RunRoster
         if (_left == null || _right == null)
             return false;
 
-        if (_left.SymbolType < _right.SymbolType || _left.SymbolType > _right.SymbolType)
+        // 고유 유닛은 SymbolType 이 전부 SYMBOL_NONE(-1) 이다. 그것만 보면
+        // 「스트레이트」와 「트리플」이 같은 종류로 묶여 엉뚱하게 승급한다(2026-09-14).
+        if (_left.isPatternUnit == true || _right.isPatternUnit == true)
+        {
+            if (_left.PatternKey != _right.PatternKey)
+                return false;
+        }
+        else if (_left.SymbolType < _right.SymbolType || _left.SymbolType > _right.SymbolType)
+        {
             return false;
+        }
 
         return _left.Grade >= _right.Grade && _left.Grade <= _right.Grade;
     }

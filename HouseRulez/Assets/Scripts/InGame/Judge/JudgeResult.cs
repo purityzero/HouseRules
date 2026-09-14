@@ -18,12 +18,22 @@ public struct SummonSlot
     // 그 심볼이 서는 칸(도착점 트랙)과 아무 관계가 없어서 grid[Cell]로는 복원할 수 없다.
     public int SymbolType;
 
-    public SummonSlot(int _cell, int _grade, int _symbolType)
+    // 판정이 직접 만든 **고유 유닛**이면 그 판정 키가 들어간다(`PokerStraight` 등).
+    // 릴 심볼에서 나온 보통 유닛은 비어 있다.
+    //
+    // 왜 SymbolType 으로 대신하지 않는가 — 그 자리는 이미 SYMBOL_FROM_GRID(-1) 가 쓰고 있고,
+    // 고유 유닛은 "심볼을 모른다"가 아니라 "심볼이 아니다"라 뜻이 다르다.
+    public string PatternKey;
+
+    public SummonSlot(int _cell, int _grade, int _symbolType, string _patternKey = null)
     {
         Cell = _cell;
         Grade = _grade;
         SymbolType = _symbolType;
+        PatternKey = _patternKey;
     }
+
+    public bool isPatternUnit => string.IsNullOrEmpty(PatternKey) == false;
 }
 
 // 전력이 어디서 나왔는지 한 항목. "진 2줄 × 0.95 = 1.9"의 재료다.
@@ -40,11 +50,18 @@ public struct JudgeTerm
     public float Value;
     public float Coef;
 
-    public JudgeTerm(string _label, float _value, float _coef)
+    // 어느 판정인가(`PokerStraight` 등). **고유 유닛을 찾는 열쇠다.**
+    //
+    // Label 로 대신할 수 없다 — Label 은 화면에 보이는 한국어("스트레이트")라 언어가 바뀌면
+    // 같이 바뀐다. 판정의 신원은 언어와 무관해야 한다.
+    public string PatternKey;
+
+    public JudgeTerm(string _label, float _value, float _coef, string _patternKey = null)
     {
         Label = _label;
         Value = _value;
         Coef = _coef;
+        PatternKey = _patternKey;
     }
 
     public float total => Value * Coef;

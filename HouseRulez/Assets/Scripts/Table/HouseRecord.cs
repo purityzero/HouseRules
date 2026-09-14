@@ -70,6 +70,96 @@ public static class HouseSpriteLoader
         return LoadFolder($"Image/InGame/Enemy/{_record.SpriteFolder}");
     }
 
+    // 판정이 만드는 고유 유닛의 스프라이트. **릴 심볼 폴더와 분리한다** —
+    // 같은 폴더에 두면 LoadFolder 가 통째로 읽어 릴에 굴러다니고,
+    // 이름 정렬에 끼어들어 **심볼 인덱스가 통째로 밀린다.**
+    public static Dictionary<string, Sprite> LoadPatternDictionary(string _houseKey)
+    {
+        Dictionary<string, Sprite> dic = new Dictionary<string, Sprite>();
+        if (string.IsNullOrEmpty(_houseKey) == true)
+            return dic;
+
+        Sprite[] loaded = Resources.LoadAll<Sprite>($"Image/InGame/Pattern/{_houseKey}");
+        for (int i = 0; i < loaded.Length; ++i)
+        {
+            // _x8 은 미리 확대해둔 사본이라 "유닛 종류"가 아니다(릴 쪽과 같은 규칙).
+            if (loaded[i].name.Contains("_x8") == true)
+                continue;
+
+            if (dic.ContainsKey(loaded[i].name) == false)
+                dic.Add(loaded[i].name, loaded[i]);
+
+            // 스프라이트 모드가 Multiple 이라 Unity 가 이름 뒤에 인덱스를 붙인다
+            // (`poker_pattern_straight` -> `poker_pattern_straight_0`).
+            // **테이블에는 파일 이름을 적는다** — 그쪽이 사람이 아는 이름이고,
+            // 임포트 설정이 바뀌면 접미사도 바뀌기 때문이다. 그 차이를 여기서 흡수한다.
+            int underscore = loaded[i].name.LastIndexOf('_');
+            if (underscore <= 0)
+                continue;
+
+            string baseName = loaded[i].name.Substring(0, underscore);
+            if (dic.ContainsKey(baseName) == true)
+                continue;
+
+            dic.Add(baseName, loaded[i]);
+        }
+
+        return dic;
+    }
+
+    // 종족별 고유 유닛 스프라이트 캐시. 전장과 전투가 각자 로드하면 같은 파일을 두 번 읽고,
+    // 무엇보다 **한쪽만 고쳐질 위험**이 생긴다(2026-09-14에 실제로 그랬다 —
+    // 전장에는 고유 유닛 분기를 넣고 전투에는 빠뜨려 아군이 한 기도 안 나왔다).
+    private static readonly Dictionary<string, Dictionary<string, Sprite>> m_DicPatternCache
+        = new Dictionary<string, Dictionary<string, Sprite>>();
+
+    // 이 유닛의 그림. **고유 유닛과 심볼 유닛을 가르는 유일한 자리다.**
+    // 전장 표시와 전투 생성이 둘 다 이것을 부른다.
+    public static Sprite FindUnitSprite(RunUnit _unit, string _houseKey,
+        IReadOnlyList<HouseSlotSymbolSprite> _symbolPool)
+    {
+        if (_unit == null)
+            return null;
+
+        if (_unit.isPatternUnit == true)
+        {
+            UnitTable unitTable = TableManager.instance.GetTable<UnitTable>();
+            UnitRecord record = (unitTable != null)
+                ? unitTable.FindPatternUnit(_houseKey, _unit.PatternKey)
+                : null;
+
+            if (record == null || string.IsNullOrEmpty(record.SpriteName) == true)
+            {
+                Logger.Error($"[HouseSpriteLoader] FindUnitSprite Failed! 고유 유닛 행 또는 SpriteName 없음 - {_houseKey}/{_unit.PatternKey} (기대: UnitTable.csv에 PatternKey·SpriteName)");
+                return null;
+            }
+
+            Dictionary<string, Sprite> dic = null;
+            if (m_DicPatternCache.TryGetValue(_houseKey, out dic) == false)
+            {
+                dic = LoadPatternDictionary(_houseKey);
+                m_DicPatternCache[_houseKey] = dic;
+            }
+
+            Sprite found = null;
+            if (dic.TryGetValue(record.SpriteName, out found) == false)
+            {
+                Logger.Error($"[HouseSpriteLoader] FindUnitSprite Failed! 스프라이트 없음 - Image/InGame/Pattern/{_houseKey}/{record.SpriteName} (기대: 그 경로에 png 존재)");
+                return null;
+            }
+
+            return found;
+        }
+
+        if (_symbolPool == null || _unit.SymbolType < 0 || _unit.SymbolType >= _symbolPool.Count)
+        {
+            Logger.Error($"[HouseSpriteLoader] FindUnitSprite Failed! 심볼이 풀 범위 밖 - {_unit.SymbolType} (기대: 0~{((_symbolPool != null) ? _symbolPool.Count - 1 : -1)})");
+            return null;
+        }
+
+        return _symbolPool[_unit.SymbolType].NormalSprite;
+    }
+
     private static List<Sprite> LoadFolder(string _path)
     {
         List<Sprite> listSprite = new List<Sprite>();

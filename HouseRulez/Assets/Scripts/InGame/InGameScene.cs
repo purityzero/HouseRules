@@ -353,7 +353,7 @@ public class InGameScene : BaseScene
         // 전장 표시를 되돌린다. 판정 요약은 넘기지 않는다 —
         // 그 스핀의 요약은 전투로 소진됐고, 여기서 다시 띄우면 지난 스핀의 식이 남는다.
         if (m_Field != null && m_RunData != null && m_SlotMachine != null)
-            m_Field.Show(m_RunData.roster, null, m_SlotMachine.spritePool);
+            m_Field.Show(m_RunData.roster, null, m_SlotMachine.spritePool, m_RunData.houseKey);
 
         // 연차가 넘어갔으면 이제 이동 연출을 한다. 전장 9칸이 그려진 뒤라야
         // 걷는 대상이 화면에 있다.
@@ -613,7 +613,7 @@ public class InGameScene : BaseScene
             m_RunData.roster.FillEmptyFieldFromBench();
 
         if (m_Field != null && m_RunData != null)
-            m_Field.Show(m_RunData.roster, _judgeResult, m_SlotMachine.spritePool);
+            m_Field.Show(m_RunData.roster, _judgeResult, m_SlotMachine.spritePool, m_RunData.houseKey);
     }
 
     private void AddSpinUnits(JudgeResult _judgeResult, int[] _grid)
@@ -624,6 +624,15 @@ public class InGameScene : BaseScene
         for (int i = 0; i < _judgeResult.ListSummon.Count; ++i)
         {
             SummonSlot summon = _judgeResult.ListSummon[i];
+
+            // 판정이 직접 만든 고유 유닛은 릴 심볼에서 나오지 않는다.
+            // 아래 grid 복원을 태우면 Cell·SymbolType 이 둘 다 -1 이라 **그대로 버려진다**
+            // (2026-09-14에 실제로 그랬다 — 스트레이트 3기가 전부 사라졌다).
+            if (summon.isPatternUnit == true)
+            {
+                m_RunData.roster.AddUnit(RunUnit.SYMBOL_NONE, summon.Grade, summon.PatternKey);
+                continue;
+            }
 
             // 판정기가 종류를 채우지 못한 경우에만 grid로 되짚는다.
             // 보관함에 들어간 뒤에는 grid를 못 보므로 여기서 확정해야 한다.

@@ -111,7 +111,7 @@ public static class Judge
         // "전력만큼 빈 칸을 채운다"는 공통 규칙으로는 셋 다 복원할 수 없다.
         // 이미 채워져 있으면 덮어쓰지 않는다.
         if (result.ListSummon.Count <= 0)
-            BuildSummon(result, _grid);
+            BuildSummon(_houseKey, result, _grid);
 
         return result;
     }
@@ -139,6 +139,52 @@ public static class Judge
         }
     }
 
+    // 판정이 직접 만드는 고유 유닛을 세운다. **걸린 횟수만큼 나온다** —
+    // 스트레이트 2줄이면 「스트레이트」 2기다. 윷이 가로 3줄에 말 3기를 내는 것과 같은 방식이고,
+    // 그래서 전력이 보존된다(2줄 = 전력 22 = 유닛 2기 × 계수 11).
+    //
+    // **왜 이 장치가 필요한가** — 지금까지는 전력 1 = 1성 1기라 스트레이트 한 번에 11기,
+    // 트리플이면 40기가 쏟아졌다. 전장은 9칸이다. 2026-09-14 측정에서 포커는 네 판 중 한 판(25.4%)이
+    // 9칸을 넘겼고 최대 84기까지 나왔다. 숫자가 많이 나오는 것은 쾌감이 아니라 소음이고,
+    // 무엇보다 **무엇을 맞췄는지가 화면에서 사라진다.**
+    //
+    // 모든 판정에 두지 않는다. 페어·반정렬·진처럼 한 스핀에 서너 번씩 걸리는 흔한 판정까지
+    // 고유 유닛이면 이름만 바뀐 채 다시 쏟아진다. UnitTable 에 PatternKey 행이 있는 판정만 해당한다.
+    //
+    // 돌려주는 값은 **고유 유닛이 가져간 전력**이다. 호출한 쪽은 그만큼 빼고 나머지를 환산한다.
+    private static float BuildPatternUnits(string _houseKey, JudgeResult _result)
+    {
+        UnitTable unitTable = TableManager.instance.GetTable<UnitTable>();
+        if (unitTable == null)
+            return 0f;
+
+        float usedPower = 0f;
+
+        for (int i = 0; i < _result.ListTerm.Count; ++i)
+        {
+            JudgeTerm term = _result.ListTerm[i];
+            if (string.IsNullOrEmpty(term.PatternKey) == true)
+                continue;
+
+            // 테이블에 그 판정의 고유 유닛이 없으면 지금까지대로 심볼 유닛으로 간다.
+            // 종족을 하나씩 옮기는 중이라 없는 것이 정상이다(2026-09-14 시점에는 포커 둘뿐).
+            UnitRecord record = unitTable.FindPatternUnit(_houseKey, term.PatternKey);
+            if (record == null)
+                continue;
+
+            int count = Mathf.RoundToInt(term.Value);
+            if (count <= 0)
+                continue;
+
+            for (int n = 0; n < count; ++n)
+                _result.ListSummon.Add(new SummonSlot(SummonSlot.CELL_NONE, 1, SummonSlot.SYMBOL_FROM_GRID, term.PatternKey));
+
+            usedPower += term.total;
+        }
+
+        return usedPower;
+    }
+
     // 전력을 1성 유닛 목록으로 바꾼다.
     //
     // 전력 1 = 1성 1기다. 예전에는 전장 9칸이 상한이라 9를 넘는 전력을 **등급으로 돌렸지만**,
@@ -157,7 +203,7 @@ public static class Judge
     //
     // 윷은 여기 오지 않는다. 업기·나기가 등급을 직접 만드는 종족 규칙이라
     // EvaluateYut이 배치를 스스로 끝내고, 그 등급은 자동 전환이 아니므로 그대로 둔다.
-    private static void BuildSummon(JudgeResult _result, int[] _grid)
+    private static void BuildSummon(string _houseKey, JudgeResult _result, int[] _grid)
     {
         _result.ListSummon.Clear();
         _result.placedPower = 0f;
@@ -172,7 +218,10 @@ public static class Judge
             return;
         }
 
-        int unitCount = Mathf.RoundToInt(_result.Power);
+        // **고유 유닛을 먼저 꺼낸다.** 그 판정이 만든 전력은 심볼 유닛으로 환산하지 않는다.
+        float patternPower = BuildPatternUnits(_houseKey, _result);
+
+        int unitCount = Mathf.RoundToInt(_result.Power - patternPower);
         if (unitCount <= 0)
             return;
 
@@ -719,12 +768,15 @@ public static class Judge
     }
 
     // 전력 내역 한 줄. 0개면 안 담는다 — 화면에 "정렬 0 × 8.0 = 0"이 뜨면 잡음이다.
-    private static void AddTerm(JudgeResult _result, string _label, float _value, float _coef)
+    // _patternKey 를 주면 그 판정은 **고유 유닛**을 낼 수 있다(UnitTable.PatternKey 와 짝).
+    // 안 주면 지금까지대로 전력만 더하고 심볼 유닛으로 환산된다.
+    private static void AddTerm(JudgeResult _result, string _label, float _value, float _coef,
+        string _patternKey = null)
     {
         if (_value <= 0f)
             return;
 
-        _result.ListTerm.Add(new JudgeTerm(_label, _value, _coef));
+        _result.ListTerm.Add(new JudgeTerm(_label, _value, _coef, _patternKey));
     }
 
     private static void AddHit(JudgeResult _result, int[] _line)
@@ -888,8 +940,8 @@ public static class Judge
         float pairCoef = _table.GetCoef("poker", JudgeTable.POKER_PAIR);
         _result.Power = tripleCoef * triple + straightCoef * straight + pairCoef * pair;
 
-        AddTerm(_result, "트리플", triple, tripleCoef);
-        AddTerm(_result, "스트레이트", straight, straightCoef);
+        AddTerm(_result, "트리플", triple, tripleCoef, JudgeTable.POKER_TRIPLE);
+        AddTerm(_result, "스트레이트", straight, straightCoef, JudgeTable.POKER_STRAIGHT);
         AddTerm(_result, "페어", pair, pairCoef);
         _result.PatternName = (triple > 0) ? $"트리플 {triple}"
             : ((straight > 0) ? $"스트레이트 {straight}" : ((pair > 0) ? $"페어 {pair}" : "하이카드"));

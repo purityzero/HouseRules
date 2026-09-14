@@ -51,6 +51,20 @@ public class UnitRecord : Record
     // ⚠️ 그래서 **`verify-tables` 가 잘못된 hex 를 잡아내지 못한다**(문자열은 언제나 변환 가능으로
     // 판정된다). `#GGHHII` 같은 오타는 런타임 로그에서만 드러난다.
     public string SymbolColor;
+
+    // 이 유닛이 **판정으로 생기는 고유 유닛**이면 그 판정 키가 들어간다(`PokerStraight` 등).
+    // 릴 심볼에서 나오는 보통 유닛은 비어 있고, `SymbolIndex` 도 -1 이 아니다.
+    //
+    // **왜 따로 테이블을 안 만들었나** — 유닛은 유닛이다. 스탯 컬럼이 그대로 쓰이고,
+    // "이 종족에 어떤 유닛이 있나"를 한 파일에서 보는 편이 낫다.
+    // 식별만 `HouseKey` + `SymbolIndex` 에서 `HouseKey` + `PatternKey` 로 바뀐다.
+    public string PatternKey;
+
+    // 고유 유닛의 스프라이트 파일 이름(`Image/InGame/Pattern/{HouseKey}/` 안). 심볼 유닛은 비어 있다.
+    //
+    // **왜 규칙 변환으로 안 하나** — `PokerStraight` 에서 `poker_pattern_straight` 를 만들어내는
+    // 규칙은 종족이 늘거나 파일명을 바꾸는 순간 조용히 깨진다. 테이블에 적어두면 그런 일이 없다.
+    public string SpriteName;
 }
 
 // 성급 × 심볼을 합친 최종 전투 스탯.
@@ -164,6 +178,21 @@ public class UnitTable : Table<UnitRecord>
         return record;
     }
 
+    // 판정으로 생기는 고유 유닛. 없으면 null 이고, 그 판정은 지금까지대로 심볼 유닛을 낸다.
+    //
+    // **모든 판정에 고유 유닛을 두지 않는다.** 페어·반정렬·진처럼 한 스핀에 서너 번씩 걸리는
+    // 흔한 판정까지 고유 유닛이 되면 이름만 바뀐 채 다시 쏟아진다.
+    // 기준은 "이게 나오면 좋아하는가"다.
+    public UnitRecord FindPatternUnit(string _houseKey, string _patternKey)
+    {
+        if (string.IsNullOrEmpty(_patternKey) == true)
+            return null;
+
+        return list.Find(unit => unit != null
+            && unit.HouseKey == _houseKey
+            && unit.PatternKey == _patternKey);
+    }
+
     // 당첨 연출이 쓰는 심볼 고유색. 없거나 형식이 틀리면 흰색(= 원래 아트 그대로)으로 돌려준다.
     //
     // **파싱 결과를 캐시한다.** 매 스핀 최대 8칸이 부르는 경로이고, 무엇보다
@@ -204,6 +233,25 @@ public class UnitTable : Table<UnitRecord>
     //
     // 배치가 정해진 뒤에만 알 수 있는 조건부 Trait(전열·중열·후열, 전장 구성)은 여기 넣지 않는다.
     // 그건 배치 후에 한 번 더 통과시켜야 한다(아직 미구현).
+    // _patternKey 를 주면 **판정이 만든 고유 유닛**의 스탯을 낸다(심볼 인덱스는 무시된다).
+    // 안 주면 지금까지대로 심볼로 찾는다.
+    public UnitBattleStat GetBattleStat(string _houseKey, int _symbolIndex, int _grade, string _patternKey)
+    {
+        if (string.IsNullOrEmpty(_patternKey) == false)
+        {
+            UnitRecord patternUnit = FindPatternUnit(_houseKey, _patternKey);
+            if (patternUnit == null)
+            {
+                Logger.Error($"[UnitTable] GetBattleStat Failed! 고유 유닛 없음 - {_houseKey}/{_patternKey} (기대: UnitTable.csv에 PatternKey 행 존재)");
+                return GetBattleStat(_houseKey, _symbolIndex, _grade);
+            }
+
+            return BuildStat(patternUnit, _grade);
+        }
+
+        return GetBattleStat(_houseKey, _symbolIndex, _grade);
+    }
+
     public UnitBattleStat GetBattleStat(string _houseKey, int _symbolIndex, int _grade)
     {
         UnitBattleStat stat = new UnitBattleStat();
@@ -233,11 +281,28 @@ public class UnitTable : Table<UnitRecord>
             return stat;
         }
 
-        stat.Hp = Mathf.Max(1, Mathf.RoundToInt(grade.Hp * unit.HpRate));
-        stat.Atk = Mathf.Max(ATK_MIN, grade.Atk * unit.AtkRate);
-        stat.AtkSpeed = grade.AtkSpeed * unit.AtkSpeedRate;
-        stat.Range = Mathf.Clamp(grade.Range + unit.RangeBonus, 1, RANGE_MAX);
-        stat.MoveSpeed = grade.MoveSpeed * unit.MoveRate;
+        return BuildStat(unit, _grade);
+    }
+
+    // 성급 기본값 × 유닛 배율. **고유 유닛과 심볼 유닛이 같은 식을 쓴다** —
+    // 식이 둘로 갈리면 한쪽만 고쳐 조용히 어긋난다(CLAUDE.md 「소유자는 하나다」).
+    private UnitBattleStat BuildStat(UnitRecord _unit, int _grade)
+    {
+        UnitBattleStat stat = new UnitBattleStat();
+
+        UnitGradeTable gradeTable = TableManager.instance.GetTable<UnitGradeTable>();
+        if (gradeTable == null)
+            return stat;
+
+        UnitGradeRecord grade = gradeTable.GetRecord(_grade);
+        if (grade == null)
+            return stat;
+
+        stat.Hp = Mathf.Max(1, Mathf.RoundToInt(grade.Hp * _unit.HpRate));
+        stat.Atk = Mathf.Max(ATK_MIN, grade.Atk * _unit.AtkRate);
+        stat.AtkSpeed = grade.AtkSpeed * _unit.AtkSpeedRate;
+        stat.Range = Mathf.Clamp(grade.Range + _unit.RangeBonus, 1, RANGE_MAX);
+        stat.MoveSpeed = grade.MoveSpeed * _unit.MoveRate;
 
         return stat;
     }

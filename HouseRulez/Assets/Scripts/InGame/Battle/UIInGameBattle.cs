@@ -159,13 +159,15 @@ public class UIInGameBattle : MonoBehaviour
             if (runUnit == null)
                 continue;
 
-            if (runUnit.SymbolType < 0 || runUnit.SymbolType >= _spritePool.Count)
-            {
-                Logger.Error($"[UIInGameBattle] SpawnAllies - 심볼이 풀 범위 밖이라 건너뛴다: {runUnit.SymbolType} (기대: 0~{_spritePool.Count - 1})");
+            // **고유 유닛은 심볼 인덱스가 없다.** 여기서 인덱스만 검사하면 전부 걸러진다
+            // (2026-09-14 QA: 아군 0기로 즉시 패배했다). 전장 표시와 같은 함수를 쓴다.
+            Sprite unitSprite = HouseSpriteLoader.FindUnitSprite(runUnit, _houseKey, _spritePool);
+            if (unitSprite == null)
                 continue;
-            }
 
-            UnitBattleStat stat = unitTable.GetBattleStat(_houseKey, runUnit.SymbolType, runUnit.Grade);
+            // 스탯도 같은 이유로 PatternKey 를 함께 넘긴다.
+            UnitBattleStat stat = unitTable.GetBattleStat(
+                _houseKey, runUnit.SymbolType, runUnit.Grade, runUnit.PatternKey);
 
             // 자리는 **명부가 들고 있는 좌표**다(2026-09-14 자유 배치).
             // 예전에는 칸 번호에서 매번 다시 계산했는데, 그러면 플레이어가 옮긴 위치를 표현할 수 없다.
@@ -177,7 +179,7 @@ public class UIInGameBattle : MonoBehaviour
             int lane = cell / LANE_COUNT;
 
             BattleUnit unit = Instantiate(m_UnitTemplate, m_UnitRoot);
-            unit.Setup(eBattleSide.Ally, lane, _spritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade,
+            unit.Setup(eBattleSide.Ally, lane, unitSprite, runUnit.Grade,
                 stat.Hp, stat.Atk, stat.AtkSpeed, stat.Range, stat.MoveSpeed,
                 position);
             m_ListUnit.Add(unit);

@@ -37,6 +37,9 @@ public class UIInGameField : MonoBehaviour
     // 그리기 순서 정렬용 버퍼. 매번 새로 만들면 배치를 옮길 때마다 할당이 생긴다.
     private List<UIInGameFieldSlot> m_ListDrawOrder = new List<UIInGameFieldSlot>();
 
+    // 어느 종족의 전장인가. 고유 유닛 스프라이트를 찾을 때 쓴다(캐시는 HouseSpriteLoader 가 갖는다).
+    private string m_PatternHouseKey = string.Empty;
+
     // 드래그 중에만 켜지는 배치 가능 영역. **직렬화하지 않고 런타임에 만든다** —
     // 씬·프리팹을 고치지 않아도 되고, 크기가 FieldLayout 의 상수에서 파생되므로
     // 인스펙터 값과 코드가 갈릴 여지가 없다(9칸이 0으로 겹쳤던 사고와 같은 이유다).
@@ -126,9 +129,12 @@ public class UIInGameField : MonoBehaviour
     // 누적 상태가 아니라 방금 굴린 결과를 보여줘야 한다.
     //
     // _spritePool은 슬롯머신이 이미 만들어 둔 것을 넘겨받는다 — 여기서 다시 로드하면 같은 파일을 두 번 읽는다.
-    public void Show(RunRoster _roster, JudgeResult _result, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
+    public void Show(RunRoster _roster, JudgeResult _result, IReadOnlyList<HouseSlotSymbolSprite> _spritePool,
+        string _houseKey)
     {
         Clear();
+
+        m_PatternHouseKey = _houseKey;
 
         if (_roster == null || _spritePool == null)
         {
@@ -160,13 +166,11 @@ public class UIInGameField : MonoBehaviour
             if (runUnit == null)
                 continue;
 
-            if (runUnit.SymbolType < 0 || runUnit.SymbolType >= m_SpritePool.Count)
-            {
-                Logger.Error($"[UIInGameField] RefreshSlots - 심볼이 풀 범위 밖이라 건너뛴다: {runUnit.SymbolType} (기대: 0~{m_SpritePool.Count - 1})");
+            Sprite sprite = HouseSpriteLoader.FindUnitSprite(runUnit, m_PatternHouseKey, m_SpritePool);
+            if (sprite == null)
                 continue;
-            }
 
-            m_ListSlot[cell].SetUnit(m_SpritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade);
+            m_ListSlot[cell].SetUnit(sprite, runUnit.Grade);
 
             RectTransform rectTransform = m_ListSlot[cell].transform as RectTransform;
             rectTransform.anchoredPosition = runUnit.FieldPosition;

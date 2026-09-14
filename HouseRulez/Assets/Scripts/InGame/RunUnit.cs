@@ -9,7 +9,19 @@ using UnityEngine;
 public class RunUnit
 {
     // 유닛 종류. 스핀 심볼의 종류를 그대로 쓴다 — 같은 종류 3기가 모이면 승급한다.
+    //
+    // 판정이 만든 고유 유닛은 심볼에서 나오지 않으므로 이 값이 SYMBOL_NONE 이고,
+    // 대신 PatternKey 로 자기가 무엇인지 말한다.
     public int SymbolType;
+
+    // 심볼이 아니라 **판정**에서 나온 유닛이면 그 판정 키가 들어간다(`PokerStraight` 등).
+    // 보통 유닛은 비어 있다.
+    public string PatternKey;
+
+    public bool isPatternUnit => string.IsNullOrEmpty(PatternKey) == false;
+
+    // 심볼 유닛이 아니라는 뜻. 릴 심볼 인덱스와 겹치지 않는 값이어야 한다.
+    public const int SYMBOL_NONE = -1;
 
     // 1성부터. 상한은 UnitGradeTable이 정한다(현재 3성).
     public int Grade;
@@ -21,9 +33,10 @@ public class RunUnit
     // 안 정했으면 자동 배치가 격자 기본 좌표를 넣는다.
     public Vector2 FieldPosition;
 
-    public RunUnit(int _symbolType, int _grade)
+    public RunUnit(int _symbolType, int _grade, string _patternKey = null)
     {
         SymbolType = _symbolType;
         Grade = _grade;
+        PatternKey = _patternKey;
     }
 }
