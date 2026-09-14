@@ -292,3 +292,101 @@ QA가 활성 토스트 0개로 잡아냈다. 사유와 대안은 [[UIInGameBanne
 ### 검증 — Codex QA 통과 (2026-08-31)
 성립 스핀: alpha `0 → 1 → 0`, 배너 문자열이 `JudgeResult.PatternName`과 동일(`반정렬 2`).
 **무판정 스핀: alpha가 내내 0** — 안 뜬다.
+
+
+---
+
+## 2026-09-13 — 전투 후 복귀 흐름
+
+### 증상
+
+전투가 끝나도 `m_Battle.Clear()`를 부르지 않아, 살아남은 유닛이 **적진 앞에 몰린 자리 그대로**
+방치됐다. 동시에 `m_Field`는 `OnBattleStart`에서 비워진 상태라 전장 9칸 표시도 없었다.
+즉 **전투와 다음 스핀 사이에 "아무 상태도 아닌" 구간**이 있었다(사용자 지적 2026-09-12).
+
+### 수정
+
+`m_BattleReturnFlow`(별도 `FlowCommand`)를 추가하고 `OnBattleFinished`에서 `StartBattleReturn()`을 부른다.
+
+```
+전투 종료 -> 배너 · 피해 · UI 갱신
+  -> 살아남은 유닛이 자기 칸으로 걸어간다
+  -> 모두 도착하면 m_Battle.Clear() + m_Field.Show(roster, null, pool)
+```
+
+**스핀 흐름과 따로 둔 이유** — 둘은 동시에 살아 있을 수 있다(복귀 중 플레이어가 다음 스핀을 돌린다).
+한 `FlowCommand`에 섞으면 서로를 취소한다.
+
+### ★ 전투 재시작이 복귀와 충돌한다 — 두 겹으로 막았다
+
+복귀가 걸어가는 중에 다음 전투가 시작되면, 뒤늦게 끝난 복귀 흐름이 **방금 시작한 전투를
+`Clear()` 해버린다.**
+
+1. `OnBattleStart`가 `m_BattleReturnFlow.Clear()`로 흐름을 취소한다
+2. `FinishBattleReturn`이 `m_isBattleActive == true`면 손대지 않고 돌아간다
+   (같은 프레임에 완료된 경우까지 막는다)
+
+### 런이 닫히는 경로에서도 복귀를 시작한다
+
+`StartBattleReturn()`을 `EndRun` 분기 **앞**에서 부른다. 런이 여기서 닫히더라도 전투 오브젝트
+정리는 해야 하고, `Clear()`는 멱등이므로 런 종료 처리와 겹쳐도 무해하다.
+
+### 판정 요약은 다시 띄우지 않는다
+
+`m_Field.Show(roster, **null**, pool)`. 그 스핀의 요약은 전투로 소진됐다 —
+다시 띄우면 지난 스핀의 식이 남는다. `Show`가 내부에서 `Clear()`를 부르므로 요약은 비워진다.
+
+
+---
+
+## 2026-09-13-1 — 연차 이동 연출
+
+### 설계
+
+```
+웨이브 승리 -> AdvanceToNextWave 가 연차 전환을 감지 -> m_isYearTravelPending = true
+  -> (전투 후 복귀가 진행된다)
+  -> FinishBattleReturn 에서 전장 9칸을 그린 뒤 StartYearTravel()
+  -> 배경 uvRect 가 오른쪽으로 흐르고 9칸이 제자리걸음 (2.5초)
+  -> FinishYearTravel: 배경 정지 · 걷기 정지
+```
+
+### ★ 왜 복귀가 끝난 뒤인가
+
+데이터상 연차 전환은 `AdvanceToNextWave`에서 이미 일어난다. 그런데 그 시점에는
+**유닛이 적진 앞에 흩어져 있다**(복귀 진행 중). 그 상태로 배경이 흐르면 무슨 일인지 읽히지 않는다.
+
+그래서 `m_isYearTravelPending` 플래그로 들고 있다가 `FinishBattleReturn`에서 시작한다 —
+전장 9칸이 그려진 뒤라야 걷는 대상이 화면에 있다.
+
+### ★ `TitleBackgroundScroller`를 붙이지 않았다
+
+그 컴포넌트와 같은 방식(`RawImage.uvRect`를 밀기)이지만 **타이틀은 항상 흐르고 인게임은
+연차 전환 때만 흘러야 한다.** `InGameScene`이 이미 `m_BackgroundImage`를 들고 있으므로
+`ScrollBackground()`로 직접 민다 — **씬에 컴포넌트를 추가할 필요가 없다.**
+
+### 상수 근거
+
+| 상수 | 값 | 왜 |
+|---|---:|---|
+| `YEAR_TRAVEL_DURATION` | 2.5초 | **11번 반복된다**(12연차). 복귀 연출이 36회 1배속 2.3분이었던 실측을 감안해 짧게. 2.5 x 11 = 27.5초 |
+| `YEAR_TRAVEL_SCROLL_SPEED` | 0.15 | 2.5초에 텍스처의 37%가 흘러야 이동이 보인다. 타이틀 속도(0.02)로는 5%만 흘러 정지와 구별되지 않는다 |
+
+### 흐름을 셋으로 나눈 이유
+
+`m_SpinFlow` · `m_BattleReturnFlow` · `m_YearTravelFlow`가 각각 따로다.
+
+- 스핀과 복귀는 **동시에 살아 있을 수 있다**(복귀 중 다음 스핀)
+- 연차 이동은 복귀의 콜백에서 시작된다 — **실행 중인 흐름에 자기 콜백에서 Add 하면**
+  순서를 보장할 수 없다
+
+### 연출 중 전투가 시작되면
+
+2.5초 동안 플레이어가 스핀을 돌려 전투를 시작할 수 있다. `OnBattleStart`가
+`m_YearTravelFlow.Clear()` + `FinishYearTravel()`로 걷기와 배경을 즉시 멈춘다.
+전장 표시는 곧 `Clear()`되므로 걷는 대상도 사라진다.
+
+### 함께 고친 것
+
+`AdvanceToNextWave`의 주석이 "연차가 넘어가며 스핀 코인·**스왑**이 회복됐다"로 남아 있었다.
+스왑은 2026-09-13에 제거됐으므로 정정했다.

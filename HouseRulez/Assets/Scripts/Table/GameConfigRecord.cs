@@ -15,7 +15,6 @@ public class GameConfigTable : Table<GameConfigRecord>
     public const string KEY_RUN_YEAR_MAX = "RunYearMax";
     public const string KEY_RUN_START_GOLD = "RunStartGold";
     public const string KEY_SPIN_COIN_PER_YEAR = "SpinCoinPerYear";
-    public const string KEY_SWAP_COUNT_PER_YEAR = "SwapCountPerYear";
     public const string KEY_BATTLE_SPEED_FAST = "BattleSpeedFast";
 
     // 영구 재화(옥새) 지급 규칙. 런 종료 시 도달 연차에 비례하고, 완주하면 보너스가 붙는다.

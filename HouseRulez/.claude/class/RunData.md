@@ -146,3 +146,40 @@ public bool BuyExtraSpin()         // 실행 — 골드 -25, 코인 +1, 구매�
 - ✅ 골드 부족 시 구매 차단, 클릭해도 값 불변
 - 🐛 **구매 버튼이 계속 비활성이던 결함은 이 클래스가 아니라 [[InGameScene]]의 UI 갱신 누락이었다** —
   골드를 지급한 뒤 `m_Action.Refresh()`를 안 불렀다. `RefreshRunUI()` 헬퍼로 묶어 해결.
+
+---
+
+## 2026-09-13 — 스왑 카운터 제거 · 추가 스핀 상한 보너스 배선
+
+### 제거
+
+`m_SwapCount` · `m_SwapCountMax` · `swapCount` · `swapCountMax`, 그리고 `Init()`과
+연차 전환의 리셋 두 줄. 소비 경로가 처음부터 없었다(카운터만 존재).
+`GameConfigRecord.KEY_SWAP_COUNT_PER_YEAR`와 `GameConfigTable.csv`의 `SwapCountPerYear` 행도 제거.
+
+### ★ 추가 — `m_ExtraSpinMax`가 업그레이드 보너스를 받는다
+
+```csharp
+m_ExtraSpinMax = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR, 2)
+    + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR);
+```
+
+**이전에는 이 한 줄만 보너스를 안 더했다.** `HomeHpMax` · `SpinCoinPerYear` · `SwapCountPerYear` ·
+`RunStartGold`는 모두 더했는데 여기만 빠져 있었다. 그때는 이 값을 올리는 업그레이드 노드가
+없어서 드러나지 않은 **미완성 배선**이었다.
+
+스왑 노드를 「추가 스핀 상한」으로 전용하면서 필요해졌다. 이제 업그레이드 4종이 모두 배선됐다.
+
+### 밸런스 영향 — 검증 필요
+
+`HouseUpgradeTable`의 `swap` 노드 값이 1/2/3이므로, 3레벨까지 산 종족은 상한이 **2 → 5**가 된다.
+2026-09-13 실측에서 **상한 2가 새 병목**이었다(종료 시 골드 585~663이 남는데 못 사고 끝남).
+즉 의도한 방향이지만 **폭이 검증되지 않았다.**
+
+**Play Mode 실측(2026-09-13)**: chess · hwatu · mahjong = **5**, poker = **2**(노드 없음).
+
+`slot`은 세이브에 `swap Lv2` 기록이 있지만 **테이블에 `slot/swap` 행이 처음부터 없어**
+보너스 0, 상한 2다. 이것이 정답이다 — 노드 구성은 종족별 특화가 의도된 설계이고,
+그 세이브 기록은 정상 경로로 생길 수 없는 orphan 이다(상세는 `architecture/house-upgrade.md`).
+
+poker는 `swap` 노드가 Lv2까지만 있다 — 가장 필요한 종족인데 상한이 4까지다.

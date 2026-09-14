@@ -45,6 +45,7 @@ public class TableManager : MonoSingleton<TableManager>
         List<WaveRecord> waveRecords = LoadCsvTable<WaveRecord>("Table/WaveTable");
         List<JudgeRecord> judgeRecords = LoadCsvTable<JudgeRecord>("Table/JudgeTable");
         List<UnitGradeRecord> unitGradeRecords = LoadCsvTable<UnitGradeRecord>("Table/UnitGradeTable");
+        List<UnitRecord> unitRecords = LoadCsvTable<UnitRecord>("Table/UnitTable");
 
         UITable uiTable = new UITable(uiRecords);
         SoundTable soundTable = new SoundTable(soundRecords);
@@ -60,6 +61,7 @@ public class TableManager : MonoSingleton<TableManager>
         WaveTable waveTable = new WaveTable(waveRecords);
         JudgeTable judgeTable = new JudgeTable(judgeRecords);
         UnitGradeTable unitGradeTable = new UnitGradeTable(unitGradeRecords);
+        UnitTable unitTable = new UnitTable(unitRecords);
 
         m_TableDictionary.Add(typeof(UITable), uiTable);
         m_TableDictionary.Add(typeof(SoundTable), soundTable);
@@ -75,6 +77,7 @@ public class TableManager : MonoSingleton<TableManager>
         m_TableDictionary.Add(typeof(WaveTable), waveTable);
         m_TableDictionary.Add(typeof(JudgeTable), judgeTable);
         m_TableDictionary.Add(typeof(UnitGradeTable), unitGradeTable);
+        m_TableDictionary.Add(typeof(UnitTable), unitTable);
     }
 
     public async Task<List<T>> LoadCsvTableToAddressable<T>(string key) where T : new()

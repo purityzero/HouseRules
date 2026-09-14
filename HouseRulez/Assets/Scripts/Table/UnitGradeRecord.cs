@@ -11,7 +11,10 @@ public class UnitGradeRecord : Record
     // 전투 스탯. Hp/Atk은 1성 기본값(10/2)에 Multiplier를 곱한 값이라
     // 전력 1 = 1성 1기라는 환산과 어긋나지 않는다. 적 grunt(Power 1, Hp 10, Atk 2)와도 같은 눈금이다.
     public int Hp;
-    public int Atk;
+    // float이다 — 1성 Atk가 2라서 정수로 두면 심볼 배율 0.55~1.5가 전부 1~3으로 뭉개진다.
+    // 런 초반은 전부 1성이라, 유닛이 다르다는 것이 가장 잘 보여야 할 구간에서 안 보였다(2026-09-12 결정).
+    // 적 Atk와 같은 눈금이므로 EnemyRecord.Atk도 함께 float다.
+    public float Atk;
     public float AtkSpeed;
     public int Range;
     public float MoveSpeed;

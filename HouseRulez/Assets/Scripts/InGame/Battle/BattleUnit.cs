@@ -22,15 +22,22 @@ public class BattleUnit : MonoBehaviour
 
     private RectTransform m_RectTransform;
     private eBattleSide m_Side;
-    private int m_MaxHp;
-    private int m_Hp;
-    private int m_Atk;
+    // 피해가 소수로 들어온다(공격력이 심볼 배율에 곱해져 정수가 아니다).
+    // HP를 정수로 두면 소수 피해를 반올림해야 하고, 0.4 같은 값이 0으로 깎여 전투가 안 끝난다.
+    private float m_MaxHp;
+    private float m_Hp;
+    private float m_Atk;
     private float m_AtkSpeed;
     private float m_Range;
     private float m_MoveSpeed;
     private float m_AtkCooldown;
 
+    // 전투가 끝나면 돌아갈 자리. SpawnAllies가 세울 때 쓴 칸 좌표 그대로다.
+    private Vector2 m_HomePosition;
+    private bool m_isReturning;
+
     public eBattleSide side => m_Side;
+    public bool isReturning => m_isReturning;
     public bool isAlive => m_Hp > 0;
     public int lane { get; private set; }
     public float positionX => m_RectTransform.anchoredPosition.x;
@@ -54,8 +61,12 @@ public class BattleUnit : MonoBehaviour
 
     private const float DEATH_DURATION = 0.22f;
 
+    // 이보다 가까우면 걸어갈 것이 없다고 본다. 1px 차이로 트윈을 걸면
+    // 기다리는 쪽이 한 프레임을 더 쓰고 화면에서는 아무 일도 안 일어난다.
+    private const float RETURN_ARRIVE_DISTANCE = 1f;
+
     public void Setup(eBattleSide _side, int _lane, Sprite _sprite, int _grade,
-        int _hp, int _atk, float _atkSpeed, int _range, float _moveSpeed, Vector2 _startPosition)
+        int _hp, float _atk, float _atkSpeed, int _range, float _moveSpeed, Vector2 _startPosition)
     {
         m_RectTransform = transform as RectTransform;
         m_Side = _side;
@@ -69,6 +80,8 @@ public class BattleUnit : MonoBehaviour
         m_AtkCooldown = 0f;
 
         m_RectTransform.anchoredPosition = _startPosition;
+        m_HomePosition = _startPosition;
+        m_isReturning = false;
 
         // 재사용되는 오브젝트라 지난 웨이브의 연출이 남아 있을 수 있다. 시작할 때 원점으로 되돌린다.
         KillMotion();
@@ -136,13 +149,60 @@ public class BattleUnit : MonoBehaviour
         m_RectTransform.anchoredPosition += toTarget.normalized * (m_MoveSpeed * _deltaTime);
     }
 
+    // 전투가 끝난 뒤 원래 칸으로 걸어 돌아간다. 실제로 움직이기 시작하면 true.
+    //
+    // **루트를 트윈으로 움직인다.** 전투 중에는 Tick이 매 프레임 anchoredPosition을 쓰므로
+    // 루트 트윈이 그것과 서로 덮어써 유닛이 떨거나 목표를 못 따라간다(위 m_SymbolRect 주석 참고).
+    // 전투가 끝난 뒤에는 Tick이 불리지 않으므로 이 자리에서는 안전하다.
+    //
+    // 속도는 유닛의 이동 속도를 쓴다 — 시간을 고정하면 먼 칸의 유닛이 순간이동처럼 빨라진다.
+    public bool ReturnToHome(float _speedScale)
+    {
+        if (isAlive == false)
+            return false;
+
+        if (m_RectTransform == null)
+            return false;
+
+        // 공격·피격 펀치가 남아 있으면 걸어가는 동안 심볼이 어긋난 자리에 떠 있다.
+        if (m_SymbolRect != null)
+            ResetSymbolMotion();
+
+        float distance = Vector2.Distance(m_RectTransform.anchoredPosition, m_HomePosition);
+        if (distance <= RETURN_ARRIVE_DISTANCE)
+        {
+            // 이미 제자리다. 트윈을 걸 필요가 없고, 기다릴 대상에 넣어서도 안 된다.
+            m_RectTransform.anchoredPosition = m_HomePosition;
+            m_isReturning = false;
+            return false;
+        }
+
+        float speed = m_MoveSpeed * Mathf.Max(1f, _speedScale);
+        if (speed <= 0f)
+        {
+            // 이동 속도가 0인 유닛은 영원히 도착하지 못한다. 기다리지 않고 즉시 놓는다.
+            m_RectTransform.anchoredPosition = m_HomePosition;
+            m_isReturning = false;
+            return false;
+        }
+
+        m_isReturning = true;
+
+        m_RectTransform.DOKill();
+        m_RectTransform.DOAnchorPos(m_HomePosition, distance / speed)
+            .SetEase(Ease.Linear)
+            .OnComplete(() => m_isReturning = false);
+
+        return true;
+    }
+
     // 본거지 선을 넘은 적처럼 때린 주체가 없는 경우에 쓴다.
-    public void TakeDamage(int _amount)
+    public void TakeDamage(float _amount)
     {
         TakeDamage(_amount, Vector2.zero);
     }
 
-    public void TakeDamage(int _amount, Vector2 _hitDirection)
+    public void TakeDamage(float _amount, Vector2 _hitDirection)
     {
         if (isAlive == false)
             return;
@@ -230,6 +290,6 @@ public class BattleUnit : MonoBehaviour
         if (m_HpFillImage == null)
             return;
 
-        m_HpFillImage.fillAmount = m_Hp / (float)m_MaxHp;
+        m_HpFillImage.fillAmount = m_Hp / m_MaxHp;
     }
 }

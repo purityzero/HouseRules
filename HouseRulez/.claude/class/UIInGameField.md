@@ -59,3 +59,46 @@ SafeRoot
 ### 검증 상태 — Codex QA 통과 (2026-08-30)
 Play Mode에서 9칸 좌표가 전부 다르고, 크기 96×96, 레인별 y 오프셋 52·x 오프셋 30이 적용됨을 확인.
 Unity MCP 검증은 Codex가 수행했다(AGENT.MD 라우팅).
+
+
+---
+
+## 2026-09-13 — 드래그 중재와 `RefreshSlots()`
+
+**연관**: [[UIInGameFieldSlot]] · [[RunRoster]]
+
+### 수정
+
+| 추가 | 하는 일 |
+|---|---|
+| `m_Roster` · `m_SpritePool` | 드래그 후 다시 그리려면 들고 있어야 한다. **소유자는 `RunData`** — 표시용 참조일 뿐 사본이 아니다 |
+| `RefreshSlots()` | 칸만 다시 그린다. **판정 요약은 건드리지 않는다** |
+| `IsDragAllowed()` | `m_Roster != null` |
+| `OnSlotDragBegin` / `OnSlotDrop` / `OnSlotDragEnd` | 출발지·목적지를 모아 두고 끝날 때 한 번 처리 |
+
+`BuildSlots()` 마지막 루프에서 각 칸에 `Setup(this, i)` 를 부른다.
+
+### ★ 전투 중 드래그가 별도 플래그 없이 막힌다
+
+`Clear()` 에서 `m_Roster` 를 놓는다. `Clear()` 는 `OnBattleStart` 에서 불리므로
+**전투 중에는 `IsDragAllowed()` 가 자연히 false** 가 된다. 플래그를 따로 두면
+그 플래그를 내리는 것을 잊는 경로가 생긴다.
+
+### ★ 교환은 명부에 맡긴다
+
+`OnSlotDragEnd()` 가 `RunRoster.SwapField(from, to)` 를 부른 **뒤에만** 다시 그린다.
+화면만 바꾸면 전투가 옛 배치로 싸운다 — 전장의 정본은 `RunRoster` 다(2026-09-11).
+
+`SwapField` 가 false 를 돌려주면(둘 다 빈 칸 등) 다시 그리지 않는다.
+칸 밖에 놓았으면 목적지가 `CELL_NONE` 이라 아무 일도 하지 않는다.
+
+### 호출 순서 (Unity)
+
+`OnBeginDrag` -> `OnDrag` … -> **(대상 칸의)`OnDrop`** -> `OnEndDrag`
+목적지가 `OnEndDrag` 시점에 이미 정해져 있어 한 번만 처리할 수 있다.
+
+### ⬜ 아직 없는 것
+
+- **보관함 UI** — 그래서 `RunRoster.MoveBenchToField()` · `MoveFieldToBench()` 는 호출부가 없다.
+  이번에는 전장 칸끼리 교환만 붙였다
+- **드래그 고스트** — 원본 심볼을 직접 옮기는 방식이라 별도 오브젝트가 없다. 씬 작업이 필요하면 그때 분리

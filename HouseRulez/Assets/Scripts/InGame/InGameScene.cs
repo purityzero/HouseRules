@@ -30,6 +30,20 @@ public class InGameScene : BaseScene
     // 코루틴 핸들처럼 따로 들고 비워줄 상태가 없다.
     private FlowCommand m_SpinFlow = new FlowCommand();
 
+    // 전투 후 복귀 연출. 스핀 흐름과 따로 두는 이유 — 둘은 동시에 살아 있을 수 있고
+    // (복귀가 걸어가는 동안 플레이어가 다음 스핀을 돌린다) 한 흐름에 섞으면 서로를 취소한다.
+    private FlowCommand m_BattleReturnFlow = new FlowCommand();
+
+    // 연차 이동 연출. 복귀가 끝난 뒤에 이어지므로 복귀 흐름과도 분리한다 —
+    // 실행 중인 FlowCommand 에 자기 콜백에서 Add 하는 모양이 되면 순서를 보장할 수 없다.
+    private FlowCommand m_YearTravelFlow = new FlowCommand();
+
+    // 연차가 넘어갔다는 것을 복귀가 끝날 때까지 들고 있는다.
+    // 데이터상 연차 전환은 AdvanceToNextWave 에서 이미 일어나지만, 연출은 유닛이 제자리에
+    // 돌아온 뒤에 시작해야 한다 — 적진 앞에 흩어진 채로 배경이 흐르면 무슨 일인지 읽히지 않는다.
+    private bool m_isYearTravelPending;
+    private bool m_isYearTravelling;
+
     private bool m_isSpinning
     {
         get { return m_SpinFlow.IsFinished() == false; }
@@ -39,6 +53,16 @@ public class InGameScene : BaseScene
     // 이 플래그 없이 isRunning만 보면 전투 전에도 Tick이 돌고,
     // CheckResult가 "적이 하나도 없다"를 승리로 읽어 유령 승리가 난다.
     private bool m_isBattleActive;
+
+    // 연차 이동 연출의 길이와 배경 속도.
+    //
+    // 12연차 게임이라 **11번 반복된다.** 복귀 연출(웨이브마다, 36회)이 1배속에서 2.3분이었던
+    // 실측을 감안해 짧게 잡았다 — 2.5초 x 11회 = 27.5초.
+    //
+    // 속도는 타이틀(0.02, 한 바퀴 50초)보다 훨씬 빠르다. 2.5초 동안 텍스처의 37%가 흘러야
+    // "이동했다"가 보인다. 타이틀 속도로는 5%만 흘러 정지한 것과 구별되지 않는다.
+    private const float YEAR_TRAVEL_DURATION = 2.5f;
+    private const float YEAR_TRAVEL_SCROLL_SPEED = 0.15f;
 
     // 런이 닫혔는가. 옥새 이중 지급과 종료 후 조작을 함께 막는다.
     private bool m_isRunEnded;
@@ -195,11 +219,25 @@ public class InGameScene : BaseScene
             return;
         }
 
+        // 이전 복귀가 아직 걸어가는 중이면 취소한다. 안 그러면 그 흐름이 뒤늦게 끝나면서
+        // **방금 시작한 전투를 Clear() 해버린다.**
+        m_BattleReturnFlow.Clear();
+
+        // 이동 연출 중에 전투가 시작될 수 있다(연출은 2.5초, 그 사이 스핀이 가능하다).
+        // 전장 표시는 곧 Clear()되므로 걷기를 끊고 배경도 멈춘다.
+        m_YearTravelFlow.Clear();
+        FinishYearTravel();
+
         // 소환 표시는 전투 유닛이 대신하므로 겹쳐 보이지 않게 지운다.
         if (m_Field != null)
             m_Field.Clear();
 
-        m_Battle.Begin(m_LastJudgeResult, m_LastGrid, m_SlotMachine.spritePool, wave);
+        // 배치를 안 한 유닛도 싸우게 한다. 빈 칸을 성급 높은 것부터 채우므로
+        // 3성이 보관함에 남는 손해가 없다 — 전장이 9칸뿐이라 그 차이가 곧 전투력이다.
+        // **플레이어가 드래그로 놓은 자리는 건드리지 않는다**(2026-09-13, 드래그 배치 도입).
+        m_RunData.roster.FillEmptyFieldFromBench();
+
+        m_Battle.Begin(m_RunData.roster, m_RunData.houseKey, m_SlotMachine.spritePool, wave);
         m_isBattleActive = true;
     }
 
@@ -207,6 +245,11 @@ public class InGameScene : BaseScene
     {
         // 스핀 흐름은 전투 여부와 무관하게 매 프레임 돌아야 한다.
         m_SpinFlow.Update();
+        m_BattleReturnFlow.Update();
+        m_YearTravelFlow.Update();
+
+        if (m_isYearTravelling == true)
+            ScrollBackground(Time.deltaTime);
 
         if (m_isBattleActive == false)
             return;
@@ -241,6 +284,10 @@ public class InGameScene : BaseScene
 
         RefreshRunUI();
 
+        // 살아남은 유닛을 제자리로 걸어 돌려보낸 뒤 전투 화면을 정리한다.
+        // 아래에서 런이 닫히더라도 정리는 해야 하므로 분기 앞에서 시작한다.
+        StartBattleReturn();
+
         if (m_RunData.homeHp <= 0)
         {
             EndRun(eRunEndReason.HomeFallen);
@@ -262,6 +309,102 @@ public class InGameScene : BaseScene
         // 살 수단까지 없어야 비로소 더 진행할 방법이 없는 것이다.
         if (m_RunData.spinCoin <= 0 && m_RunData.IsExtraSpinBuyable() == false)
             EndRun(eRunEndReason.OutOfSpinCoin);
+    }
+
+    // 전투가 끝나면 살아남은 유닛을 원래 칸으로 걸어 돌려보낸 뒤 전투 화면을 정리한다.
+    //
+    // **왜 Clear를 먼저 하지 않는가** — 지우고 다시 그리면 순간이동으로 보인다.
+    // 걸어서 돌아가는 것이 "내 유닛이 살아 돌아왔다"를 보여주는 장면이므로,
+    // 이동이 끝난 뒤에 전투 오브젝트를 정리한다.
+    //
+    // 이전에는 전투가 끝나도 Clear()를 부르지 않아, 살아남은 유닛이 **적진 앞에 몰린 자리 그대로**
+    // 방치되고 전장 9칸 표시는 비어 있는 구간이 있었다(다음 스핀까지). 그 구간을 메운다.
+    private void StartBattleReturn()
+    {
+        m_BattleReturnFlow.Clear();
+
+        if (m_Battle == null)
+            return;
+
+        int movingCount = m_Battle.ReturnSurvivorsToHome(m_RunData.battleSpeed);
+
+        // 돌아올 유닛이 없으면(전멸했거나 이미 제자리) 기다릴 것이 없다.
+        if (movingCount <= 0)
+        {
+            FinishBattleReturn();
+            return;
+        }
+
+        m_BattleReturnFlow.Add(new Command_WaitUntil(() => m_Battle.isReturning == false));
+        m_BattleReturnFlow.Add(new Command_Delegate(FinishBattleReturn));
+    }
+
+    // 복귀가 끝났다. 전투 오브젝트를 지우고 전장 9칸을 다시 그린다.
+    private void FinishBattleReturn()
+    {
+        // 복귀가 끝나기 전에 다음 전투가 시작됐으면 손대지 않는다 — 그 전투를 지워버린다.
+        // OnBattleStart가 이 흐름을 취소하지만, 같은 프레임에 완료된 경우까지 막는다.
+        if (m_isBattleActive == true)
+            return;
+
+        if (m_Battle != null)
+            m_Battle.Clear();
+
+        // 전장 표시를 되돌린다. 판정 요약은 넘기지 않는다 —
+        // 그 스핀의 요약은 전투로 소진됐고, 여기서 다시 띄우면 지난 스핀의 식이 남는다.
+        if (m_Field != null && m_RunData != null && m_SlotMachine != null)
+            m_Field.Show(m_RunData.roster, null, m_SlotMachine.spritePool);
+
+        // 연차가 넘어갔으면 이제 이동 연출을 한다. 전장 9칸이 그려진 뒤라야
+        // 걷는 대상이 화면에 있다.
+        if (m_isYearTravelPending == true)
+        {
+            m_isYearTravelPending = false;
+            StartYearTravel();
+        }
+    }
+
+    // 연차 이동 연출 — 배경이 오른쪽으로 흐르고 유닛이 제자리걸음을 한다.
+    //
+    // 유닛을 화면 밖까지 실제로 옮기지 않는다. 배경이 흐르는 동안 제자리걸음만 해도
+    // "우리가 이동했다"로 읽히고, 옮기면 전장 9칸 배치가 흐트러져 되돌릴 것이 늘어난다.
+    private void StartYearTravel()
+    {
+        m_YearTravelFlow.Clear();
+
+        m_isYearTravelling = true;
+
+        if (m_Field != null)
+            m_Field.SetWalking(true);
+
+        m_YearTravelFlow.Add(new Command_DeltaTime(YEAR_TRAVEL_DURATION, FinishYearTravel));
+    }
+
+    private void FinishYearTravel()
+    {
+        m_isYearTravelling = false;
+
+        if (m_Field != null)
+            m_Field.SetWalking(false);
+    }
+
+    // 배경 텍스처가 가로 seamless라 uvRect를 밀기만 하면 끊김 없이 이어진다
+    // (TitleBackgroundScroller와 같은 방식). 그 컴포넌트를 붙이지 않은 이유는
+    // 타이틀은 **항상** 흐르고 인게임은 **연차 전환 때만** 흘러야 하기 때문이다 —
+    // 여기서 직접 밀면 씬에 컴포넌트를 추가할 필요도 없다.
+    private void ScrollBackground(float _deltaTime)
+    {
+        if (m_BackgroundImage == null)
+            return;
+
+        Rect uvRect = m_BackgroundImage.uvRect;
+        uvRect.x += YEAR_TRAVEL_SCROLL_SPEED * _deltaTime;
+
+        // uv를 무한정 누적하면 float 정밀도가 떨어져 도트가 미세하게 떨린다.
+        if (uvRect.x >= 1f)
+            uvRect.x -= 1f;
+
+        m_BackgroundImage.uvRect = uvRect;
     }
 
     // 패배의 대가 = 성문을 넘은 적 수 × PerLeak + (패배면) PerDefeat.
@@ -289,11 +432,15 @@ public class InGameScene : BaseScene
         if (isYearAdvanced == false)
             return;
 
-        // 연차가 넘어가며 스핀 코인·스왑이 회복됐다. 화면에 안 알리면
+        // 연차가 넘어가며 스핀 코인이 회복됐다. 화면에 안 알리면
         // 코인이 왜 늘었는지 알 수 없다 — HUD 핍만으로는 놓치기 쉽다.
+        // (스왑도 함께 회복됐다고 적혀 있었는데 그 기능은 2026-09-13에 제거됐다)
         RefreshRunUI();
 
         ShowYearStartBanner(m_RunData.year);
+
+        // 이동 연출은 유닛이 제자리로 돌아온 뒤에 시작한다(FinishBattleReturn).
+        m_isYearTravelPending = true;
 
         // ▼ 외교 단계는 여기 들어온다(GDD 02장 STEP 05 / 09장 "3연차부터 개방").
         //   기획 스펙이 자리만 정해두고 구현은 별도 작업으로 남겼다.
@@ -455,8 +602,53 @@ public class InGameScene : BaseScene
                 ShowBonusSpin();
         }
 
-        if (m_Field != null && _judgeResult != null)
-            m_Field.ShowSummon(_judgeResult, _grid, m_SlotMachine.spritePool);
+        // 얻은 유닛을 명부에 넣는다. 전장이 아니라 보관함으로 들어가며, 같은 유닛이 3기가 되면
+        // 그 자리에서 승급한다. 판정 요약은 스핀 1회의 식을 보여줄 뿐이고
+        // 실제로 몇 기를 얻었는지는 이쪽이 정본이다 — 전력이 9를 넘으면 둘의 개수가 갈린다.
+        AddSpinUnits(_judgeResult, _grid);
+
+        // 얻은 유닛을 바로 전장에 올려 보여준다. 스핀을 돌렸는데 전장이 비어 보이면
+        // 무엇을 얻었는지 알 수 없다. 빈 칸만 채우므로 이미 배치해 둔 자리는 그대로 남는다.
+        if (m_RunData != null)
+            m_RunData.roster.FillEmptyFieldFromBench();
+
+        if (m_Field != null && m_RunData != null)
+            m_Field.Show(m_RunData.roster, _judgeResult, m_SlotMachine.spritePool);
+    }
+
+    private void AddSpinUnits(JudgeResult _judgeResult, int[] _grid)
+    {
+        if (_judgeResult == null || m_RunData == null)
+            return;
+
+        for (int i = 0; i < _judgeResult.ListSummon.Count; ++i)
+        {
+            SummonSlot summon = _judgeResult.ListSummon[i];
+
+            // 판정기가 종류를 채우지 못한 경우에만 grid로 되짚는다.
+            // 보관함에 들어간 뒤에는 grid를 못 보므로 여기서 확정해야 한다.
+            int symbolType = summon.SymbolType;
+            if (symbolType < 0)
+                symbolType = GetGridSymbol(_grid, summon.Cell);
+
+            if (symbolType < 0)
+                continue;
+
+            m_RunData.roster.AddUnit(symbolType, summon.Grade);
+        }
+
+        RefreshRunUI();
+    }
+
+    private int GetGridSymbol(int[] _grid, int _cell)
+    {
+        if (_grid == null || _cell < 0 || _cell >= _grid.Length)
+        {
+            Logger.Error($"[InGameScene] GetGridSymbol Failed! 심볼을 복원할 수 없다 - cell {_cell} (기대: 0~{JudgeResult.GRID_SIZE - 1})");
+            return -1;
+        }
+
+        return _grid[_cell];
     }
 
     // 무료 스핀을 화면에 알린다. 코인 칸이 하나 돌아오는 게 전부라 그냥 두면 눈에 안 띈다.

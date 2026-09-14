@@ -21,7 +21,6 @@ Id,Key,Kr,En,Cn,Jp
 20,HudSpinCoin,스핀 코인,Spins,旋转币,スピンコイン
 21,HudBet,판돈 {0} ×{1},Bet {0} ×{1},赌注 {0} ×{1},賭け金 {0} ×{1}
 22,ActionBattleStart,전투 시작,Battle,开始战斗,戦闘開始
-23,ActionSwap,스왑 {0},Swap {0},交换 {0},スワップ {0}
 24,ActionBattleSpeed,배속 ×{0},SPD ×{0},倍速 ×{0},倍速 ×{0}
 25,ReelSpin,SPIN,SPIN,SPIN,SPIN
 26,HouseSlot,슬롯,Slot,老虎机,スロット
@@ -39,8 +38,8 @@ Id,Key,Kr,En,Cn,Jp
 38,HouseUpgradeHomeHpDesc,런 시작 본거지 HP 증가,Starting stronghold HP,开局本部生命值,ラン開始時の本拠地HP
 39,HouseUpgradeSpinCoinName,스핀 코인,Spins,旋转币,スピンコイン
 40,HouseUpgradeSpinCoinDesc,연차당 스핀 코인 증가,Spins per year,每年旋转币,年ごとのスピンコイン
-41,HouseUpgradeSwapName,스왑 횟수,Swaps,交换次数,スワップ回数
-42,HouseUpgradeSwapDesc,연차당 스왑 횟수 증가,Swaps per year,每年交换次数,年ごとのスワップ回数
+41,HouseUpgradeExtraSpinMaxName,추가 스핀 상한,+Spin Cap,追加旋转上限,追加スピン上限
+42,HouseUpgradeExtraSpinMaxDesc,연차당 추가 스핀 구매 횟수 증가,Extra spin buys per year,每年追加旋转购买次数,年ごとの追加スピン購入回数
 43,HouseUpgradeStartGoldName,초기 자금,Funds,初始资金,初期資金
 44,HouseUpgradeStartGoldDesc,런 시작 골드 증가,Starting gold,开局金币,ラン開始時のゴールド
 45,HouseUpgradeRoyal,옥새,Royal Seal,玉玺,玉璽

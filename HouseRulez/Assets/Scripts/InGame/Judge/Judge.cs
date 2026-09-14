@@ -109,19 +109,30 @@ public static class Judge
         // "전력만큼 빈 칸을 채운다"는 공통 규칙으로는 셋 다 복원할 수 없다.
         // 이미 채워져 있으면 덮어쓰지 않는다.
         if (result.ListSummon.Count <= 0)
-            BuildSummon(result);
+            BuildSummon(result, _grid);
 
         return result;
     }
 
-    // 전력을 칸과 등급으로 나눈다.
+    // 전력을 1성 유닛 목록으로 바꾼다.
     //
-    // 1) 전력만큼 1성 유닛을 놓는다. 자리는 판정에 걸린 칸부터, 모자라면 남은 칸을 순서대로.
-    //    (걸린 칸이 소환 수보다 적은 경우가 대부분이다 — 체스는 평균 0.65칸)
-    // 2) 9칸을 다 쓰고도 전력이 남으면 **등급을 올려** 남은 전력을 흡수한다.
-    //    승격 비용은 등급 배수의 차이다(1성→2성 = 2.6−1.0 = 1.6).
-    //    가장 싼 승격부터 하므로 전장 전체가 고르게 올라간다.
-    private static void BuildSummon(JudgeResult _result)
+    // 전력 1 = 1성 1기다. 예전에는 전장 9칸이 상한이라 9를 넘는 전력을 **등급으로 돌렸지만**,
+    // 유닛이 보관함(RunRoster)에 쌓이게 되면서 상한 자체가 사라졌다 — 전력 11.4면 1성 11기가 그대로 나온다.
+    // 승급은 이제 같은 유닛 3기를 모으는 흡수로만 일어난다.
+    //
+    // 그래서 결함 둘이 함께 사라졌다.
+    //  - 9칸 상한(배치 가능한 최대 전력 63) 위로 넘친 전력이 버려지던 것.
+    //    포커 트리플 4개(Power 164)에서 101이 사라졌었다
+    //  - 그 손실이 분산 큰 종족만 때린다고 해서 넣었던 자동 등급 전환.
+    //    원인이 없어졌으니 장치도 뺀다(2026-09-11)
+    //
+    // Cell은 이제 **릴 위 연출 전용**이다. 어느 칸에서 나왔는지를 보여주는 값이라 9기까지만
+    // 자리가 있고 그 위는 CELL_NONE으로 둔다. 실제 획득 수는 보관함이 보여준다.
+    // SymbolType은 항상 채운다 — 보관함에 들어간 뒤에는 grid를 되짚을 수 없기 때문이다.
+    //
+    // 윷은 여기 오지 않는다. 업기·나기가 등급을 직접 만드는 종족 규칙이라
+    // EvaluateYut이 배치를 스스로 끝내고, 그 등급은 자동 전환이 아니므로 그대로 둔다.
+    private static void BuildSummon(JudgeResult _result, int[] _grid)
     {
         _result.ListSummon.Clear();
         _result.placedPower = 0f;
@@ -136,8 +147,14 @@ public static class Judge
             return;
         }
 
-        int cellCount = Mathf.Clamp(Mathf.RoundToInt(_result.Power), 0, JudgeResult.MAX_SUMMON);
+        int unitCount = Mathf.RoundToInt(_result.Power);
+        if (unitCount <= 0)
+            return;
+
+        // 릴 위에 표시할 자리. 판정에 걸린 칸을 먼저 쓰고, 모자라면 남은 칸을 순서대로 채운다.
+        // (걸린 칸이 유닛 수보다 적은 경우가 대부분이다 — 체스는 평균 0.65칸)
         List<int> listCell = new List<int>();
+        int cellCount = Mathf.Min(unitCount, JudgeResult.GRID_SIZE);
 
         for (int i = 0; i < _result.ListHitCell.Count; ++i)
         {
@@ -158,46 +175,33 @@ public static class Judge
             listCell.Add(cell);
         }
 
-        int[] grades = new int[listCell.Count];
-        for (int i = 0; i < grades.Length; ++i)
+        if (listCell.Count <= 0)
+            return;
+
+        for (int i = 0; i < unitCount; ++i)
         {
-            grades[i] = 1;
+            // 자리가 남아 있는 동안만 릴 칸을 준다. 그 뒤는 보관함으로만 들어간다.
+            int cell = (i < listCell.Count) ? listCell[i] : SummonSlot.CELL_NONE;
+
+            // 종류는 자리가 없어도 정해져야 한다 — 칸을 순환해 같은 분포로 뽑는다.
+            int symbolCell = listCell[i % listCell.Count];
+            int symbolType = GetGridSymbol(_grid, symbolCell);
+
+            _result.ListSummon.Add(new SummonSlot(cell, 1, symbolType));
         }
 
-        float remain = _result.Power - listCell.Count * gradeTable.GetMultiplier(1);
-        int maxGrade = gradeTable.maxGrade;
+        _result.placedPower = unitCount * gradeTable.GetMultiplier(1);
+    }
 
-        // 남은 전력이 승격 비용의 절반 이상이면 올린다(반올림과 같은 기준).
-        // 이 때문에 배치 전력이 Power보다 평균 0.05~0.19 높게 나온다 — 장기 6.46, 포커 6.39로
-        // GDD 목표 6.1~6.3을 살짝 넘는다. 차이가 0.3 안쪽이라 전투가 붙어 실제 클리어율을
-        // 볼 수 있을 때 조정하기로 했다(2026-08-30 판단). "비용 이상"으로 조이면 초과 지급은
-        // 사라지지만 잔여분을 더 버리게 된다.
-        bool promoted = true;
-        while (promoted == true)
+    private static int GetGridSymbol(int[] _grid, int _cell)
+    {
+        if (_grid == null || _cell < 0 || _cell >= _grid.Length)
         {
-            promoted = false;
-
-            for (int i = 0; i < grades.Length; ++i)
-            {
-                if (grades[i] >= maxGrade)
-                    continue;
-
-                float cost = gradeTable.GetMultiplier(grades[i] + 1) - gradeTable.GetMultiplier(grades[i]);
-                if (remain < cost * 0.5f)
-                    continue;
-
-                grades[i]++;
-                remain -= cost;
-                promoted = true;
-                break;
-            }
+            Logger.Error($"[Judge] GetGridSymbol Failed! 칸이 범위 밖 - {_cell} (기대: 0~{JudgeResult.GRID_SIZE - 1}, grid 길이 {JudgeResult.GRID_SIZE})");
+            return 0;
         }
 
-        for (int i = 0; i < listCell.Count; ++i)
-        {
-            _result.ListSummon.Add(new SummonSlot(listCell[i], grades[i]));
-            _result.placedPower += gradeTable.GetMultiplier(grades[i]);
-        }
+        return _grid[_cell];
     }
 
     // 슬롯 — PAYLINE_RANK. 5개 페이라인에서 3칸이 같으면 그 심볼의 3매치 배당,

@@ -8,10 +8,15 @@ public enum eBattleResult
     Defeat,
 }
 
-// 웨이브 한 판. 아군은 판정 소환 결과에서, 적은 WaveTable에서 만들어 서로 진격시킨다.
+// 웨이브 한 판. 아군은 **명부의 전장**에서, 적은 WaveTable에서 만들어 서로 진격시킨다.
 //
-// 최소 수직 슬라이스다. 레인(릴의 행) 안에서만 교전하고 레인 간 간섭은 없다 —
-// 전열/중열/후열의 역할 차이(GDD §FieldLayout)는 전투가 실제로 도는 걸 본 뒤에 얹는다.
+// ⚠️ 2026-09-13 정정 — 이 주석은 "레인 안에서만 교전하고 레인 간 간섭은 없다"고 적혀 있었는데
+// **코드와 달랐다.** FindTarget은 진영만 거르고 2D 거리로 가장 가까운 적을 찾으므로 레인 제약이 없다.
+// 레인 간격이 (30, 52)라 대각 약 60px인데 한 칸이 108px이어서, Range 1짜리 근접 유닛도 옆 레인에 닿는다.
+// 실제로 이 주석을 믿고 "원거리는 옆 레인을 못 쏜다"고 잘못 판단한 일이 있었다.
+//
+// 열별 역할(전열·중열·후열, GDD §FieldLayout)은 아직 미구현이다 — UnitTable의 Role 컬럼에
+// 기획 의도만 들어 있고 전투는 그 값을 읽지 않는다.
 public class UIInGameBattle : MonoBehaviour
 {
     [SerializeField] private RectTransform m_UnitRoot;
@@ -38,6 +43,54 @@ public class UIInGameBattle : MonoBehaviour
     public int homeHit => m_HomeHit;
     public bool isRunning => m_Result == eBattleResult.Running;
 
+    // 아직 자기 칸으로 걸어가는 유닛이 있는가. 복귀 연출의 종료 판정에 쓴다.
+    public bool isReturning
+    {
+        get
+        {
+            for (int i = 0; i < m_ListUnit.Count; ++i)
+            {
+                if (m_ListUnit[i] == null)
+                    continue;
+
+                if (m_ListUnit[i].isReturning == true)
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    // 살아남은 아군을 원래 칸으로 걸어 돌려보낸다. 반환값은 **실제로 움직이기 시작한 수**다.
+    //
+    // 0이면 기다릴 것이 없다 — 전멸했거나(패배) 이미 다들 제자리에 서 있다는 뜻이므로,
+    // 호출부는 대기 없이 바로 정리로 넘어가면 된다.
+    //
+    // 적은 돌려보내지 않는다. 살아남은 적은 다음 웨이브에 새로 생성되고, 이 화면의 적 오브젝트는
+    // 곧 Clear()로 사라진다 — 걸어 돌아갈 "자기 자리"라는 개념이 없다.
+    public int ReturnSurvivorsToHome(float _speedScale)
+    {
+        int movingCount = 0;
+
+        for (int i = 0; i < m_ListUnit.Count; ++i)
+        {
+            BattleUnit unit = m_ListUnit[i];
+            if (unit == null)
+                continue;
+
+            if (unit.side != eBattleSide.Ally)
+                continue;
+
+            if (unit.isAlive == false)
+                continue;
+
+            if (unit.ReturnToHome(_speedScale) == true)
+                movingCount += 1;
+        }
+
+        return movingCount;
+    }
+
     public void Clear()
     {
         for (int i = 0; i < m_ListUnit.Count; ++i)
@@ -56,9 +109,12 @@ public class UIInGameBattle : MonoBehaviour
         m_HomeHit = 0;
     }
 
-    // 판정 결과와 웨이브를 받아 양쪽 유닛을 세운다.
-    public void Begin(JudgeResult _judgeResult, int[] _grid,
-        IReadOnlyList<HouseSlotSymbolSprite> _spritePool, WaveRecord _wave)
+    // 전장 배치와 웨이브를 받아 양쪽 유닛을 세운다.
+    //
+    // 아군은 스핀 결과가 아니라 **명부의 전장**에서 온다(2026-09-11). 그래서 유닛이 웨이브를
+    // 넘어 살아남는다 — 매 전투 Clear()로 화면 오브젝트는 지우지만 명부는 그대로라
+    // 전투에서 죽은 유닛도 다음 웨이브에 다시 선다. 화면 오브젝트와 유닛의 수명을 분리한 것이다.
+    public void Begin(RunRoster _roster, string _houseKey, IReadOnlyList<HouseSlotSymbolSprite> _spritePool, WaveRecord _wave)
     {
         Clear();
 
@@ -70,7 +126,7 @@ public class UIInGameBattle : MonoBehaviour
 
         m_UnitTemplate.gameObject.SetActive(false);
 
-        SpawnAllies(_judgeResult, _grid, _spritePool);
+        SpawnAllies(_roster, _houseKey, _spritePool);
         SpawnEnemies(_wave);
     }
 
@@ -81,39 +137,40 @@ public class UIInGameBattle : MonoBehaviour
         return new Vector2(_x + laneFromFront * LANE_STEP_X, laneFromFront * LANE_STEP_Y);
     }
 
-    private void SpawnAllies(JudgeResult _judgeResult, int[] _grid, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
+    private void SpawnAllies(RunRoster _roster, string _houseKey, IReadOnlyList<HouseSlotSymbolSprite> _spritePool)
     {
-        if (_judgeResult == null || _grid == null || _spritePool == null)
+        if (_roster == null || _spritePool == null)
             return;
 
-        UnitGradeTable gradeTable = TableManager.instance.GetTable<UnitGradeTable>();
-        if (gradeTable == null)
+        // 성급 × 심볼을 합친 스탯은 UnitTable이 계산한다 — 여기서 직접 곱하지 않는다.
+        // 같은 값을 보관함 툴팁과 전장 표시도 써야 하므로, 계산이 전투 화면에 있으면 저쪽이 다시 구현한다.
+        UnitTable unitTable = TableManager.instance.GetTable<UnitTable>();
+        if (unitTable == null)
         {
-            Logger.Error("[UIInGameBattle] SpawnAllies Failed! UnitGradeTable not found");
+            Logger.Error("[UIInGameBattle] SpawnAllies Failed! UnitTable not found (기대: TableManager에 등록됨)");
             return;
         }
 
-        for (int i = 0; i < _judgeResult.ListSummon.Count; ++i)
+        for (int cell = 0; cell < RunRoster.FIELD_SIZE; ++cell)
         {
-            SummonSlot summon = _judgeResult.ListSummon[i];
-            if (summon.Cell < 0 || summon.Cell >= _grid.Length)
+            RunUnit runUnit = _roster.GetFieldUnit(cell);
+            if (runUnit == null)
                 continue;
 
-            // 판정기가 심볼을 직접 정했으면 그걸 쓴다(윷). 아니면 그 칸에 나온 심볼을 쓴다.
-            int symbolType = (summon.SymbolType >= 0) ? summon.SymbolType : _grid[summon.Cell];
-            if (symbolType < 0 || symbolType >= _spritePool.Count)
+            if (runUnit.SymbolType < 0 || runUnit.SymbolType >= _spritePool.Count)
+            {
+                Logger.Error($"[UIInGameBattle] SpawnAllies - 심볼이 풀 범위 밖이라 건너뛴다: {runUnit.SymbolType} (기대: 0~{_spritePool.Count - 1})");
                 continue;
+            }
 
-            UnitGradeRecord grade = gradeTable.GetRecord(summon.Grade);
-            if (grade == null)
-                continue;
+            UnitBattleStat stat = unitTable.GetBattleStat(_houseKey, runUnit.SymbolType, runUnit.Grade);
 
-            int lane = summon.Cell / LANE_COUNT;
-            int column = summon.Cell % LANE_COUNT;
+            int lane = cell / LANE_COUNT;
+            int column = cell % LANE_COUNT;
 
             BattleUnit unit = Instantiate(m_UnitTemplate, m_UnitRoot);
-            unit.Setup(eBattleSide.Ally, lane, _spritePool[symbolType].NormalSprite, summon.Grade,
-                grade.Hp, grade.Atk, grade.AtkSpeed, grade.Range, grade.MoveSpeed,
+            unit.Setup(eBattleSide.Ally, lane, _spritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade,
+                stat.Hp, stat.Atk, stat.AtkSpeed, stat.Range, stat.MoveSpeed,
                 GetLanePosition(lane, m_AllyStartX + column * 108f));
             m_ListUnit.Add(unit);
         }

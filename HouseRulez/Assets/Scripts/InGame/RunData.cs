@@ -15,8 +15,6 @@ public class RunData
     private int m_Gold;
     private int m_SpinCoin;
     private int m_SpinCoinMax;
-    private int m_SwapCount;
-    private int m_SwapCountMax;
     private int m_BetLevel;
     private int m_BattleSpeed;
     private int m_BattleSpeedFast;
@@ -25,6 +23,15 @@ public class RunData
     private int m_ExtraSpinBought;
     private int m_ExtraSpinMax;
     private int m_ExtraSpinGoldCost;
+
+    // 런 동안 쌓이는 유닛 명부. 스핀으로 얻은 유닛이 여기 모이고 전장 배치도 여기가 소유한다.
+    // 런 밖으로 나가지 않는다는 점에서 이 클래스의 다른 값들과 수명이 같아 여기 둔다.
+    private RunRoster m_Roster = new RunRoster();
+
+    // 이 런의 종족. UnitTable 조회 키이며 런 도중 바뀌지 않는다.
+    // Init()이 이미 읽고 있던 값을 지역변수로 버리던 것을 필드로 올렸다 —
+    // 전투가 심볼별 스탯을 찾을 때 필요하고, 런 상태의 소유자는 이 클래스다.
+    private string m_HouseKey = string.Empty;
 
     public int homeHp => m_HomeHp;
     public int homeHpMax => m_HomeHpMax;
@@ -36,13 +43,13 @@ public class RunData
     public int gold => m_Gold;
     public int spinCoin => m_SpinCoin;
     public int spinCoinMax => m_SpinCoinMax;
-    public int swapCount => m_SwapCount;
-    public int swapCountMax => m_SwapCountMax;
     public int betLevel => m_BetLevel;
     public int battleSpeed => m_BattleSpeed;
     public int extraSpinBought => m_ExtraSpinBought;
     public int extraSpinMax => m_ExtraSpinMax;
     public int extraSpinGoldCost => m_ExtraSpinGoldCost;
+    public RunRoster roster => m_Roster;
+    public string houseKey => m_HouseKey;
 
     public void Init()
     {
@@ -56,17 +63,21 @@ public class RunData
         // 영구 메타는 런이 시작될 때 한 번만 스냅샷으로 반영한다. 런 도중 타이틀에서 산 것이
         // 진행 중인 런에 소급되지 않도록, 여기 말고 다른 곳에서 다시 더하지 않는다.
         HouseRecord selectedHouse = PlayerManager.instance.GetSelectedHouseRecord();
-        string houseKey = (selectedHouse != null) ? selectedHouse.Key : string.Empty;
+        m_HouseKey = (selectedHouse != null) ? selectedHouse.Key : string.Empty;
+        string houseKey = m_HouseKey;
 
         m_HomeHpMax = configTable.GetValue(GameConfigTable.KEY_HOME_HP_MAX, 8)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_HOME_HP_MAX);
         m_YearMax = configTable.GetValue(GameConfigTable.KEY_RUN_YEAR_MAX, 12);
         m_SpinCoinMax = configTable.GetValue(GameConfigTable.KEY_SPIN_COIN_PER_YEAR, 3)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_SPIN_COIN_PER_YEAR);
-        m_SwapCountMax = configTable.GetValue(GameConfigTable.KEY_SWAP_COUNT_PER_YEAR, 2)
-            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_SWAP_COUNT_PER_YEAR);
         m_BattleSpeedFast = configTable.GetValue(GameConfigTable.KEY_BATTLE_SPEED_FAST, 2);
-        m_ExtraSpinMax = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR, 2);
+
+        // 업그레이드 보너스를 더한다. 2026-09-13 이전에는 이 한 줄만 보너스를 안 받았는데,
+        // 그때는 이 값을 올리는 업그레이드 노드가 없어서 드러나지 않았다.
+        // 스왑 노드를 「추가 스핀 상한」으로 전용하면서 배선이 필요해졌다.
+        m_ExtraSpinMax = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR, 2)
+            + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_EXTRA_SPIN_MAX_PER_YEAR);
         m_ExtraSpinGoldCost = configTable.GetValue(GameConfigTable.KEY_EXTRA_SPIN_GOLD_COST, 25);
 
         m_HomeHp = m_HomeHpMax;
@@ -75,10 +86,11 @@ public class RunData
         m_Gold = configTable.GetValue(GameConfigTable.KEY_RUN_START_GOLD, 0)
             + PlayerManager.instance.GetRunConfigBonus(houseKey, GameConfigTable.KEY_RUN_START_GOLD);
         m_SpinCoin = m_SpinCoinMax;
-        m_SwapCount = m_SwapCountMax;
         m_BetLevel = 0;
         m_BattleSpeed = 1;
         m_ExtraSpinBought = 0;
+
+        m_Roster.Init();
     }
 
     // 추가 스핀을 살 수 있는가. 연차당 횟수와 골드를 둘 다 본다.
@@ -168,7 +180,6 @@ public class RunData
         // GDD 03장 "연차 시작 시 지급, 이월 없음" — 더하지 않고 최대치로 되돌린다.
         // 이 리셋이 없으면 1연차 스핀 코인을 다 쓴 채 2연차에 들어가 스핀 자체가 막힌다.
         m_SpinCoin = m_SpinCoinMax;
-        m_SwapCount = m_SwapCountMax;
 
         // 추가 스핀 구매 횟수도 연차 단위다("연차당 2회까지").
         m_ExtraSpinBought = 0;
