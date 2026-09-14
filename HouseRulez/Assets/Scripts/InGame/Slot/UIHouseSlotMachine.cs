@@ -34,6 +34,9 @@ public class UIHouseSlotMachine : MonoBehaviour
     private const float PARTIAL_SHAKE_RATIO = 0.45f;
 
     private List<HouseSlotSymbolSprite> m_SpritePool = new List<HouseSlotSymbolSprite>();
+
+    // 심볼 가중치를 종족별로 읽어야 해서 들고 있는다. Apply 가 받은 HouseRecord 의 Key 다.
+    private string m_HouseKey = string.Empty;
     private HouseRecord m_Record;
     private Coroutine m_StopRoutine;
     private bool m_HasExternalResult;
@@ -60,6 +63,8 @@ public class UIHouseSlotMachine : MonoBehaviour
         }
 
         m_Record = _record;
+
+        m_HouseKey = _record.Key;
 
         BuildSpritePool(_record);
         ApplyFrame(_record);
@@ -179,11 +184,19 @@ public class UIHouseSlotMachine : MonoBehaviour
             return grid;
         }
 
+        // 심볼마다 나올 확률이 다르다(UnitTable.SpawnWeight). 테이블이 없으면 균등으로 떨어진다 —
+        // 릴은 매 스핀 도는 경로라 여기서 멈추면 게임이 못 돈다.
+        UnitTable unitTable = TableManager.instance.GetTable<UnitTable>();
+
         for (int reelIndex = 0; reelIndex < m_ReelList.Length; ++reelIndex)
         {
             for (int rowIndex = 0; rowIndex < m_VisibleSymbolCount; ++rowIndex)
             {
-                grid[rowIndex * m_ReelList.Length + reelIndex] = Random.Range(0, poolCount);
+                int symbol = (unitTable != null)
+                    ? unitTable.PickWeightedSymbol(m_HouseKey, poolCount)
+                    : Random.Range(0, poolCount);
+
+                grid[rowIndex * m_ReelList.Length + reelIndex] = symbol;
             }
         }
 

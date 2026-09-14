@@ -31,6 +31,17 @@ public class UnitRecord : Record
 
     // 이 심볼의 고정 특성. 비어 있을 수 있다. 실제 효과는 아직 미구현이다.
     public string TraitKey;
+
+    // 릴에 이 심볼이 나올 **상대 가중치**. 종족 안에서만 의미가 있고 1.0이 기준이다.
+    //
+    // 2026-09-14 도입. 그 전에는 릴이 `Random.Range(0, poolCount)` 로 균등하게 뽑았고,
+    // 그래서 "심볼마다 얼마나 자주 나오는가"가 코드에 박혀 조정할 수 없었다
+    // (CODE.MD 「튜닝값은 하드코딩 금지, CSV로」).
+    //
+    // **배율과 같은 행에 둔 이유** — "이 심볼은 이만큼 나오고 이만큼 강하다"가 한 줄에 모여야
+    // 밸런싱할 때 양쪽을 함께 본다. 획득 분포와 배율이 따로 놀면 종족 평균이 조용히 어긋난다
+    // (실제로 화투에서 그랬다: 강한 패가 0.62배로 덜 나와 가중 평균이 -5.2%였다).
+    public float SpawnWeight;
 }
 
 // 성급 × 심볼을 합친 최종 전투 스탯.
@@ -61,6 +72,76 @@ public class UnitTable : Table<UnitRecord>
     public const float ATK_MIN = 1f;
 
     public UnitTable(List<UnitRecord> _listRecord) : base(_listRecord) { }
+
+    // 종족별 누적 가중치 캐시. 릴 생성이 스핀마다 9번 부르므로 매번 테이블을 훑으면
+    // 그만큼 선형 탐색이 반복된다. 테이블은 런타임에 바뀌지 않아 무효화가 필요 없다.
+    private Dictionary<string, float[]> m_HashCumulativeWeight = new Dictionary<string, float[]>();
+
+    // 가중치에 따라 심볼 하나를 고른다. **가중치가 전부 같으면 균등 무작위와 수학적으로 동일하다** —
+    // 그래서 전 종족을 1.0으로 두면 도입 전과 결과가 달라지지 않는다.
+    //
+    // 테이블에 행이 없거나 합이 0이면 균등으로 떨어진다. 릴은 매 스핀 도는 경로라
+    // 여기서 멈추거나 오류를 쏟으면 게임이 못 돈다.
+    public int PickWeightedSymbol(string _houseKey, int _symbolCount)
+    {
+        if (_symbolCount <= 0)
+            return 0;
+
+        float[] cumulative = GetCumulativeWeight(_houseKey, _symbolCount);
+        if (cumulative == null)
+            return Random.Range(0, _symbolCount);
+
+        float total = cumulative[cumulative.Length - 1];
+        if (total <= 0f)
+            return Random.Range(0, _symbolCount);
+
+        float pick = Random.Range(0f, total);
+        for (int i = 0; i < cumulative.Length; ++i)
+        {
+            if (pick < cumulative[i])
+                return i;
+        }
+
+        // 부동소수점 끝자락. 마지막 심볼로 떨어뜨린다.
+        return cumulative.Length - 1;
+    }
+
+    private float[] GetCumulativeWeight(string _houseKey, int _symbolCount)
+    {
+        float[] cached = null;
+        if (m_HashCumulativeWeight.TryGetValue(_houseKey, out cached) == true)
+        {
+            if (cached != null && cached.Length >= _symbolCount)
+                return cached;
+        }
+
+        float[] cumulative = new float[_symbolCount];
+        float sum = 0f;
+
+        for (int i = 0; i < _symbolCount; ++i)
+        {
+            // GetRecord 를 쓰지 않는다 — 그쪽은 못 찾으면 오류를 남기는데,
+            // 스프라이트 풀이 테이블보다 클 수 있고 여기는 매 스핀 도는 경로다.
+            UnitRecord record = FindRecordSilent(_houseKey, i);
+
+            float weight = (record != null) ? record.SpawnWeight : 1f;
+            if (weight < 0f)
+                weight = 0f;
+
+            sum += weight;
+            cumulative[i] = sum;
+        }
+
+        m_HashCumulativeWeight[_houseKey] = cumulative;
+        return cumulative;
+    }
+
+    private UnitRecord FindRecordSilent(string _houseKey, int _symbolIndex)
+    {
+        return list.Find(unit => unit != null
+            && unit.HouseKey == _houseKey
+            && unit.SymbolIndex >= _symbolIndex && unit.SymbolIndex <= _symbolIndex);
+    }
 
     public UnitRecord GetRecord(string _houseKey, int _symbolIndex)
     {
