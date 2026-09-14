@@ -238,6 +238,22 @@ public static class Judge
             listCell.Add(_result.ListHitCell[i]);
         }
 
+        // **부분 판정 칸도 「걸린 칸」이다.** 페어·반정렬·진만 성립한 스핀은 ListHitCell 이 비어서,
+        // 이 줄이 없으면 아래 순회가 0번 칸부터 채우고 **판정과 무관한 심볼이 소환된다.**
+        //
+        // 2026-09-14 사용자 보고: "Q 페어인데 7과 A가 생성됐어".
+        // 재현해보니 Q 페어가 c3·c6 에 있었는데 소환된 것은 c0 의 7이었다.
+        // 부분 판정만 걸리는 스핀은 흔하다 — 체스 반정렬, 장기 진, 포커 페어, 슬롯 2매치가 전부 이쪽이다.
+        //
+        // 두 목록이 겹치지 않는다는 것은 RemovePartialOnHitCell 이 보장한다(같은 날 수정).
+        for (int i = 0; i < _result.ListPartialCell.Count; ++i)
+        {
+            if (listCell.Count >= cellCount)
+                break;
+
+            listCell.Add(_result.ListPartialCell[i]);
+        }
+
         for (int cell = 0; cell < JudgeResult.GRID_SIZE; ++cell)
         {
             if (listCell.Count >= cellCount)
