@@ -46,6 +46,21 @@ public class StringTable : Table<StringRecord>
         return string.Format(GetTemplate(_key), _arg1, _arg2, _arg3);
     }
 
+    // 번역이 비어 있으면 한국어로 떨어뜨린다.
+    //
+    // **왜 필요한가** — 키를 못 찾을 때는 위에서 로그를 남기지만, **찾았는데 그 열이 비면
+    // 조용히 빈 문자열이 나간다.** 화면이 통째로 백지가 되는데 오류는 한 줄도 없다.
+    // 2026-09-14에 족보·유닛 설명 105행을 한국어만 채우면서 이 구멍이 드러났다.
+    //
+    // 번역이 늦는 일은 앞으로도 있으므로 항목마다 막지 않고 여기 한 곳에서 막는다.
+    private string FallbackToKorean(StringRecord _record, string _translated)
+    {
+        if (string.IsNullOrEmpty(_translated) == false)
+            return _translated;
+
+        return _record.Kr;
+    }
+
     private string GetTemplate(string _key)
     {
         StringRecord record = list.Find(record => record.Key == _key);
@@ -57,14 +72,12 @@ public class StringTable : Table<StringRecord>
 
         switch (CurrentLanguage)
         {
-            case eLanguage.Korean:
-                return record.Kr;
             case eLanguage.English:
-                return record.En;
+                return FallbackToKorean(record, record.En);
             case eLanguage.Chinese:
-                return record.Cn;
+                return FallbackToKorean(record, record.Cn);
             case eLanguage.Japanese:
-                return record.Jp;
+                return FallbackToKorean(record, record.Jp);
             default:
                 return record.Kr;
         }
