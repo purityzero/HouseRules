@@ -322,15 +322,30 @@ public class UIHouseSlotMachine : MonoBehaviour
         if (m_JudgeResult == null)
             return;
 
-        PlayCellEffect(m_JudgeResult.ListHitCell, m_WinShakeAngle, m_WinShakeDuration);
+        // 완전 당첨만 심볼 고유색으로 물든다. 부분 당첨까지 물들이면 화면에 색이 많아져
+        // 주판정의 무게가 줄어든다 — 흔들림 세기를 나눈 것과 같은 이유다.
+        PlayCellEffect(m_JudgeResult.ListHitCell, m_WinShakeAngle, m_WinShakeDuration, true);
 
         // 절반만 성립한 칸(체스 반정렬, 장기 진, 포커 페어, 슬롯 2매치)은 약하게 흔든다.
         // 전력은 나왔는데 릴이 조용하면 "왜 소환됐지"가 되고, 똑같이 흔들면 주판정과 구분이 안 된다.
         PlayCellEffect(m_JudgeResult.ListPartialCell,
-            m_WinShakeAngle * PARTIAL_SHAKE_RATIO, m_WinShakeDuration * PARTIAL_SHAKE_RATIO);
+            m_WinShakeAngle * PARTIAL_SHAKE_RATIO, m_WinShakeDuration * PARTIAL_SHAKE_RATIO, false);
     }
 
-    private void PlayCellEffect(List<int> _listCell, float _angle, float _duration)
+    // 심볼 고유색. 테이블이 없거나 종족이 안 잡혔으면 흰색 — 원래 아트 그대로 보인다.
+    private Color GetSymbolColor(int _symbolType)
+    {
+        if (string.IsNullOrEmpty(m_HouseKey) == true)
+            return Color.white;
+
+        UnitTable unitTable = TableManager.instance.GetTable<UnitTable>();
+        if (unitTable == null)
+            return Color.white;
+
+        return unitTable.GetSymbolColor(m_HouseKey, _symbolType);
+    }
+
+    private void PlayCellEffect(List<int> _listCell, float _angle, float _duration, bool _isTinted)
     {
         if (_listCell == null)
             return;
@@ -349,7 +364,14 @@ public class UIHouseSlotMachine : MonoBehaviour
             if (symbol == null)
                 continue;
 
-            symbol.PlayWinEffect(_angle, _duration);
+            if (_isTinted == false)
+            {
+                symbol.PlayWinEffect(_angle, _duration);
+                continue;
+            }
+
+            // 심볼이 자기 인덱스를 안다(UISlotMachineSymbol.symbolType). 종족은 이 기계가 안다.
+            symbol.PlayWinEffect(_angle, _duration, GetSymbolColor(symbol.symbolType));
         }
     }
 

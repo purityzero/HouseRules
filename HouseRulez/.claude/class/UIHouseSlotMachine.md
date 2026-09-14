@@ -146,3 +146,30 @@ UIHouseSlotMachine (컨트롤러)
 장기 A–B–A grid `[2,3,2, 4,5,6, 0,1,4]` 주입 → 132프레임 샘플링,
 칸별 최대 회전각 `[4.377, 4.377, 4.377, 0, 0, 0, 0, 0, 0]`.
 **판정 칸 3개만 회전, 나머지 6칸 정확히 0°.** 플래그가 아니라 `localEulerAngles.z` 실측.
+
+## 2026-09-14 — 당첨 심볼 고유색
+
+### 개요
+완전 당첨 칸(`ListHitCell`)의 심볼을 **고유색으로 물들인다**. 흔들림 연출 위에 얹었다.
+
+### 완전 당첨에만 입힌다
+```csharp
+PlayCellEffect(m_JudgeResult.ListHitCell, ..., true);        // 색 입힘
+PlayCellEffect(m_JudgeResult.ListPartialCell, ..., false);   // 흔들림만
+```
+부분 당첨까지 물들이면 화면에 색이 많아져 주판정의 무게가 줄어든다 —
+흔들림 세기를 `PARTIAL_SHAKE_RATIO` 로 나눈 것과 같은 이유다.
+
+### 색을 어떻게 찾는가
+심볼이 자기 인덱스를 안다(`UISlotMachineSymbol.symbolType`, public).
+종족은 이 기계가 `m_HouseKey` 로 안다. 둘을 합쳐 `UnitTable.GetSymbolColor` 를 부른다.
+테이블이 없거나 종족이 안 잡혔으면 흰색 — 원래 아트 그대로 보인다.
+
+### 곱연산이 의도대로 먹는 이유
+심볼 아트가 전 종족 **무채색**(흰/회색 몸통 + 검은 외곽선)이다.
+`Image.color` 는 곱연산이라 몸통만 물들고 외곽선은 그대로 어둡게 남는다.
+컬러 아트였다면 색이 겹쳐 탁해졌을 것이다.
+
+### `StopWinEffect` 에서 색도 되돌린다
+**릴 칸은 재사용된다.** 회전만 풀고 색을 두면 다음 스핀에서 엉뚱한 심볼이
+지난 당첨색을 입은 채 돌아간다.

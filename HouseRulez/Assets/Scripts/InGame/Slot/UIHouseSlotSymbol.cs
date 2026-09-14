@@ -26,11 +26,19 @@ public class UIHouseSlotSymbol : UISlotMachineSymbol
     // 동시에 걸릴 수 있어 이전 트윈을 반드시 끊고 시작한다 — 겹쳐 돌면 각도가 원래대로 안 돌아온다.
     public void PlayWinEffect(float _angle, float _duration)
     {
+        PlayWinEffect(_angle, _duration, Color.white);
+    }
+
+    // _tint 는 심볼 고유색이다. 아트가 무채색(흰 몸통 + 검은 외곽선)이라 곱연산이
+    // 의도대로 먹는다 — 몸통만 물들고 외곽선은 그대로 어둡게 남는다.
+    public void PlayWinEffect(float _angle, float _duration, Color _tint)
+    {
         if (iconImage == null)
             return;
 
         StopWinEffect();
 
+        iconImage.color = _tint;
         m_WinTween = TweenUtil.PunchRotation(iconImage.transform, _angle, _duration);
     }
 
@@ -43,7 +51,13 @@ public class UIHouseSlotSymbol : UISlotMachineSymbol
         m_WinTween = null;
 
         if (iconImage != null)
+        {
             iconImage.transform.localRotation = Quaternion.identity;
+
+            // 색도 함께 되돌린다. 회전만 풀고 색을 두면 다음 스핀에서 엉뚱한 심볼이
+            // 지난 당첨색을 입은 채 돌아간다 — 릴 칸은 재사용되기 때문이다.
+            iconImage.color = Color.white;
+        }
     }
 
     private void OnDisable()

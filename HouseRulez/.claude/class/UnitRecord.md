@@ -339,3 +339,45 @@ Back 의 정의가 "후열 = 원거리"이므로 4기 전부에 주는 쪽이 �
 
 보고서: `D:/Orca/reports/poker-range-qa-2026-09-14.md`,
 `D:/Orca/reports/poker-range-2back-2026-09-14.md`
+
+## 2026-09-14-1 — `SymbolColor` 컬럼 (당첨 심볼 고유색)
+
+### 개요
+당첨된 릴 심볼을 **심볼 고유색으로 물들이기** 위한 색을 테이블로 옮겼다(2026-09-14 사용자 요청).
+심볼 아트가 전 종족 무채색(흰 몸통 + 검은 외곽선)이라 지금은 모두 비슷해 보인다.
+
+### 왜 `UnitTable` 인가
+CODE.MD 「레코드 1개당 속성으로 자연스럽게 붙는 값은 해당 테이블에 컬럼을 추가한다」.
+심볼은 이미 `HouseKey` + `SymbolIndex` 로 식별되고, 표시용 데이터인 `NameKey` 도
+이미 이 테이블에 있다. 전용 테이블을 새로 만들 만한 격자형 데이터가 아니다.
+
+### 필드와 조회
+
+```csharp
+public string SymbolColor;                              // "#RRGGBB"
+public Color GetSymbolColor(string _houseKey, int _symbolIndex)
+```
+
+**문자열로 받는다** — 파서가 `Convert.ChangeType` 으로 필드 타입에 맞추는데 `Color` 는
+그 경로로 못 만든다. 읽을 때 `ColorUtility.TryParseHtmlString` 으로 옮긴다.
+
+### ⚠️ `verify-tables` 가 hex 오타를 잡지 못한다
+검사기의 `CanConvert` 는 `string` 필드를 **언제나 변환 가능**으로 판정한다
+(`if (_fieldType == typeof(string)) return true;`). `#GGHHII` 같은 값이 통과한다.
+지금은 런타임 `Logger.Error` 로만 드러난다 — 전용 `[CliCommand]` 로 올릴 후보다.
+
+### 파싱 결과를 캐시하는 이유
+매 스핀 최대 8칸이 부르는 경로이기도 하지만, **형식이 틀렸을 때 같은 에러가 무한히
+쌓이는 것을 막는 목적이 더 크다.** 한 번만 알리면 충분하다.
+
+### 색을 정한 기준
+- **화투**: 열두 달의 소재색 그대로(송학 솔색, 국화 노랑, 단풍 주황, 공산 억새 은회)
+- **포커**: 랭크가 오를수록 찬색 → 더운색. A 만 금색으로 뺐다(랭크 순서 밖의 카드)
+- **윷**: 등급이 오를수록 강해진다. 백도만 무채색 — 뒤로 가는 패라 계열에서 뺐다
+- **체스**: 위계를 색으로(킹 금색, 퀸 자주, 폰 회백)
+- **마작**: 1통만 빨강, 나머지는 파랑 → 노랑 → 자주 스펙트럼
+- **슬롯**: 관습색 그대로(체리 빨강, 레몬 노랑, 벨 금색, 세븐 진홍)
+
+### 검증
+59개 전부 파싱 성공(실패 0). `TableManager` → `GetSymbolColor` 프로덕션 경로로 확인했고,
+CSV 의 `#2E6B3E` 가 런타임에서 `2E6B3E` 로 돌아왔다. `verify-tables` 15개 통과.

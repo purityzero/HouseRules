@@ -42,6 +42,15 @@ public class UnitRecord : Record
     // 밸런싱할 때 양쪽을 함께 본다. 획득 분포와 배율이 따로 놀면 종족 평균이 조용히 어긋난다
     // (실제로 화투에서 그랬다: 강한 패가 0.62배로 덜 나와 가중 평균이 -5.2%였다).
     public float SpawnWeight;
+
+    // 당첨됐을 때 릴 심볼을 물들이는 고유색. `#RRGGBB` 형식이다.
+    //
+    // **문자열로 받는 이유** — 파서가 `Convert.ChangeType` 으로 필드 타입에 맞추는데
+    // `Color` 는 그 경로로 못 만든다. 읽을 때 `ColorUtility.TryParseHtmlString` 으로 옮긴다.
+    //
+    // ⚠️ 그래서 **`verify-tables` 가 잘못된 hex 를 잡아내지 못한다**(문자열은 언제나 변환 가능으로
+    // 판정된다). `#GGHHII` 같은 오타는 런타임 로그에서만 드러난다.
+    public string SymbolColor;
 }
 
 // 성급 × 심볼을 합친 최종 전투 스탯.
@@ -154,6 +163,40 @@ public class UnitTable : Table<UnitRecord>
 
         return record;
     }
+
+    // 당첨 연출이 쓰는 심볼 고유색. 없거나 형식이 틀리면 흰색(= 원래 아트 그대로)으로 돌려준다.
+    //
+    // **파싱 결과를 캐시한다.** 매 스핀 최대 8칸이 부르는 경로이고, 무엇보다
+    // 형식이 틀렸을 때 로그가 매번 쌓이는 것을 막는다 — 한 번만 알리면 충분하다.
+    public Color GetSymbolColor(string _houseKey, int _symbolIndex)
+    {
+        string cacheKey = _houseKey + "/" + _symbolIndex;
+
+        if (m_DicSymbolColor.TryGetValue(cacheKey, out Color cached) == true)
+            return cached;
+
+        Color parsed = Color.white;
+        UnitRecord record = FindRecordSilent(_houseKey, _symbolIndex);
+
+        if (record == null)
+        {
+            Logger.Error($"[UnitTable] GetSymbolColor Failed! 심볼 없음 - {cacheKey} (기대: UnitTable.csv에 해당 행 존재)");
+        }
+        else if (string.IsNullOrWhiteSpace(record.SymbolColor) == true)
+        {
+            Logger.Error($"[UnitTable] GetSymbolColor Failed! SymbolColor 비어 있음 - {cacheKey} (기대: #RRGGBB 형식)");
+        }
+        else if (ColorUtility.TryParseHtmlString(record.SymbolColor, out parsed) == false)
+        {
+            Logger.Error($"[UnitTable] GetSymbolColor Failed! hex 형식 아님 - {cacheKey} = '{record.SymbolColor}' (기대: #RRGGBB 형식)");
+            parsed = Color.white;
+        }
+
+        m_DicSymbolColor.Add(cacheKey, parsed);
+        return parsed;
+    }
+
+    private Dictionary<string, Color> m_DicSymbolColor = new Dictionary<string, Color>();
 
     // 성급과 심볼을 합친 최종 스탯. **전투 생성·보관함 툴팁·전장 표시가 전부 이 하나를 부른다.**
     // 계산을 전투 화면 안에 두면 나머지 소비자가 각자 다시 구현하게 되고,
