@@ -58,5 +58,5 @@ Id,HouseKey,SymbolIndex,NameKey,Role,HpRate,AtkRate,AtkSpeedRate,RangeBonus,Move
 57,yut,3,UnitYutGeol,Mid,1.00,1.00,1.05,0,1.05,TraitMidRelay,1.00,#6B7BA8,,
 58,yut,4,UnitYutYut,Back,0.80,1.15,0.90,1,1.10,TraitBackShooter,1.00,#A87B6B,,
 59,yut,5,UnitYutMo,Front,0.75,1.25,1.05,0,1.15,,1.00,#C4522E,,
-60,poker,-1,UnitPokerTripleUnit,Mid,40.00,40.00,1.00,1,1.00,,0.00,#B02E6E,PokerTriple,poker_pattern_triple
-61,poker,-1,UnitPokerStraightUnit,Mid,11.00,11.00,1.00,1,1.00,,0.00,#4AA89B,PokerStraight,poker_pattern_straight
+60,poker,-1,UnitPokerTripleUnit,Mid,20.00,40.00,1.00,1,1.00,,0.00,#B02E6E,PokerTriple,poker_pattern_triple
+61,poker,-1,UnitPokerStraightUnit,Mid,5.50,11.00,1.00,1,1.00,,0.00,#4AA89B,PokerStraight,poker_pattern_straight
