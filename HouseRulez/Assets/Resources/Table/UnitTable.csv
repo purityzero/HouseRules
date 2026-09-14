@@ -39,10 +39,10 @@ Id,HouseKey,SymbolIndex,NameKey,Role,HpRate,AtkRate,AtkSpeedRate,RangeBonus,Move
 38,poker,6,UnitPoker07,Mid,1.00,1.00,1.00,0,1.00,,1.00
 39,poker,7,UnitPoker08,Mid,1.08,1.08,0.97,0,0.95,,1.00
 40,poker,8,UnitPoker09,Mid,1.15,1.15,0.93,0,0.90,,1.00
-41,poker,9,UnitPoker10,Back,1.23,1.23,0.90,0,0.85,,1.00
-42,poker,10,UnitPokerJ,Back,1.30,1.30,0.87,0,0.80,,1.00
-43,poker,11,UnitPokerQ,Back,1.38,1.38,0.83,0,0.75,TraitBackShooter,1.00
-44,poker,12,UnitPokerK,Back,1.45,1.45,0.80,0,0.70,TraitFrontGuard,1.00
+41,poker,9,UnitPoker10,Back,1.23,1.23,0.90,1,0.85,,1.00
+42,poker,10,UnitPokerJ,Back,1.30,1.30,0.87,1,0.80,,1.00
+43,poker,11,UnitPokerQ,Back,1.38,1.38,0.83,1,0.75,TraitBackShooter,1.00
+44,poker,12,UnitPokerK,Back,1.45,1.45,0.80,1,0.70,TraitFrontGuard,1.00
 45,mahjong,0,UnitMahjongPin1,Front,1.30,0.90,1.00,0,0.85,TraitFrontGuard,1.00
 46,mahjong,1,UnitMahjongPin2,Front,1.10,0.95,1.00,0,0.90,,1.00
 47,mahjong,2,UnitMahjongPin3,Mid,0.90,1.00,1.00,0,1.00,,1.00

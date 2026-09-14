@@ -68,6 +68,7 @@ Play Mode QA를 통과해 `07d6a1f`로 커밋했다. 배너 상세는 `archive/2
 | 상태 | 항목 | 파일 |
 |---|---|---|
 | 🚧 진행 중 | **유닛 보관·3합 승급·드래그 배치** — 코어 루프 변경. 명부·승급·유닛 테이블은 검증 통과해 `2335464` 커밋(미푸시·미병합). 드래그 배치는 미구현 | [`unfinished/2026-09-11-unit-roster.md`](unfinished/2026-09-11-unit-roster.md) |
+| 🚧 검증 대기 | **Poker Back 사거리** — 4기·2기 안 측정 완료, **4기 유지 권고**. 사람의 플레이와 병합 판단이 남음. **Unity CLI 도입 기록 포함** | [`unfinished/2026-09-14-poker-range.md`](unfinished/2026-09-14-poker-range.md) |
 | 🐛 결함·다듬기 3건 | `柶`(U+67F6) 결손 · SwapText 폭 여유 0 · 한국어 혼합 폰트 굵기 차이 | [`unfinished/2026-09-09-font-unify.md`](unfinished/2026-09-09-font-unify.md) |
 | 🐛 진단만 2건 | 토스트 시스템 사망 · 윷 심볼 3.4배 작음 | [`unfinished/known-issues.md`](unfinished/known-issues.md) |
 | 📋 백로그 | 골드 소모 경로 없음 · AccentColor 미연결 · 아트 보강 · `Assets/Screenshots/` 정리 | [`unfinished/backlog.md`](unfinished/backlog.md) |
