@@ -105,6 +105,8 @@ public static class Judge
                 return result;
         }
 
+        RemovePartialOnHitCell(result);
+
         // 윷은 배치를 자기가 만든다 — 심볼·칸·등급이 전부 줄 단위 규칙에서 나와서
         // "전력만큼 빈 칸을 채운다"는 공통 규칙으로는 셋 다 복원할 수 없다.
         // 이미 채워져 있으면 덮어쓰지 않는다.
@@ -112,6 +114,29 @@ public static class Judge
             BuildSummon(result, _grid);
 
         return result;
+    }
+
+    // 주판정 칸이 부분 목록에도 들어 있으면 빼낸다. **한 칸은 둘 중 하나여야 한다.**
+    //
+    // 왜 AddPartial 쪽에서 막지 않는가 — 순서 때문이다. 라인을 앞에서부터 훑으므로
+    // 앞 라인이 부분으로 칸을 넣은 뒤 **뒤 라인이 같은 칸을 주판정으로 만들 수 있다.**
+    // 그 경우 AddPartial 안에서 아무리 검사해도 이미 들어간 것을 못 빼낸다.
+    // 그래서 종족 판정이 전부 끝난 뒤 한 번에 정리한다.
+    //
+    // 겹치면 무슨 일이 생기나 — 표시 쪽이 주판정을 먼저, 부분을 나중에 칠한다.
+    // 그래서 **약한 강조가 강한 강조를 덮어쓴다.** 2026-09-14에 포커 스트레이트
+    // (4,5,6)에서 4와 6이 각각 다른 라인의 페어이기도 해서, 그 두 칸만 당첨색을
+    // 잃고 흰색으로 돌아가는 것으로 드러났다. 색을 넣기 전에는 흔들림 세기가
+    // 약해지는 것뿐이라 눈에 띄지 않았을 뿐 같은 결함이었다.
+    private static void RemovePartialOnHitCell(JudgeResult _result)
+    {
+        for (int i = _result.ListPartialCell.Count - 1; i >= 0; --i)
+        {
+            if (_result.ListHitCell.Contains(_result.ListPartialCell[i]) == false)
+                continue;
+
+            _result.ListPartialCell.RemoveAt(i);
+        }
     }
 
     // 전력을 1성 유닛 목록으로 바꾼다.
@@ -713,7 +738,12 @@ public static class Judge
         }
     }
 
-    // 절반만 성립한 칸. 주판정 칸과 겹치면 넣지 않는다 — 겹치면 약한 강조가 강한 강조를 덮는다.
+    // 절반만 성립한 칸.
+    //
+    // 주판정 칸과의 겹침은 여기서 막지 않는다 — 뒤 라인이 같은 칸을 주판정으로 만들 수 있어
+    // 이 시점의 검사로는 못 잡는다. 판정이 전부 끝난 뒤 RemovePartialOnHitCell 이 정리한다.
+    // (2026-09-14 정정: 이 주석이 "겹치면 넣지 않는다"라고 적혀 있었는데 코드는 그런 검사를
+    //  한 적이 없다. 주석만 믿고 겹침이 없다고 읽으면 안 된다)
     private static void AddPartial(JudgeResult _result, int[] _line)
     {
         for (int i = 0; i < _line.Length; ++i)
