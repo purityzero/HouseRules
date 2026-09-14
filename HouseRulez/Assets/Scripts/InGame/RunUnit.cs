@@ -1,3 +1,5 @@
+using UnityEngine;
+
 // 런 한 판 동안 살아남는 유닛 하나.
 //
 // 기존 SummonSlot과 다른 점은 **수명**이다. SummonSlot은 스핀 1회의 결과라 전투가 끝나면
@@ -11,6 +13,13 @@ public class RunUnit
 
     // 1성부터. 상한은 UnitGradeTable이 정한다(현재 3성).
     public int Grade;
+
+    // 전장에서 서 있는 자리. **보관함에 있을 때는 의미가 없다.**
+    //
+    // 2026-09-14 자유 배치 이전에는 전장 배열의 인덱스가 곧 자리였다. 이제 인덱스는
+    // "몇 번째 슬롯인가"일 뿐이고 실제 위치는 이 값이다 — 플레이어가 드래그로 정하고,
+    // 안 정했으면 자동 배치가 격자 기본 좌표를 넣는다.
+    public Vector2 FieldPosition;
 
     public RunUnit(int _symbolType, int _grade)
     {

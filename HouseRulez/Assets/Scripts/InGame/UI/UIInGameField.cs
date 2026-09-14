@@ -22,14 +22,10 @@ public class UIInGameField : MonoBehaviour
     // 허용된다 — 원근을 준다고 80px 같은 값을 쓰면 픽셀이 뭉개진다.
     // 직렬화하지 않는다. 컴포넌트가 씬에 저장된 뒤 필드를 추가하면 그 값이 0으로 들어와
     // 9칸이 전부 같은 자리에 겹치는 사고가 실제로 났다. 배치의 소유자는 코드 한 곳이다.
-    private const float COLUMN_SPACING = 108f;
-    private const float LANE_STEP_Y = 52f;
-    private const float LANE_STEP_X = 30f;
+    // 좌표 규칙은 FieldLayout 이 소유한다(2026-09-14). 여기서 다시 정의하면 소유자가 둘이 된다.
 
     // 심볼이 32px이라 ×3. 정수 배율만 허용된다.
     private const float SLOT_SIZE = 96f;
-
-    private const int COLUMN_COUNT = 3;
 
     private List<UIInGameFieldSlot> m_ListSlot = new List<UIInGameFieldSlot>();
 
@@ -38,8 +34,8 @@ public class UIInGameField : MonoBehaviour
     private RunRoster m_Roster;
     private IReadOnlyList<HouseSlotSymbolSprite> m_SpritePool;
 
-    private int m_DragFromCell = RunRoster.CELL_NONE;
-    private int m_DragToCell = RunRoster.CELL_NONE;
+    // 그리기 순서 정렬용 버퍼. 매번 새로 만들면 배치를 옮길 때마다 할당이 생긴다.
+    private List<UIInGameFieldSlot> m_ListDrawOrder = new List<UIInGameFieldSlot>();
 
     public void Apply()
     {
@@ -48,31 +44,21 @@ public class UIInGameField : MonoBehaviour
         Clear();
     }
 
-    // 칸을 열·레인 좌표로 직접 놓는다. GridLayoutGroup은 균일 격자만 만들 수 있어
-    // 레인별 x 밀기(원근)를 표현하지 못한다.
+    // 칸의 크기와 기준점만 잡는다. **자리는 여기서 정하지 않는다** —
+    // 2026-09-14 자유 배치 이후 위치의 정본은 명부(RunUnit.FieldPosition)이고
+    // RefreshSlots 가 그 값을 읽어 놓는다. 여기서 좌표를 또 계산하면 소유자가 둘이 된다.
     private void LayoutSlots()
     {
         for (int cell = 0; cell < m_ListSlot.Count && cell < JudgeResult.GRID_SIZE; ++cell)
         {
-            int row = cell / COLUMN_COUNT;
-            int column = cell % COLUMN_COUNT;
-
-            // row 0이 가장 뒤 레인이라 화면에서 가장 위로 간다.
-            int laneFromFront = (COLUMN_COUNT - 1) - row;
-
             RectTransform rectTransform = m_ListSlot[cell].transform as RectTransform;
             rectTransform.anchorMin = Vector2.zero;
             rectTransform.anchorMax = Vector2.zero;
             rectTransform.pivot = Vector2.zero;
             rectTransform.sizeDelta = new Vector2(SLOT_SIZE, SLOT_SIZE);
-            rectTransform.anchoredPosition = new Vector2(
-                column * COLUMN_SPACING + laneFromFront * LANE_STEP_X,
-                laneFromFront * LANE_STEP_Y);
 
-            // 앞 레인이 뒤 레인을 가리도록 그리기 순서를 맞춘다.
-            // 셀 인덱스가 행 우선이라 그대로 쓰면 row 0(가장 뒤)이 먼저, row 2(가장 앞)가 나중에 그려진다.
-            // 0번은 비활성 템플릿 자리라 +1 한다.
-            rectTransform.SetSiblingIndex(cell + 1);
+            // 유닛이 붙기 전까지는 격자 기본 자리에 둔다. 비어 있으면 어차피 안 보인다.
+            rectTransform.anchoredPosition = FieldLayout.GetDefaultPosition(cell);
         }
     }
 
@@ -119,8 +105,6 @@ public class UIInGameField : MonoBehaviour
         // "전투 중에는 배치를 못 바꾼다"가 별도 플래그 없이 성립한다.
         m_Roster = null;
         m_SpritePool = null;
-        m_DragFromCell = RunRoster.CELL_NONE;
-        m_DragToCell = RunRoster.CELL_NONE;
 
         if (m_Summary != null)
             m_Summary.SetText(string.Empty);
@@ -175,7 +159,74 @@ public class UIInGameField : MonoBehaviour
             }
 
             m_ListSlot[cell].SetUnit(m_SpritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade);
+
+            RectTransform rectTransform = m_ListSlot[cell].transform as RectTransform;
+            rectTransform.anchoredPosition = runUnit.FieldPosition;
         }
+
+        RefreshDrawOrder();
+    }
+
+    // 앞(아래)에 선 유닛이 뒤에 선 유닛을 가리도록 그리기 순서를 맞춘다.
+    // 격자였을 때는 칸 번호가 곧 깊이라 SetSiblingIndex(cell + 1) 로 끝났는데,
+    // 자유 배치에서는 **y 가 낮을수록 앞**이므로 좌표로 다시 정렬해야 한다.
+    private void RefreshDrawOrder()
+    {
+        m_ListDrawOrder.Clear();
+
+        for (int cell = 0; cell < m_ListSlot.Count && cell < RunRoster.FIELD_SIZE; ++cell)
+        {
+            if (m_Roster.GetFieldUnit(cell) == null)
+                continue;
+
+            m_ListDrawOrder.Add(m_ListSlot[cell]);
+        }
+
+        // y 내림차순 — 뒤(위)에 있는 것을 먼저 그린다. 같은 y 면 순서를 유지한다.
+        for (int i = 1; i < m_ListDrawOrder.Count; ++i)
+        {
+            UIInGameFieldSlot moving = m_ListDrawOrder[i];
+            float movingY = GetSlotY(moving);
+
+            int insert = i;
+            while (insert > 0 && GetSlotY(m_ListDrawOrder[insert - 1]) < movingY)
+            {
+                m_ListDrawOrder[insert] = m_ListDrawOrder[insert - 1];
+                insert -= 1;
+            }
+
+            m_ListDrawOrder[insert] = moving;
+        }
+
+        // 0번은 비활성 템플릿 자리라 +1 한다.
+        for (int i = 0; i < m_ListDrawOrder.Count; ++i)
+        {
+            m_ListDrawOrder[i].transform.SetSiblingIndex(i + 1);
+        }
+    }
+
+    private static float GetSlotY(UIInGameFieldSlot _slot)
+    {
+        RectTransform rectTransform = _slot.transform as RectTransform;
+        return (rectTransform != null) ? rectTransform.anchoredPosition.y : 0f;
+    }
+
+    // 드래그로 유닛을 옮긴다. 명부가 거부하면(영역 밖으로 잘린 뒤에도 다른 유닛과 너무 가까우면) false.
+    public bool TryMoveUnit(int _cell, Vector2 _position)
+    {
+        if (m_Roster == null)
+            return false;
+
+        RunUnit unit = m_Roster.GetFieldUnit(_cell);
+        if (unit == null)
+            return false;
+
+        if (m_Roster.SetFieldPosition(unit, _position) == false)
+            return false;
+
+        // 명부가 좌표를 잘랐을 수 있으므로 저장된 값으로 다시 그린다.
+        RefreshSlots();
+        return true;
     }
 
     // 연차 이동 중 9칸에 제자리걸음을 켜고 끈다. 빈 칸은 칸 쪽에서 걸러진다.
@@ -190,11 +241,11 @@ public class UIInGameField : MonoBehaviour
         }
     }
 
-    // ---------------- 드래그 배치 (2026-09-13) ----------------
+    // ---------------- 드래그 배치 ----------------
     //
-    // 칸은 자기가 끌렸다는 것만 알고, 어디에 놓였는지와 명부를 고치는 일은 여기가 맡는다.
-    // Unity의 호출 순서는 OnBeginDrag -> OnDrag... -> (대상 칸의)OnDrop -> OnEndDrag 이므로,
-    // 출발지와 목적지를 모아 두고 OnEndDrag 시점에 한 번만 처리한다.
+    // 2026-09-14 자유 배치로 바뀌면서 **중재가 단순해졌다.** 예전에는 어느 칸에 놓였는지
+    // 판정해야 해서 출발지·목적지를 모아 뒀는데(IDropHandler), 이제는 놓인 좌표를 그대로 쓴다.
+    // 칸은 자기 위치를 옮기고 끝에 TryMoveUnit 을 부르기만 한다.
 
     // 명부를 들고 있을 때만 배치를 바꿀 수 있다. 전투 시작 시 Clear()가 명부를 놓으므로
     // 전투 중 드래그는 별도 플래그 없이 막힌다.
@@ -203,42 +254,6 @@ public class UIInGameField : MonoBehaviour
         return (m_Roster != null);
     }
 
-    public void OnSlotDragBegin(int _cell)
-    {
-        m_DragFromCell = _cell;
-        m_DragToCell = RunRoster.CELL_NONE;
-    }
-
-    public void OnSlotDrop(int _cell)
-    {
-        m_DragToCell = _cell;
-    }
-
-    // 드래그가 끝났다. 유효한 목적지가 있으면 **명부에서** 자리를 맞바꾼다.
-    // 화면만 바꾸면 전투는 옛 배치로 싸운다 — 전장의 정본은 RunRoster다(2026-09-11).
-    public void OnSlotDragEnd()
-    {
-        int from = m_DragFromCell;
-        int to = m_DragToCell;
-
-        m_DragFromCell = RunRoster.CELL_NONE;
-        m_DragToCell = RunRoster.CELL_NONE;
-
-        if (m_Roster == null)
-            return;
-
-        // 칸 밖에 놓았으면 목적지가 없다. 제자리에 놓은 것도 바꿀 것이 없다.
-        if (from < 0 || to < 0)
-            return;
-
-        if (from >= to && from <= to)
-            return;
-
-        if (m_Roster.SwapField(from, to) == false)
-            return;
-
-        RefreshSlots();
-    }
 
     // 결과만 적으면 종족 규칙을 배울 수가 없다. 무엇이 몇 개 성립해 얼마가 됐는지 식으로 적는다.
     //

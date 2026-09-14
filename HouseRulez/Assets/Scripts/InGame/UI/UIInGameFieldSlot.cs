@@ -8,10 +8,13 @@ using UnityEngine.UI;
 // 아군 유닛 아트를 따로 만들지 않고 릴 심볼 스프라이트를 그대로 쓴다 —
 // "릴에 나온 말이 그대로 전장에 선다"는 GDD 컨셉과 맞고 아트 비용도 들지 않는다.
 //
-// 드래그는 이 칸이 시작하고, **놓을 자리 판정과 명부 수정은 UIInGameField가 한다.**
-// 칸 혼자서는 어디에 놓였는지 알 수 없고, 명부를 고칠 권한도 없어야 한다.
+// 드래그는 이 칸이 시작하고 **명부 수정은 UIInGameField가 한다.** 칸에 명부를 고칠 권한은 없다.
+//
+// 2026-09-14 자유 배치 — 예전에는 격자 칸끼리 교환이라 "어디에 놓였는지"를 판정해야 했지만
+// (그래서 IDropHandler 가 필요했다), 이제는 **놓인 좌표 그대로** 선다. 칸이 자기 위치를 옮기고
+// 끝에 그 좌표를 넘기면 된다.
 public class UIInGameFieldSlot : MonoBehaviour,
-    IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
+    IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     [SerializeField] private Image m_SymbolImage;
     [SerializeField] private TextMeshProUGUI m_GradeText;
@@ -31,6 +34,11 @@ public class UIInGameFieldSlot : MonoBehaviour,
 
     private RectTransform m_SymbolRect;
     private Vector2 m_SymbolHomePosition;
+
+    // 자유 배치에서는 **칸 자체가 움직인다.** 놓은 자리가 곧 유닛의 자리이기 때문이다.
+    // (격자 시절에는 심볼만 옮기고 끝에 되돌렸다 — 자리는 칸 번호가 정했으니까)
+    private RectTransform m_RectTransform;
+    private Vector2 m_DragHomePosition;
     private bool m_isDragging;
     private float m_CanvasScale = 1f;
 
@@ -68,7 +76,12 @@ public class UIInGameFieldSlot : MonoBehaviour,
 
         // 보이지 않지만 포인터는 받는다. alpha가 0이어도 raycastTarget이 켜져 있으면 잡힌다.
         m_RaycastImage.color = new Color(1f, 1f, 1f, 0f);
-        m_RaycastImage.raycastTarget = true;
+
+        // 유닛이 붙을 때 SetUnit 이 켠다. 빈 칸은 포인터를 받지 않는다.
+        m_RaycastImage.raycastTarget = false;
+
+        if (m_RectTransform == null)
+            m_RectTransform = transform as RectTransform;
 
         if (m_SymbolRect == null && m_SymbolImage != null)
         {
@@ -93,6 +106,9 @@ public class UIInGameFieldSlot : MonoBehaviour,
 
         if (m_GradeText != null)
             m_GradeText.gameObject.SetActive(false);
+
+        if (m_RaycastImage != null)
+            m_RaycastImage.raycastTarget = false;
     }
 
     public void SetUnit(Sprite _symbolSprite, int _grade)
@@ -102,6 +118,11 @@ public class UIInGameFieldSlot : MonoBehaviour,
             m_SymbolImage.sprite = _symbolSprite;
             m_SymbolImage.enabled = (_symbolSprite != null);
         }
+
+        // 유닛이 있을 때만 포인터를 받는다. 자유 배치에서는 빈 칸이 드롭 대상이 아니고,
+        // 켜 두면 보이지 않는 빈 칸이 유닛 위를 덮어 드래그를 가로챈다.
+        if (m_RaycastImage != null)
+            m_RaycastImage.raycastTarget = (_symbolSprite != null);
 
         if (m_GradeText != null)
         {
@@ -150,7 +171,7 @@ public class UIInGameFieldSlot : MonoBehaviour,
 
     public void OnBeginDrag(PointerEventData _eventData)
     {
-        if (m_Owner == null || m_SymbolRect == null)
+        if (m_Owner == null || m_RectTransform == null)
             return;
 
         // 전투 중이거나 명부가 없으면 배치를 바꿀 수 없다.
@@ -162,25 +183,21 @@ public class UIInGameFieldSlot : MonoBehaviour,
             return;
 
         // 걷기 트윈이 돌고 있으면 포인터 이동과 같은 값을 서로 덮어쓴다.
-        // 끄는 것이 먼저다 — 홈 위치를 읽기 전에 끊어야 까딱인 좌표가 홈으로 기록되지 않는다.
         SetWalking(false);
 
         m_isDragging = true;
-        m_SymbolHomePosition = m_SymbolRect.anchoredPosition;
+        m_DragHomePosition = m_RectTransform.anchoredPosition;
         m_CanvasScale = GetCanvasScale();
 
         SetSymbolAlpha(DRAG_ALPHA);
 
-        // 끌고 있는 칸이 포인터를 먹으면 그 아래 칸이 드롭을 받지 못한다.
+        // 끌고 있는 칸이 포인터를 먹으면 아래 칸의 판정이 흐려진다.
         m_RaycastImage.raycastTarget = false;
         m_SymbolImage.raycastTarget = false;
 
-        // 다른 칸 위로 올려 그린다. 안 올리면 앞 레인 칸에 가려진다(LayoutSlots가 앞 레인을 나중에 그린다).
-        // 끝낼 때 되돌려야 한다 — 안 되돌리면 뒤 레인이 앞 레인 위에 남는다(2026-09-13 QA 지적).
+        // 끄는 동안은 맨 위에 그린다. 놓은 뒤의 순서는 UIInGameField 가 y 로 다시 정한다.
         m_SiblingHomeIndex = transform.GetSiblingIndex();
         transform.SetAsLastSibling();
-
-        m_Owner.OnSlotDragBegin(m_Cell);
     }
 
     public void OnDrag(PointerEventData _eventData)
@@ -188,8 +205,8 @@ public class UIInGameFieldSlot : MonoBehaviour,
         if (m_isDragging == false)
             return;
 
-        // 부모(칸)는 그대로 두고 심볼만 움직인다 — 끝낼 때 anchoredPosition 하나로 되돌아온다.
-        m_SymbolRect.anchoredPosition += _eventData.delta / m_CanvasScale;
+        // **칸 자체를 옮긴다.** 놓은 자리가 곧 유닛의 자리다.
+        m_RectTransform.anchoredPosition += _eventData.delta / m_CanvasScale;
     }
 
     public void OnEndDrag(PointerEventData _eventData)
@@ -198,33 +215,31 @@ public class UIInGameFieldSlot : MonoBehaviour,
             return;
 
         m_isDragging = false;
-        RestoreSymbolTransform();
 
-        // 교환 성사 여부와 무관하게 여기서 마무리를 알린다.
-        // Unity는 OnDrop을 OnEndDrag보다 먼저 부르므로, 이 시점에 목적지가 이미 정해져 있다.
-        if (m_Owner != null)
-            m_Owner.OnSlotDragEnd();
-    }
+        SetSymbolAlpha(1f);
+        m_RaycastImage.raycastTarget = true;
 
-    // 다른 칸이 이 칸 위에 놓였다. 목적지만 알려주고 교환은 UIInGameField가 한다.
-    public void OnDrop(PointerEventData _eventData)
-    {
-        if (m_Owner == null)
-            return;
+        if (m_SymbolImage != null)
+            m_SymbolImage.raycastTarget = true;
 
-        m_Owner.OnSlotDrop(m_Cell);
+        // 명부에 저장한다. 거부되면(영역 밖이 아니라 다른 유닛과 너무 가까우면) 원래 자리로.
+        bool moved = (m_Owner != null)
+            && m_Owner.TryMoveUnit(m_Cell, m_RectTransform.anchoredPosition);
+
+        if (moved == false)
+        {
+            m_RectTransform.anchoredPosition = m_DragHomePosition;
+
+            if (m_SiblingHomeIndex > SIBLING_HOME_NONE)
+                transform.SetSiblingIndex(m_SiblingHomeIndex);
+        }
+
+        // 성공했으면 UIInGameField 가 RefreshSlots 에서 좌표와 그리기 순서를 다시 잡는다.
+        m_SiblingHomeIndex = SIBLING_HOME_NONE;
     }
 
     private void RestoreSymbolTransform()
     {
-        // 드래그로 올린 적이 있을 때만 되돌린다. 이 함수는 Clear()에서도 불리므로
-        // 무조건 SetSiblingIndex를 부르면 드래그하지 않은 칸의 순서를 망친다.
-        if (m_SiblingHomeIndex > SIBLING_HOME_NONE)
-        {
-            transform.SetSiblingIndex(m_SiblingHomeIndex);
-            m_SiblingHomeIndex = SIBLING_HOME_NONE;
-        }
-
         if (m_SymbolRect != null)
             m_SymbolRect.anchoredPosition = m_SymbolHomePosition;
 

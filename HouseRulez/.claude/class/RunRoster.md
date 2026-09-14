@@ -176,3 +176,41 @@ Play Mode의 전력 13.8은 5스핀 시점 값이라 6연차 비교 대상이 �
 
 `MoveBenchToField()` · `MoveFieldToBench()`는 **보관함 UI가 없어 여전히 호출부가 없다.**
 드래그는 이번에 전장 칸끼리(`SwapField`)만 붙었다.
+
+
+---
+
+## 2026-09-14 — 자유 배치 (`SwapField` -> `SetFieldPosition`)
+
+### 무엇이 바뀌었나
+
+**칸 번호가 자리를 정하던 것을 그만뒀다.** 이제 위치는 `RunUnit.FieldPosition`(Vector2)이고,
+`m_ArrayField[9]`의 인덱스는 **"몇 번째 슬롯인가"**일 뿐이다.
+
+| 전 | 후 |
+|---|---|
+| `SwapField(from, to)` — 두 칸 교환 | `SetFieldPosition(unit, position)` — 그 좌표에 선다 |
+| 자리 = 배열 인덱스 | 자리 = `unit.FieldPosition` |
+
+`m_ArrayField` 배열 구조는 **유지했다.** 21곳이 쓰고 있고 9기 상한·승급·전력 계산이 전부
+그 위에 서 있다. 인덱스의 의미만 "자리"에서 "슬롯 번호"로 바뀌었다.
+
+### ★ 승급은 좌표를 자연히 승계한다
+
+`Promote`가 **기존 개체를 재사용**하고 `survivor.Grade += 1`만 한다. 새 `RunUnit`을 만들지 않으므로
+`FieldPosition`이 그대로 남는다. 주석의 "승급체가 전장 자리를 잇는다"가 좌표에서도 성립한다.
+
+**새 객체를 만들었다면 승급한 유닛이 (0,0)으로 순간이동했을 것이다.**
+
+### 거부하되 밀지 않는다
+
+`SetFieldPosition`은 영역 밖이면 잘라 넣고(`FieldLayout.Clamp`), 다른 유닛과 `MIN_DISTANCE`(54)
+안이면 **false 를 돌려준다.**
+
+밀어내지 않는 이유 — 밀면 연쇄로 다른 유닛까지 움직여 **플레이어가 의도하지 않은 배치**가 만들어진다.
+못 놓는다는 것을 그 자리에서 알려주는 편이 예측 가능하다(UI 는 원위치로 되돌린다).
+
+### 자동 배치는 격자 기본 자리를 쓴다
+
+`FillEmptyFieldFromBench`가 보관함에서 꺼내 세울 때 `FieldLayout.GetDefaultPosition(cell)`을 넣는다.
+**드래그로 옮긴 유닛은 이 경로를 타지 않으므로 자기 좌표를 지킨다.**

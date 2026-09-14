@@ -102,3 +102,36 @@ Unity MCP 검증은 Codex가 수행했다(AGENT.MD 라우팅).
 - **보관함 UI** — 그래서 `RunRoster.MoveBenchToField()` · `MoveFieldToBench()` 는 호출부가 없다.
   이번에는 전장 칸끼리 교환만 붙였다
 - **드래그 고스트** — 원본 심볼을 직접 옮기는 방식이라 별도 오브젝트가 없다. 씬 작업이 필요하면 그때 분리
+
+
+---
+
+## 2026-09-14 — 자유 배치: 좌표가 정본, 그리기 순서는 y 로
+
+### 중재가 단순해졌다
+
+격자 시절에는 "어느 칸에 놓였나"를 판정해야 해서 출발지·목적지를 모아 두고
+`IDropHandler` 로 대상을 받았다. **자유 배치에서는 놓인 좌표를 그대로 쓰므로 그 과정이 사라졌다.**
+
+| 제거 | 추가 |
+|---|---|
+| `OnSlotDragBegin` · `OnSlotDrop` · `OnSlotDragEnd` | `TryMoveUnit(cell, position)` |
+| `m_DragFromCell` · `m_DragToCell` | `RefreshDrawOrder()` |
+
+### ★ 그리기 순서를 y 로 다시 정한다
+
+격자였을 때는 칸 번호가 곧 깊이라 `SetSiblingIndex(cell + 1)` 로 끝났다.
+**자유 배치에서는 y 가 낮을수록 앞**이므로 좌표로 정렬해야 한다 — 안 그러면 뒤에 선 유닛이
+앞 유닛을 덮는다.
+
+y 내림차순(뒤에 있는 것을 먼저 그린다)으로 삽입 정렬한다. **같은 y 면 순서를 유지**하도록
+안정 정렬을 썼다 — 불안정 정렬이면 같은 높이의 유닛들이 매 갱신마다 앞뒤로 바뀐다
+(`ArrangeFieldByGrade` 에서 겪은 것과 같은 함정).
+
+### 좌표 규칙은 FieldLayout 이 소유한다
+
+`COLUMN_SPACING` · `LANE_STEP_Y` · `LANE_STEP_X` 를 여기서 지웠다.
+같은 상수를 `UIInGameBattle` 도 갖고 있어 **소유자가 둘**이었다.
+
+`LayoutSlots` 는 이제 크기·기준점만 잡고 **자리를 정하지 않는다.** 위치의 정본은 명부이고
+`RefreshSlots` 가 `runUnit.FieldPosition` 을 읽어 놓는다.

@@ -27,9 +27,11 @@ public class UIInGameBattle : MonoBehaviour
     [SerializeField] private float m_EnemySpawnX = 900f;
     [SerializeField] private float m_HomeLineX = -60f;
 
-    private const int LANE_COUNT = 3;
-    private const float LANE_STEP_Y = 52f;
-    private const float LANE_STEP_X = 30f;
+    // 아군 좌표는 FieldLayout 이 소유한다(명부에 저장된다). 여기 상수는 **적 생성 전용**이다 —
+    // 적은 등장선에서 레인별로 밀어 넣을 뿐 자리를 저장하지 않는다.
+    private const int LANE_COUNT = FieldLayout.COLUMN_COUNT;
+    private const float LANE_STEP_Y = FieldLayout.LANE_STEP_Y;
+    private const float LANE_STEP_X = FieldLayout.LANE_STEP_X;
 
     private List<BattleUnit> m_ListUnit = new List<BattleUnit>();
 
@@ -165,13 +167,19 @@ public class UIInGameBattle : MonoBehaviour
 
             UnitBattleStat stat = unitTable.GetBattleStat(_houseKey, runUnit.SymbolType, runUnit.Grade);
 
+            // 자리는 **명부가 들고 있는 좌표**다(2026-09-14 자유 배치).
+            // 예전에는 칸 번호에서 매번 다시 계산했는데, 그러면 플레이어가 옮긴 위치를 표현할 수 없다.
+            // m_AllyStartX 는 "아군 진영이 화면 어디서 시작하나"이고 FieldPosition 은 그 안의 상대 위치다.
+            Vector2 position = runUnit.FieldPosition + new Vector2(m_AllyStartX, 0f);
+
+            // lane 은 적 생성과 시그니처를 맞추기 위해 넘긴다. 전투 로직은 이 값을 읽지 않고
+            // FindTarget 도 좌표만 본다 — 자유 배치가 성립하는 이유가 그것이다.
             int lane = cell / LANE_COUNT;
-            int column = cell % LANE_COUNT;
 
             BattleUnit unit = Instantiate(m_UnitTemplate, m_UnitRoot);
             unit.Setup(eBattleSide.Ally, lane, _spritePool[runUnit.SymbolType].NormalSprite, runUnit.Grade,
                 stat.Hp, stat.Atk, stat.AtkSpeed, stat.Range, stat.MoveSpeed,
-                GetLanePosition(lane, m_AllyStartX + column * 108f));
+                position);
             m_ListUnit.Add(unit);
         }
     }

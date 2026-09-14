@@ -301,25 +301,61 @@ public class RunRoster
         return true;
     }
 
-    // 전장 두 칸을 맞바꾼다. 한쪽이 비어 있어도 성립한다(빈 칸으로 옮기는 것과 같다).
-    public bool SwapField(int _cellFrom, int _cellTo)
+    // 전장 유닛을 원하는 자리로 옮긴다. 자유 배치의 진입점이다(2026-09-14).
+    //
+    // 칸끼리 맞바꾸던 SwapField 를 대체했다. 자리가 격자에 묶여 있지 않으므로
+    // "교환"이라는 개념 자체가 없어졌다 — 그냥 그 좌표에 선다.
+    //
+    // 영역 밖은 잘라 넣고, 다른 유닛과 너무 가까우면 **거부한다**(false).
+    // 밀어내지 않는 이유 — 밀면 연쇄로 다른 유닛까지 움직여 플레이어가 의도하지 않은
+    // 배치가 만들어진다. 못 놓는다는 것을 그 자리에서 알려주는 편이 예측 가능하다.
+    public bool SetFieldPosition(RunUnit _unit, Vector2 _position)
     {
-        if (IsCellValid(_cellFrom) == false || IsCellValid(_cellTo) == false)
+        if (_unit == null)
             return false;
 
-        if (_cellFrom >= _cellTo && _cellFrom <= _cellTo)
+        int cell = FindFieldCell(_unit);
+        if (cell < 0)
             return false;
 
-        RunUnit from = m_ArrayField[_cellFrom];
-        RunUnit to = m_ArrayField[_cellTo];
+        Vector2 clamped = FieldLayout.Clamp(_position);
 
-        if (from == null && to == null)
+        if (IsPositionFree(clamped, cell) == false)
             return false;
 
-        m_ArrayField[_cellFrom] = to;
-        m_ArrayField[_cellTo] = from;
+        _unit.FieldPosition = clamped;
+        return true;
+    }
+
+    // 그 자리에 다른 유닛이 너무 가까이 있지 않은가. _ignoreCell 은 자기 자신이다.
+    public bool IsPositionFree(Vector2 _position, int _ignoreCell)
+    {
+        float minSqr = FieldLayout.MIN_DISTANCE * FieldLayout.MIN_DISTANCE;
+
+        for (int cell = 0; cell < FIELD_SIZE; ++cell)
+        {
+            if (cell >= _ignoreCell && cell <= _ignoreCell)
+                continue;
+
+            if (m_ArrayField[cell] == null)
+                continue;
+
+            if ((m_ArrayField[cell].FieldPosition - _position).sqrMagnitude < minSqr)
+                return false;
+        }
 
         return true;
+    }
+
+    public int FindFieldCell(RunUnit _unit)
+    {
+        for (int cell = 0; cell < FIELD_SIZE; ++cell)
+        {
+            if (ReferenceEquals(m_ArrayField[cell], _unit) == true)
+                return cell;
+        }
+
+        return CELL_NONE;
     }
 
     // 전장에 선 유닛의 전력 합. 적 전력과 같은 눈금(1성 = 1.0)이라 밸런스 비교에 그대로 쓴다.
@@ -369,7 +405,13 @@ public class RunRoster
             if (benchIndex < 0)
                 break;
 
-            m_ArrayField[cell] = m_ListBench[benchIndex];
+            RunUnit unit = m_ListBench[benchIndex];
+
+            // 자동으로 세운 유닛은 격자 기본 자리에 선다.
+            // 플레이어가 드래그로 옮긴 유닛은 이 경로를 타지 않으므로 자기 좌표를 지킨다.
+            unit.FieldPosition = FieldLayout.GetDefaultPosition(cell);
+
+            m_ArrayField[cell] = unit;
             m_ListBench.RemoveAt(benchIndex);
             filled += 1;
         }
