@@ -422,14 +422,30 @@ Unity MCP가 **세션 시작 때 한 번만** 붙는 탓에 2026-09-11~13에 QA�
 **QA가 잡은 결함 1건을 고쳤다** — `SetAsLastSibling()`을 되돌리지 않아 연속 드래그 뒤
 그리기 순서가 흐트러졌다(뒤 레인이 앞 레인 위에 그려짐). `m_SiblingHomeIndex`로 기억·복원.
 
-### ⬜ 사람이 확인해야 하는 것 — 실제 포인터 입력
+### 실제 포인터 입력 — 검증 완료 (2026-09-14)
 
-QA는 **MCP 한계로 OS 포인터 raycast hit-test를 건너뛰고** `PointerEventData` 핸들러와
-중재 API를 직접 호출했다. 즉 **핸들러 로직·명부 반영은 검증됐지만, 실제 마우스로 끌었을 때
-포인터가 잡히는지는 미검증이다.**
+**통과했다.** 보고서 `D:/Orca/reports/drag-pointer-qa-2026-09-14.md`.
 
-칸에 `AddComponent<Image>()`(alpha 0)로 붙인 투명 이미지가 입력을 받아야 한다.
-**안 잡히면** 씬의 `SlotTemplate`에 Image를 넣는 씬 작업(Codex 몫)으로 넘어간다.
+| 확인 | 결과 |
+|---|---|
+| `EventSystem.RaycastAll` 9칸 | **9/9** 모두 자기 슬롯 또는 자기 Symbol 자식이 top hit |
+| 유닛이 있는 칸 | Symbol 이 top, 2 hits |
+| **빈 칸 8개** | **alpha 0 `SlotTemplate(Clone)` 단독 hit** — 코드로 붙인 투명 Image 가 실제로 포인터를 받는다 |
+| 전 칸 | 런타임 `Image` 존재, `raycastTarget = true` |
+| 가상 마우스 전체 흐름 | `cell0 ↔ 1` 실제 `RunRoster` 교환, 드래그 중 심볼 이동, 종료 복원 |
+| 칸 밖 드롭 | 명부 불변 · 원위치 복원 |
+
+가상 `Mouse` 디바이스는 `finally`에서 `RemoveDevice`, `added=false` 확인.
+
+### ★ 이 항목이 오래 열려 있었던 이유는 내 오판이었다
+
+드래그 QA 보고는 **"MCP 한계로 생략하고 공개 핸들러 경로를 호출했다"**고 정확히 적혀 있었다.
+그 통로로 안 된다는 뜻인데 **내가 "사람만 할 수 있다"로 옮겨 적었다.** 실제로는 두 경로가 있었다 —
+`EventSystem.RaycastAll` 직접 호출과 Input System 가상 디바이스 주입.
+
+그 문장 하나 때문에 **커밋 7개가 며칠간 미병합으로 묶였다.**
+교훈은 메모리 `tool-limit-is-not-a-dead-end`에 올렸다.
+
 
 ### ⬜ 이번에 일부러 안 한 것
 

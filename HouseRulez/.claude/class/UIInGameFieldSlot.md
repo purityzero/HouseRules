@@ -144,3 +144,17 @@ transform.SetAsLastSibling();
 되돌리므로, 그 뒤에 `m_SymbolHomePosition`을 읽어야 **까딱인 중간 좌표가 홈으로 기록되지 않는다.**
 
 빈 칸과 드래그 중인 칸은 걷지 않는다(`m_SymbolImage.enabled` · `m_isDragging` 확인).
+
+
+### 2026-09-14 — 투명 Image 의 raycast 실측 통과
+
+`AddComponent<Image>()`(alpha 0)로 코드가 붙인 이미지가 **실제로 포인터를 받는지** 확인했다.
+
+`EventSystem.RaycastAll` 을 9칸의 스크린 좌표로 각각 호출한 결과 **9/9** 가 자기 슬롯 또는
+자기 `Symbol` 자식을 top hit 으로 돌려줬다. 특히 **빈 칸 8개에서 alpha 0 인 칸 자신이 단독 hit** 이다 —
+이것이 빈 칸을 드롭 대상으로 만드는 근거이고, 심볼 이미지로는 대신할 수 없는 이유다.
+
+Input System 가상 마우스(`InputSystem.QueueStateEvent` + `InputSystemUIInputModule`)로
+전체 흐름도 확인했다: `cell0 ↔ 1` 실제 교환, 드래그 중 심볼 이동, 종료 복원, 칸 밖 드롭 시 명부 불변.
+
+**alpha 가 0 이어도 `raycastTarget` 이 켜져 있으면 포인터를 받는다**는 전제가 실측으로 확인됐다.
