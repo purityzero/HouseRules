@@ -135,3 +135,48 @@ y 내림차순(뒤에 있는 것을 먼저 그린다)으로 삽입 정렬한다.
 
 `LayoutSlots` 는 이제 크기·기준점만 잡고 **자리를 정하지 않는다.** 위치의 정본은 명부이고
 `RefreshSlots` 가 `runUnit.FieldPosition` 을 읽어 놓는다.
+
+## 2026-09-14-1 — 배치 가능 영역 표시
+
+### 개요
+드래그하는 동안 **어디까지 둘 수 있는지**를 화면에 보여준다. 그전에는 놓아봐야 알았고,
+튕겨 돌아와도 왜 거부됐는지 알 길이 없었다(2026-09-14 사용자 요청).
+
+혼란의 원인이 둘이었다 —
+- 영역 밖으로 끌면 `FieldLayout.Clamp`가 조용히 잘라서 **엉뚱한 자리에 붙는다**
+- 영역 안인데도 다른 유닛과 54px 미만이면 `IsPositionFree`가 거부해 **원래 자리로 튕긴다**
+
+### 추가한 것
+
+| 멤버 | 하는 일 |
+|---|---|
+| `ShowPlacementArea(bool)` | 드래그 중에만 영역을 켠다. 첫 호출에 만들고 이후 재사용 |
+| `IsPlacementValid(int, Vector2)` | 그 자리에 놓을 수 있는가. 영역 밖 + 간격 위반을 함께 본다 |
+| `CreatePlacementArea()` | 영역 `Image`를 런타임에 만든다 |
+| `m_PlacementArea` | 만든 `RectTransform`. 직렬화하지 않는다 |
+| `PLACEMENT_AREA_COLOR` | `(1,1,1,0.12)` — 배경을 가리지 않을 만큼만 |
+
+### 씬·프리팹을 고치지 않는다
+영역을 런타임에 만든다. `UIInGameFieldSlot.Setup`이 이미 `AddComponent<Image>()`를 쓰는 선례가 있고,
+무엇보다 **크기가 `FieldLayout` 상수에서 파생**되므로 인스펙터 값과 코드가 갈릴 여지가 없다.
+직렬화 필드로 뒀다면 9칸이 0으로 겹쳤던 사고와 같은 종류의 위험을 다시 들이는 셈이다.
+
+### 좌표 — 영역은 상수 범위보다 칸 한 변만큼 크다
+칸의 `pivot`이 `(0,0)`이라 `anchoredPosition`은 **좌하단 모서리**다.
+`FieldLayout.AREA_*`는 그 모서리의 허용 범위이므로, 유닛이 실제로 덮는 영역은
+`(0,0) ~ (276+96, 104+96)` = `(0,0) ~ (372,200)`이다.
+
+```csharp
+areaRect.sizeDelta = new Vector2(
+    FieldLayout.AREA_MAX_X - FieldLayout.AREA_MIN_X + SLOT_SIZE,
+    FieldLayout.AREA_MAX_Y - FieldLayout.AREA_MIN_Y + SLOT_SIZE);
+```
+
+### 영역 밖도 무효로 친다
+실제 거부는 간격 위반뿐이고 영역 밖은 `SetFieldPosition`이 잘라서 받는다.
+그래도 **끄는 사람에게는 "의도한 자리에 못 놓는다"는 점이 같아서** 함께 빨강으로 알린다.
+잘려서 엉뚱한 데 붙는 것을 놓기 전에 알 수 있다.
+
+### 매 프레임 도는 경로다
+`IsPlacementValid`는 드래그 중 매 프레임 불린다. 할당하지 않으며, 명부 쪽 비교는
+유닛 9기 기준 최대 8회다. `raycastTarget = false`로 두어 포인터 판정도 가로채지 않는다.

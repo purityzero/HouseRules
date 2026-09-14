@@ -37,6 +37,14 @@ public class UIInGameField : MonoBehaviour
     // 그리기 순서 정렬용 버퍼. 매번 새로 만들면 배치를 옮길 때마다 할당이 생긴다.
     private List<UIInGameFieldSlot> m_ListDrawOrder = new List<UIInGameFieldSlot>();
 
+    // 드래그 중에만 켜지는 배치 가능 영역. **직렬화하지 않고 런타임에 만든다** —
+    // 씬·프리팹을 고치지 않아도 되고, 크기가 FieldLayout 의 상수에서 파생되므로
+    // 인스펙터 값과 코드가 갈릴 여지가 없다(9칸이 0으로 겹쳤던 사고와 같은 이유다).
+    private RectTransform m_PlacementArea;
+
+    // 영역 바탕. 전장 배경을 가리지 않을 만큼만 옅게 깐다.
+    private static readonly Color PLACEMENT_AREA_COLOR = new Color(1f, 1f, 1f, 0.12f);
+
     public void Apply()
     {
         BuildSlots();
@@ -212,6 +220,74 @@ public class UIInGameField : MonoBehaviour
     }
 
     // 드래그로 유닛을 옮긴다. 명부가 거부하면(영역 밖으로 잘린 뒤에도 다른 유닛과 너무 가까우면) false.
+    // 드래그 중에만 배치 가능 영역을 보여준다.
+    public void ShowPlacementArea(bool _isVisible)
+    {
+        if (_isVisible == false)
+        {
+            if (m_PlacementArea != null)
+                m_PlacementArea.gameObject.SetActive(false);
+
+            return;
+        }
+
+        if (m_PlacementArea == null)
+            m_PlacementArea = CreatePlacementArea();
+
+        if (m_PlacementArea == null)
+            return;
+
+        m_PlacementArea.gameObject.SetActive(true);
+
+        // 칸이 나중에 만들어져도 늘 맨 뒤에 깔린다.
+        m_PlacementArea.SetAsFirstSibling();
+    }
+
+    // 그 자리에 놓을 수 있는가. 드래그 중 매 프레임 물어보는 경로라 할당하지 않는다.
+    //
+    // **영역 밖과 간격 위반을 함께 본다.** 실제 거부는 간격 위반뿐이고 영역 밖은
+    // SetFieldPosition 이 잘라서 받지만, 끄는 사람 입장에선 "의도한 자리에 못 놓는다"는
+    // 점이 같다. 잘려서 엉뚱한 곳에 붙는 것을 미리 알려주는 편이 낫다.
+    public bool IsPlacementValid(int _cell, Vector2 _position)
+    {
+        if (m_Roster == null)
+            return false;
+
+        if (FieldLayout.IsInside(_position) == false)
+            return false;
+
+        return m_Roster.IsPositionFree(_position, _cell);
+    }
+
+    private RectTransform CreatePlacementArea()
+    {
+        if (m_SlotRoot == null)
+            return null;
+
+        GameObject areaObject = new GameObject("PlacementArea", typeof(RectTransform));
+        areaObject.transform.SetParent(m_SlotRoot, false);
+
+        UnityEngine.UI.Image areaImage = areaObject.AddComponent<UnityEngine.UI.Image>();
+        areaImage.color = PLACEMENT_AREA_COLOR;
+
+        // 끌고 있는 칸의 포인터 판정을 가로채면 안 된다.
+        areaImage.raycastTarget = false;
+
+        RectTransform areaRect = areaObject.transform as RectTransform;
+        areaRect.anchorMin = Vector2.zero;
+        areaRect.anchorMax = Vector2.zero;
+        areaRect.pivot = Vector2.zero;
+
+        // 칸의 pivot 이 (0,0)이라 anchoredPosition 은 **좌하단 모서리**다.
+        // 그래서 영역이 실제로 덮는 범위는 모서리 허용 범위 + 칸 한 변이다.
+        areaRect.anchoredPosition = new Vector2(FieldLayout.AREA_MIN_X, FieldLayout.AREA_MIN_Y);
+        areaRect.sizeDelta = new Vector2(
+            FieldLayout.AREA_MAX_X - FieldLayout.AREA_MIN_X + SLOT_SIZE,
+            FieldLayout.AREA_MAX_Y - FieldLayout.AREA_MIN_Y + SLOT_SIZE);
+
+        return areaRect;
+    }
+
     public bool TryMoveUnit(int _cell, Vector2 _position)
     {
         if (m_Roster == null)

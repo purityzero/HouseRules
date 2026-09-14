@@ -190,3 +190,77 @@ Input System 가상 마우스(`InputSystem.QueueStateEvent` + `InputSystemUIInpu
 저장된(잘린) 좌표로 다시 그리므로 여기서 좌표를 손대지 않는다.
 
 sibling 도 실패했을 때만 되돌린다 — 성공하면 `RefreshDrawOrder` 가 y 로 다시 정한다.
+
+## 2026-09-14-1 — 드래그 중 유효·무효 색 피드백
+
+### 개요
+끄는 동안 **지금 자리에 놓을 수 있는지**를 색으로 알린다. 놓아봐야 아는 것이 아니라
+끌면서 알 수 있어야 한다(2026-09-14 사용자 요청). 영역 표시는 [[UIInGameField]]가 맡고,
+칸은 자기 색만 바꾼다.
+
+### 추가·변경
+
+| 변경 | 전 | 후 |
+|---|---|---|
+| 색 제어 | `SetSymbolAlpha(float)` | `SetSymbolColor(Color, float)` |
+| `OnBeginDrag` | 알파만 낮춤 | 영역 켜기 + `RefreshDragTint()` |
+| `OnDrag` | 위치만 이동 | 이동 후 `RefreshDragTint()` |
+| `OnEndDrag` | 알파 복원 | 흰색 복원 + 영역 끄기 |
+| `RestoreSymbolTransform` | 알파 복원 | 흰색 복원 + 영역 끄기 |
+
+```csharp
+private static readonly Color DRAG_TINT_VALID = new Color(0.55f, 1f, 0.55f);
+private static readonly Color DRAG_TINT_INVALID = new Color(1f, 0.45f, 0.45f);
+```
+
+### 왜 `SetSymbolAlpha`를 `SetSymbolColor`로 바꿨나
+색조와 투명도를 **따로 다루면 한쪽만 복원하는 실수가 난다.** 드래그가 끝날 때 알파는
+1로 되돌렸는데 색조가 빨강으로 남으면 유닛이 계속 붉게 보인다. 하나의 메서드로 합쳐
+둘이 항상 같이 설정되게 했다. 호출처 3곳을 함께 고쳤다.
+
+### `RestoreSymbolTransform`에도 영역 끄기를 넣었다
+`Clear()`가 이 메서드를 부른다 — **드래그 도중 전투가 시작되면 `OnEndDrag`가 오지 않는다.**
+`OnEndDrag`에만 넣으면 그 경로에서 영역이 켜진 채 남는다.
+원래 주석("드래그 중에 전투가 시작되는 등으로 칸이 비워질 수 있다")이 이미 그 위험을
+가리키고 있었고, 새로 추가한 표시물도 같은 취급이 필요했다.
+
+### 비용
+`RefreshDragTint`는 매 프레임 불리지만 할당이 없고, 판정은 [[UIInGameField]]의
+`IsPlacementValid`에 위임한다(유닛 9기 기준 최대 8회 비교).
+
+## 2026-09-14-2 — QA 반영: `m_isDragging` 누수와 색 채도
+
+### `m_isDragging` 이 영영 true 로 남던 누수 (QA 발견)
+
+`m_isDragging` 을 false 로 되돌리는 곳이 **`OnEndDrag` 하나뿐**이었다.
+드래그 도중 전투가 시작되면 `Clear()` 만 불리고 `OnEndDrag` 는 오지 않는다 —
+그러면 플래그가 남아 `SetWalking` 의 가드에 영영 걸리고, **그 칸만 연차 이동에서 걷지 않는다.**
+스스로 풀리는 경로가 없어서 그 런 내내 지속된다.
+
+```csharp
+// SetWalking 안의 가드 — 이것 때문에 누수가 증상으로 드러난다
+if (m_isDragging == true)
+    return;
+```
+
+`RestoreSymbolTransform()` 에서 `m_isDragging = false` 와 `m_SiblingHomeIndex` 초기화를 함께 한다.
+
+**영역 표시를 넣기 전부터 있던 버그다.** 다만 같은 메서드를 이번에 수정했고
+"드래그 중 전투 시작" 경로를 명시적으로 다뤘으면서도 못 본 것이라 함께 고쳤다.
+
+위치와 sibling 은 별도 조치가 필요 없다 — `UIInGameField.RefreshSlots()` 가 `Clear` 뒤에
+좌표를 다시 잡고 `RefreshDrawOrder()` 가 y 로 순서를 다시 정한다.
+
+⚠️ 이 항목은 `UIInGameField.Clear()` 직접 호출로 검증했고 **프로덕션 `OnBattleStart`
+전체 경로는 아직 타지 않았다.**
+
+### 색 채도를 올렸다
+
+| | 전 | 후 |
+|---|---|---|
+| 유효 | `(0.55, 1, 0.55)` | `(0.3, 1, 0.3)` |
+| 무효 | `(1, 0.45, 0.45)` | `(1, 0.3, 0.3)` |
+
+QA 소견이 "구분은 되지만 특히 초록이 꽤 옅어 즉시성이 약하다"였다.
+`DRAG_ALPHA` 0.45 를 올리는 대신 채도로 해결했다 — 알파는 "들어올렸다"를 나타내는 표현이라
+그쪽을 건드리면 원래 의도가 약해진다.

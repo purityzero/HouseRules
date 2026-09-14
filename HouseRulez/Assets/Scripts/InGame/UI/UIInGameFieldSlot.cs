@@ -25,6 +25,15 @@ public class UIInGameFieldSlot : MonoBehaviour,
     // 드래그 중 원본을 흐리게 해 "들어올렸다"를 보여준다.
     private const float DRAG_ALPHA = 0.45f;
 
+    // 드래그 중 지금 자리에 놓을 수 있는지를 색으로 알린다.
+    // 놓아봐야 아는 것이 아니라 끌면서 알 수 있어야 한다(2026-09-14 사용자 요청).
+    //
+    // **채도를 높게 잡는다.** DRAG_ALPHA 가 0.45 라 옅은 색은 화면에서 거의 안 읽힌다
+    // (2026-09-14 QA: "구분은 되지만 특히 초록이 꽤 옅어 즉시성이 약하다").
+    // 알파를 올리는 대신 채도로 해결한 것은 "들어올렸다"는 반투명 표현을 지키기 위해서다.
+    private static readonly Color DRAG_TINT_VALID = new Color(0.3f, 1f, 0.3f);
+    private static readonly Color DRAG_TINT_INVALID = new Color(1f, 0.3f, 0.3f);
+
     private UIInGameField m_Owner;
     private int m_Cell = RunRoster.CELL_NONE;
 
@@ -189,7 +198,11 @@ public class UIInGameFieldSlot : MonoBehaviour,
         m_DragHomePosition = m_RectTransform.anchoredPosition;
         m_CanvasScale = GetCanvasScale();
 
-        SetSymbolAlpha(DRAG_ALPHA);
+        SetSymbolColor(DRAG_TINT_VALID, DRAG_ALPHA);
+
+        // 어디까지 둘 수 있는지 끄는 동안 보여준다.
+        m_Owner.ShowPlacementArea(true);
+        RefreshDragTint();
 
         // 끌고 있는 칸이 포인터를 먹으면 아래 칸의 판정이 흐려진다.
         m_RaycastImage.raycastTarget = false;
@@ -207,6 +220,20 @@ public class UIInGameFieldSlot : MonoBehaviour,
 
         // **칸 자체를 옮긴다.** 놓은 자리가 곧 유닛의 자리다.
         m_RectTransform.anchoredPosition += _eventData.delta / m_CanvasScale;
+
+        RefreshDragTint();
+    }
+
+    // 지금 자리에 놓을 수 있는지를 색으로 알린다. 매 프레임 도는 경로라 할당하지 않는다
+    // (유닛 9기라 명부 쪽 비교는 최대 8회다).
+    private void RefreshDragTint()
+    {
+        if (m_Owner == null || m_RectTransform == null)
+            return;
+
+        bool isValid = m_Owner.IsPlacementValid(m_Cell, m_RectTransform.anchoredPosition);
+
+        SetSymbolColor((isValid == true) ? DRAG_TINT_VALID : DRAG_TINT_INVALID, DRAG_ALPHA);
     }
 
     public void OnEndDrag(PointerEventData _eventData)
@@ -216,7 +243,11 @@ public class UIInGameFieldSlot : MonoBehaviour,
 
         m_isDragging = false;
 
-        SetSymbolAlpha(1f);
+        SetSymbolColor(Color.white, 1f);
+
+        if (m_Owner != null)
+            m_Owner.ShowPlacementArea(false);
+
         m_RaycastImage.raycastTarget = true;
 
         if (m_SymbolImage != null)
@@ -240,10 +271,22 @@ public class UIInGameFieldSlot : MonoBehaviour,
 
     private void RestoreSymbolTransform()
     {
+        // **드래그 상태를 여기서 끊는다.** Clear 로도 들어오는데, 드래그 도중 전투가 시작되면
+        // OnEndDrag 가 오지 않아 m_isDragging 이 true 로 남는다. 그러면 SetWalking 의 가드에
+        // 영영 걸려 **그 칸만 연차 이동에서 걷지 않는다** — 다시 false 가 되는 경로가
+        // OnEndDrag 하나뿐이라 스스로 풀리지 않는다.
+        // (2026-09-14 QA 발견. 영역 표시를 넣기 전부터 있던 누수인데 같은 경로라 함께 고쳤다)
+        m_isDragging = false;
+        m_SiblingHomeIndex = SIBLING_HOME_NONE;
+
         if (m_SymbolRect != null)
             m_SymbolRect.anchoredPosition = m_SymbolHomePosition;
 
-        SetSymbolAlpha(1f);
+        SetSymbolColor(Color.white, 1f);
+
+        // 같은 이유로 영역도 여기서 끈다. 안 그러면 켜진 채 남는다.
+        if (m_Owner != null)
+            m_Owner.ShowPlacementArea(false);
 
         if (m_RaycastImage != null)
             m_RaycastImage.raycastTarget = true;
@@ -252,14 +295,14 @@ public class UIInGameFieldSlot : MonoBehaviour,
             m_SymbolImage.raycastTarget = true;
     }
 
-    private void SetSymbolAlpha(float _alpha)
+    // 색조와 투명도를 함께 다룬다. 드래그 피드백이 붙으면서 알파만으로는 모자라졌고,
+    // 둘을 따로 쓰면 한쪽만 복원하는 실수가 난다.
+    private void SetSymbolColor(Color _tint, float _alpha)
     {
         if (m_SymbolImage == null)
             return;
 
-        Color color = m_SymbolImage.color;
-        color.a = _alpha;
-        m_SymbolImage.color = color;
+        m_SymbolImage.color = new Color(_tint.r, _tint.g, _tint.b, _alpha);
     }
 
     // 캔버스가 배율을 쓰면 포인터 delta와 anchoredPosition의 눈금이 다르다.

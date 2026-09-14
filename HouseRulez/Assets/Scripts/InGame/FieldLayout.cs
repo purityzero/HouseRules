@@ -62,6 +62,21 @@ public static class FieldLayout
             laneFromFront * LANE_STEP_Y);
     }
 
+    // 그 자리가 영역 안인가.
+    //
+    // Clamp 한 값과 원본을 비교하는 방식은 쓰지 않는다 — 실수 동등비교라 경계에서 흔들린다
+    // (CODE.MD 「숫자 비교」). 범위 비교로 직접 판정한다.
+    public static bool IsInside(Vector2 _position)
+    {
+        if (_position.x < AREA_MIN_X || _position.x > AREA_MAX_X)
+            return false;
+
+        if (_position.y < AREA_MIN_Y || _position.y > AREA_MAX_Y)
+            return false;
+
+        return true;
+    }
+
     // 영역 밖으로 나가지 못하게 자른다.
     public static Vector2 Clamp(Vector2 _position)
     {
