@@ -180,3 +180,15 @@ areaRect.sizeDelta = new Vector2(
 ### 매 프레임 도는 경로다
 `IsPlacementValid`는 드래그 중 매 프레임 불린다. 할당하지 않으며, 명부 쪽 비교는
 유닛 9기 기준 최대 8회다. `raycastTarget = false`로 두어 포인터 판정도 가로채지 않는다.
+
+## 2026-09-14-2 — 요약 패널에 재료를 넘긴다
+
+`BuildSummaryText()` 를 [[UIInGameSummary]] 로 옮겼다. 패널이 탭 셋(결과·족보·유닛)을
+보여주게 되면서 **보여주는 쪽이 셋을 다 만드는** 편이 자연스러워졌다.
+
+```csharp
+m_Summary.SetText(BuildSummaryText(_result));   // 전
+m_Summary.Apply(_result, _roster, _houseKey);   // 후
+```
+
+`Show()` 가 `_houseKey` 를 받는 이유가 둘이 됐다 — 고유 유닛 스프라이트 찾기와 족보 조회.

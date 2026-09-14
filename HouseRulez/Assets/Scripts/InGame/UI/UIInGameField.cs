@@ -147,8 +147,10 @@ public class UIInGameField : MonoBehaviour
 
         RefreshSlots();
 
-        if (m_Summary != null && _result != null)
-            m_Summary.SetText(BuildSummaryText(_result));
+        // 요약 패널은 이제 탭 셋을 보여준다 — 결과·족보·유닛.
+        // 글을 만드는 것은 저쪽이 하고, 여기서는 재료만 넘긴다.
+        if (m_Summary != null)
+            m_Summary.Apply(_result, _roster, _houseKey);
     }
 
     // 칸만 다시 그린다. **판정 요약은 건드리지 않는다** —
@@ -343,21 +345,4 @@ public class UIInGameField : MonoBehaviour
     //   전력 11.4  →  소환 9기
     //
     // "전력 1.9인데 왜 2기?"(반올림)도 마지막 줄에서 함께 풀린다.
-    private static string BuildSummaryText(JudgeResult _result)
-    {
-        System.Text.StringBuilder builder = new System.Text.StringBuilder();
-        builder.Append(_result.PatternName);
-
-        for (int i = 0; i < _result.ListTerm.Count; ++i)
-        {
-            JudgeTerm term = _result.ListTerm[i];
-            builder.Append(System.Environment.NewLine);
-            builder.Append($"{term.Label} {term.Value:0.##} × {term.Coef:0.##} = {term.total:0.##}");
-        }
-
-        builder.Append(System.Environment.NewLine);
-        builder.Append($"전력 {_result.Power:F1}  →  소환 {_result.summonCount}기");
-
-        return builder.ToString();
-    }
 }
