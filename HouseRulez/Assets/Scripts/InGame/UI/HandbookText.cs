@@ -23,6 +23,10 @@ public static class HandbookText
     private const string NAME_SUFFIX = "Name";
     private const string PATTERN_PREFIX = "Pattern";
 
+    // 슬롯 심볼 수와 섯다 월 수. 배당표·족보표를 도는 범위다.
+    private const int SLOT_SYMBOL_COUNT = 6;
+    private const int SUTDA_MONTH_MAX = 12;
+
     // 족보. "무엇이 걸리면 얼마인가"를 배수 큰 것부터 보여준다 —
     // 노리고 싶은 것이 위에 오는 편이 읽기 좋다.
     public static string BuildPattern(string _houseKey)
@@ -80,7 +84,163 @@ public static class HandbookText
             AppendPatternLine(builder, stringTable, key, dicMin[key], dicMax[key]);
         }
 
+        AppendSubTable(builder, _houseKey);
+
         return builder.ToString();
+    }
+
+    // 종족별 하위 표. **"자세하게"의 실체다**(2026-09-14 사용자 요구).
+    //
+    // 판정 한 줄로는 전달되지 않는 종족이 둘 있다.
+    //  · 슬롯은 같은 "3매치"라도 심볼마다 배수가 3~33으로 열 배 넘게 벌어진다.
+    //    `slot-house.html` §12.2가 "배당표를 보여주지 않으면 규칙이 전달되지 않는다"고 적어뒀다
+    //  · 화투(섯다)는 두 장의 조합이 곧 족보라, 무엇이 높은지를 모르면 판정을 읽을 수 없다
+    private static void AppendSubTable(StringBuilder _builder, string _houseKey)
+    {
+        if (_houseKey == "slot")
+        {
+            AppendSlotPayTable(_builder);
+            return;
+        }
+
+        if (_houseKey == "hwatu")
+            AppendSutdaTable(_builder);
+    }
+
+    // 슬롯 배당표 — 심볼마다 3매치·2매치 배수가 다르다.
+    private static void AppendSlotPayTable(StringBuilder _builder)
+    {
+        JudgeTable judgeTable = TableManager.instance.GetTable<JudgeTable>();
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        UnitTable unitTable = TableManager.instance.GetTable<UnitTable>();
+
+        if (judgeTable == null || stringTable == null || unitTable == null)
+            return;
+
+        _builder.Append(System.Environment.NewLine);
+        _builder.Append(System.Environment.NewLine);
+        _builder.Append(stringTable.GetString("SlotPayTitle"));
+
+        for (int symbol = 0; symbol < SLOT_SYMBOL_COUNT; ++symbol)
+        {
+            UnitRecord record = unitTable.GetRecord("slot", symbol);
+            if (record == null)
+                continue;
+
+            float match3 = judgeTable.GetCoef("slot", SLOT_MATCH3_PREFIX + symbol);
+            float match2 = judgeTable.GetCoef("slot", SLOT_MATCH2_PREFIX + symbol);
+
+            _builder.Append(System.Environment.NewLine);
+            _builder.Append("   ");
+            _builder.Append(stringTable.GetString(record.NameKey));
+            _builder.Append("   3개 ×");
+            _builder.Append(match3.ToString("0.##"));
+            _builder.Append("   2개 ×");
+            _builder.Append(match2.ToString("0.##"));
+        }
+    }
+
+    // 화투 섯다 족보 — 값은 Judge 가 소유한다. 여기서 다시 적지 않고 물어본다.
+    //
+    // 12개월을 전부 조합하면 66줄이라 읽히지 않는다. **족보 종류별로 묶어** 대표 예를 보인다.
+    private static void AppendSutdaTable(StringBuilder _builder)
+    {
+        StringTable stringTable = TableManager.instance.GetTable<StringTable>();
+        if (stringTable == null)
+            return;
+
+        _builder.Append(System.Environment.NewLine);
+        _builder.Append(System.Environment.NewLine);
+        _builder.Append(stringTable.GetString("SutdaTitle"));
+
+        // 삼광 — 광 세 장. 열의 세 칸이 모두 광일 때만 성립한다.
+        _builder.Append(System.Environment.NewLine);
+        _builder.Append("   삼광   ");
+        _builder.Append(Judge.sutdaSamgwang.ToString("0.##"));
+
+        // 광땡 — 광 두 장 조합.
+        AppendSutdaGroup(_builder, "광땡", CollectGwangPairs());
+
+        // 땡 — 같은 월 두 장. 높은 것부터.
+        AppendSutdaGroup(_builder, "땡", CollectSameMonth());
+
+        // 특수끗 — 알리·독사 같은 정해진 조합.
+        AppendSutdaGroup(_builder, "특수끗", CollectSpecial());
+    }
+
+    private static void AppendSutdaGroup(StringBuilder _builder, string _label, List<string> _rows)
+    {
+        if (_rows.Count <= 0)
+            return;
+
+        _builder.Append(System.Environment.NewLine);
+        _builder.Append("   ");
+        _builder.Append(_label);
+        _builder.Append("   ");
+        _builder.Append(string.Join(" · ", _rows));
+    }
+
+    private static List<string> CollectGwangPairs()
+    {
+        List<string> rows = new List<string>();
+
+        for (int a = 1; a <= SUTDA_MONTH_MAX; ++a)
+        {
+            for (int b = a + 1; b <= SUTDA_MONTH_MAX; ++b)
+            {
+                float value = Judge.GetSutdaGwangPair(a, b);
+                if (value <= 0f)
+                    continue;
+
+                rows.Add($"{a}·{b}월 {value:0.##}");
+            }
+        }
+
+        return rows;
+    }
+
+    private static List<string> CollectSameMonth()
+    {
+        List<string> rows = new List<string>();
+
+        for (int month = SUTDA_MONTH_MAX; month >= 1; --month)
+        {
+            if (Judge.IsSutdaDeadMonth(month) == true)
+                continue;
+
+            SutdaHand hand = Judge.EvaluateSutdaHand(month, month);
+            if (hand.Value <= 0f)
+                continue;
+
+            rows.Add($"{month}월 {hand.Value:0.##}");
+        }
+
+        return rows;
+    }
+
+    private static List<string> CollectSpecial()
+    {
+        List<string> rows = new List<string>();
+
+        for (int a = 1; a <= SUTDA_MONTH_MAX; ++a)
+        {
+            if (Judge.IsSutdaDeadMonth(a) == true)
+                continue;
+
+            for (int b = a + 1; b <= SUTDA_MONTH_MAX; ++b)
+            {
+                if (Judge.IsSutdaDeadMonth(b) == true)
+                    continue;
+
+                SutdaHand hand = Judge.EvaluateSutdaHand(a, b);
+                if (hand.Name != "특수끗")
+                    continue;
+
+                rows.Add($"{a}·{b}월 {hand.Value:0.##}");
+            }
+        }
+
+        return rows;
     }
 
     // 유닛. 지금 **전장에 서 있는 것**만 보여준다 —

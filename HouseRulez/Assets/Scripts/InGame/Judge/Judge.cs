@@ -980,6 +980,73 @@ public static class Judge
 
     private const float SAMGWANG = 300f;
 
+    // 섯다 두 장의 끗수와 족보 이름.
+    //
+    // **족보 화면이 이것을 그대로 쓴다**(2026-09-14). 값을 표시용으로 따로 적어두면
+    // 규칙이 바뀔 때 한쪽만 고쳐져 조용히 갈린다 — CLAUDE.md 「소유자는 하나다」.
+    // 그래서 판정부에서 통째로 뽑아 공용으로 열었다.
+    //
+    // 월은 1~12다(심볼 인덱스 + 1). 죽은 패(11·12)는 호출 쪽에서 걸러야 한다.
+    public static SutdaHand EvaluateSutdaHand(int _monthA, int _monthB)
+    {
+        SutdaHand hand = new SutdaHand();
+        hand.Value = 0f;
+        hand.Name = "끗";
+
+        if (_monthA >= _monthB && _monthA <= _monthB)
+        {
+            hand.Value = TTANG[_monthA];
+            hand.Name = "땡";
+            return hand;
+        }
+
+        // 광끼리 만나면 광땡 쪽에서 따로 센다 — 여기서는 0이다.
+        if (GWANG_MONTHS.Contains(_monthA) == true && GWANG_MONTHS.Contains(_monthB) == true
+            && GetGwangPair(_monthA, _monthB) > 0f)
+        {
+            return hand;
+        }
+
+        float special = GetSpecial(_monthA, _monthB);
+        if (special > 0f)
+        {
+            hand.Value = special;
+            hand.Name = "특수끗";
+            return hand;
+        }
+
+        // 9월은 9와 10 둘 다로 읽어 더 높은 쪽을 쓴다(섯다의 국진 규칙).
+        int[] listA = (_monthA >= 9 && _monthA <= 9) ? new[] { 9, 10 } : new[] { _monthA };
+        int[] listB = (_monthB >= 9 && _monthB <= 9) ? new[] { 9, 10 } : new[] { _monthB };
+
+        for (int p = 0; p < listA.Length; ++p)
+        {
+            for (int q = 0; q < listB.Length; ++q)
+            {
+                float kkut = KKUT[(listA[p] + listB[q]) % 10];
+                if (kkut > hand.Value)
+                    hand.Value = kkut;
+            }
+        }
+
+        return hand;
+    }
+
+    // 삼광 값. 족보 화면이 읽는다.
+    public static float sutdaSamgwang => SAMGWANG;
+
+    // 광 두 장 조합의 값(광땡). 없으면 0.
+    public static float GetSutdaGwangPair(int _monthA, int _monthB)
+    {
+        return GetGwangPair(_monthA, _monthB);
+    }
+
+    // 죽은 패인가 — 11·12월은 섯다에서 값이 없다.
+    public static bool IsSutdaDeadMonth(int _month)
+    {
+        return DEAD_MONTHS.Contains(_month);
+    }
+
     private static float GetGwangPair(int _monthA, int _monthB)
     {
         int low = Mathf.Min(_monthA, _monthB);
@@ -1079,39 +1146,9 @@ public static class Judge
                     if (DEAD_MONTHS.Contains(x) == true || DEAD_MONTHS.Contains(y) == true)
                         continue;
 
-                    float value = 0f;
-                    string name = "끗";
-
-                    if (x == y)
-                    {
-                        value = TTANG[x];
-                        name = "땡";
-                    }
-                    else if (GWANG_MONTHS.Contains(x) == true && GWANG_MONTHS.Contains(y) == true
-                          && GetGwangPair(x, y) > 0f)
-                    {
-                        value = 0f;
-                    }
-                    else if (GetSpecial(x, y) > 0f)
-                    {
-                        value = GetSpecial(x, y);
-                        name = "특수끗";
-                    }
-                    else
-                    {
-                        // 9월은 9와 10 둘 다로 읽어 더 높은 쪽을 쓴다(섯다의 국진 규칙).
-                        int[] xs = (x == 9) ? new[] { 9, 10 } : new[] { x };
-                        int[] ys = (y == 9) ? new[] { 9, 10 } : new[] { y };
-                        for (int p = 0; p < xs.Length; ++p)
-                        {
-                            for (int q = 0; q < ys.Length; ++q)
-                            {
-                                float kkut = KKUT[(xs[p] + ys[q]) % 10];
-                                if (kkut > value)
-                                    value = kkut;
-                            }
-                        }
-                    }
+                    SutdaHand hand = EvaluateSutdaHand(x, y);
+                    float value = hand.Value;
+                    string name = hand.Name;
 
                     if (value > bestValue)
                     {

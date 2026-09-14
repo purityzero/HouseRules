@@ -177,3 +177,8 @@ Id,Key,Kr,En,Cn,Jp
 177,UnitYutMo,모,,,
 178,UnitPokerTripleUnit,트리플,,,
 179,UnitPokerStraightUnit,스트레이트,,,
+180,SlotPayTitle,배당표,Paytable,赔付表,配当表
+181,SlotPayTriple,3매치,3 Match,三连,3つ揃い
+182,SlotPayDouble,2매치,2 Match,二连,2つ揃い
+183,JudgePaylineRank,배당 판정,Payline Rank,赔付线判定,ペイライン判定
+184,SutdaTitle,섯다 족보,,,
