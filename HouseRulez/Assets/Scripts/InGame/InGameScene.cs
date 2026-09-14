@@ -146,6 +146,22 @@ public class InGameScene : BaseScene
         m_Action.OnBattleStart += OnBattleStart;
         m_Action.OnBattleSpeed += OnBattleSpeed;
         m_Action.OnBuyExtraSpin += OnBuyExtraSpin;
+        m_Action.OnOpenHandbook += OnOpenHandbook;
+    }
+
+    // 족보 팝업. **명부를 직접 넘긴다** — 전투 중에는 UIInGameField 가 자기 참조를 비우므로
+    // 그쪽에서 받으면 유닛 탭이 빈 채로 열린다(전장에는 유닛이 서 있는데도).
+    // 런 상태의 소유자는 이 씬이다.
+    private void OnOpenHandbook()
+    {
+        UIHandbook handbook = UIManager.instance.Get<UIHandbook>();
+        if (handbook == null)
+        {
+            Logger.Error("[InGameScene] OnOpenHandbook Failed! UIHandbook 생성 실패 (기대: UITable.csv에 UIHandbook 행)");
+            return;
+        }
+
+        handbook.Open(m_RunData.houseKey, m_RunData.roster);
     }
 
     public void OnClickSpinButton()

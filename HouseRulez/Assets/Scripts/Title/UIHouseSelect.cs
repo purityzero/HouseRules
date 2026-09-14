@@ -37,9 +37,14 @@ public class UIHouseSelect : UIPopup
     private HouseRecord m_SelectedHouse;
     private Sequence m_BarSequence;
 
+    // 족보 팝업 열기. 씬에서 직렬화로 이어지기 전까지는 Show 에서 이름으로 찾는다.
+    [SerializeField] private UIButton m_HandbookButton;
+
     public override void Show()
     {
         base.Show();
+
+        BindHandbookButton();
 
         RectTransform rectTransform = transform as RectTransform;
         rectTransform.pivot = new Vector2(0.5f, 0.5f);
@@ -165,6 +170,43 @@ public class UIHouseSelect : UIPopup
 
         // 잠긴 종족도 눌러서 볼 수는 있게 둔다. 확정만 막으면 된다.
         Select(_record.Key);
+    }
+
+    // **지금 보고 있는 종족**의 족보를 연다 — 고르기 전에 규칙을 읽는 것이 이 자리의 용도다.
+    // 명부는 넘기지 않는다(아직 런이 없다). 유닛 탭은 그 사실을 글로 알린다.
+    private void BindHandbookButton()
+    {
+        if (m_HandbookButton == null)
+        {
+            Transform found = transform.Find("HandbookButton");
+            if (found != null)
+                m_HandbookButton = found.GetComponent<UIButton>();
+        }
+
+        if (m_HandbookButton == null)
+        {
+            Logger.Error("[UIHouseSelect] BindHandbookButton Failed! HandbookButton 미연결 (기대: 루트 아래 HandbookButton)");
+            return;
+        }
+
+        // 팝업은 열 때마다 Show 를 지나므로 등록 전 해제로 중복 구독을 막는다.
+        m_HandbookButton.onClick.RemoveListener(OnClickHandbookButton);
+        m_HandbookButton.onClick.AddListener(OnClickHandbookButton);
+    }
+
+    private void OnClickHandbookButton()
+    {
+        if (m_SelectedHouse == null)
+            return;
+
+        UIHandbook handbook = UIManager.instance.Get<UIHandbook>();
+        if (handbook == null)
+        {
+            Logger.Error("[UIHouseSelect] OnClickHandbookButton Failed! UIHandbook 생성 실패 (기대: UITable.csv에 UIHandbook 행)");
+            return;
+        }
+
+        handbook.Open(m_SelectedHouse.Key);
     }
 
     private void Select(string _houseKey)

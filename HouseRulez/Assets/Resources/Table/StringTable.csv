@@ -182,3 +182,5 @@ Id,Key,Kr,En,Cn,Jp
 182,SlotPayDouble,2매치,2 Match,二连,2つ揃い
 183,JudgePaylineRank,배당 판정,Payline Rank,赔付线判定,ペイライン判定
 184,SutdaTitle,섯다 족보,,,
+185,HandbookTitle,족보,Handbook,谱表,役一覧
+186,HandbookUnitEmpty,런을 시작하면 이 자리에 지금 가진 유닛이 나옵니다,,,

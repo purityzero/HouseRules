@@ -3,3 +3,4 @@ UISetting,Popup,Prefabs/UI/UISetting
 UIHouseSelect,Popup,Prefabs/UI/UIHouseSelect
 UIHouseUpgrade,Popup,Prefabs/UI/UIHouseUpgrade
 UIRunResult,Popup,Prefabs/UI/UIRunResult
+UIHandbook,Popup,Prefabs/UI/UIHandbook

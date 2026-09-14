@@ -21,11 +21,16 @@ public class UIInGameAction : MonoBehaviour
     [SerializeField] private Button m_ExtraSpinButton;
     [SerializeField] private TextMeshProUGUI m_ExtraSpinText;
 
+    // 족보 팝업 열기. 기존 셋과 달리 UIButton 이다 — 새로 넣는 것이라 규칙(클릭 사운드)을 지킨다.
+    // 기존 셋은 맨 Button 인데 이번 범위가 아니라 그대로 둔다.
+    [SerializeField] private UIButton m_HandbookButton;
+
     private RunData m_RunData;
 
     public event Action OnBattleStart;
     public event Action OnBattleSpeed;
     public event Action OnBuyExtraSpin;
+    public event Action OnOpenHandbook;
 
     private void Awake()
     {
@@ -37,6 +42,25 @@ public class UIInGameAction : MonoBehaviour
 
         if (m_ExtraSpinButton != null)
             m_ExtraSpinButton.onClick.AddListener(OnClickExtraSpinButton);
+
+        // 씬에서 직렬화로 이어지기 전까지의 폴백. 버튼은 씬에 이미 있고(2026-09-14 프리팹 작업)
+        // 인스펙터 연결만 남은 상태라, 이름으로 한 번 찾아 둔다.
+        if (m_HandbookButton == null)
+        {
+            Transform found = transform.Find("HandbookButton");
+            if (found != null)
+                m_HandbookButton = found.GetComponent<UIButton>();
+        }
+
+        if (m_HandbookButton != null)
+        {
+            m_HandbookButton.onClick.RemoveListener(OnClickHandbookButton);
+            m_HandbookButton.onClick.AddListener(OnClickHandbookButton);
+        }
+        else
+        {
+            Logger.Error("[UIInGameAction] Awake Failed! HandbookButton 미연결 (기대: 씬 Action 아래 HandbookButton)");
+        }
     }
 
     public void Apply(RunData _runData)
@@ -93,6 +117,11 @@ public class UIInGameAction : MonoBehaviour
     public void OnClickBattleSpeedButton()
     {
         OnBattleSpeed?.Invoke();
+    }
+
+    public void OnClickHandbookButton()
+    {
+        OnOpenHandbook?.Invoke();
     }
 
     private void SetText(TextMeshProUGUI _text, string _value)
